@@ -77,11 +77,16 @@ h2 { font-size: 18px; line-height: 1.25; letter-spacing: -.02em; }
 .primary-button, .secondary-button { min-height: 40px; border-radius: 10px; padding: 0 14px; cursor: pointer; font-weight: 750; }
 .primary-button { width: 100%; margin-top: 12px; border: 0; color: white; background: var(--green); }
 .primary-button:hover { background: var(--green-dark); }
-.primary-button:disabled { cursor: wait; opacity: .55; }
+.primary-button:disabled { cursor: not-allowed; opacity: .55; }
 .secondary-button { border: 1px solid var(--line); background: white; }
 .secondary-button.compact { min-height: 34px; font-size: 12px; }
 .secondary-button.danger { width: 100%; color: var(--red); border-color: #efcac8; }
 .privacy-note { color: var(--muted); margin-top: 9px; text-align: center; font-size: 10px; }
+.save-reason { margin-top: 7px; color: var(--amber); text-align: center; font-size: 11px; line-height: 1.35; }
+.fallback-button { width: 100%; margin-top: 8px; }
+.coverage-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; color: var(--muted); font-size: 10px; }
+.coverage-summary span { padding: 4px 7px; border-radius: 999px; background: var(--soft); }
+.coverage-summary .coverage-warning { color: var(--amber); background: var(--amber-soft); }
 
 .search-field { display: flex; align-items: center; gap: 8px; height: 39px; padding: 0 10px; margin: 14px 0; color: var(--muted); }
 .search-field input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; }
@@ -110,6 +115,10 @@ h2 { font-size: 18px; line-height: 1.25; letter-spacing: -.02em; }
 dialog { width: 392px; max-height: 560px; padding: 18px; border: 0; border-radius: 15px; color: var(--ink); box-shadow: 0 20px 60px rgba(20,34,30,.22); }
 dialog::backdrop { background: rgba(20,34,30,.32); }
 dialog .criteria-list { max-height: 290px; overflow: auto; }
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.action-grid .secondary-button { width: 100%; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.confirm-actions .danger { width: auto; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
 .detail-grid div { padding: 9px; border-radius: 9px; background: var(--soft); }
 .detail-grid span, .detail-grid strong { display: block; }

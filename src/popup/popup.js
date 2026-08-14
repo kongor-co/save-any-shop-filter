@@ -5,7 +5,8 @@ const state = {
   capture: null,
   library: [],
   replay: null,
-  replayTimer: null
+  replayTimer: null,
+  actionState: null
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -24,7 +25,9 @@ const elements = {
   emptyLibrary: $("#empty-library"),
   libraryCount: $("#library-count"),
   toast: $("#toast"),
-  detailsDialog: $("#details-dialog")
+  detailsDialog: $("#details-dialog"),
+  actionsDialog: $("#actions-dialog"),
+  confirmDialog: $("#confirm-dialog")
 };
 
 initialize().catch((error) => showCaptureError(humanError(error)));
@@ -41,6 +44,7 @@ function bindEvents() {
   for (const tab of elements.tabs) tab.addEventListener("click", () => switchView(tab.dataset.view));
   $("#refresh-capture").addEventListener("click", loadCapture);
   elements.save.addEventListener("click", saveCapture);
+  $("#copy-route").addEventListener("click", copySanitizedRoute);
   $("#library-search").addEventListener("input", renderLibrary);
   $("#library-list").addEventListener("click", handleLibraryAction);
   $("#export-all").addEventListener("click", () => exportStates());
@@ -49,6 +53,10 @@ function bindEvents() {
   $("#cancel-replay").addEventListener("click", cancelReplay);
   $("#replay-done").addEventListener("click", async () => { await loadLibrary(); switchView("library"); });
   $("#close-details").addEventListener("click", () => elements.detailsDialog.close());
+  $("#close-actions").addEventListener("click", () => elements.actionsDialog.close());
+  elements.actionsDialog.addEventListener("click", handleDialogAction);
+  $("#cancel-delete").addEventListener("click", () => elements.confirmDialog.close());
+  $("#confirm-delete").addEventListener("click", confirmDelete);
 }
 
 async function loadCapture() {
@@ -76,12 +84,19 @@ function renderCapture(preview) {
   $("#page-context").textContent = `${preview.site.hostname} · ${preview.context.category || preview.context.searchQuery || preview.context.surface}`;
   elements.stateName.value = preview.suggestedName;
   elements.criteria.replaceChildren(...preview.criteria.map((criterion) => criterionNode(criterion)));
-  elements.save.disabled = preview.criteria.length === 0;
-  elements.save.textContent = preview.criteria.length ? `Save ${preview.criteria.length} ${preview.criteria.length === 1 ? "criterion" : "criteria"}` : "Nothing supported to save";
-  const unsupported = preview.unsupported || [];
-  $("#unsupported-wrap").hidden = unsupported.length === 0;
-  $("#unsupported-count").textContent = String(unsupported.length);
-  $("#unsupported-list").replaceChildren(...unsupported.map((item) => {
+  const coverage = preview.coverage || { captured: preview.criteria.length, meaningfulCaptured: preview.criteria.length, unsupported: preview.unsupported?.length || 0, unresolved: 0, defaultsIgnored: 0, saveEligible: preview.criteria.length > 0 };
+  renderCoverage($("#coverage-summary"), coverage);
+  elements.save.disabled = !coverage.saveEligible;
+  elements.save.textContent = coverage.saveEligible
+    ? `Save ${coverage.meaningfulCaptured} active ${coverage.meaningfulCaptured === 1 ? "setting" : "settings"}`
+    : "Nothing meaningful to save";
+  $("#save-reason").hidden = coverage.saveEligible;
+  $("#save-reason").textContent = coverage.saveReason || "";
+  $("#copy-route").hidden = coverage.saveEligible || !preview.captureUrl;
+  const omissions = [...(preview.unsupported || []), ...(preview.unresolved || [])];
+  $("#unsupported-wrap").hidden = omissions.length === 0;
+  $("#unsupported-count").textContent = String(omissions.length);
+  $("#unsupported-list").replaceChildren(...omissions.map((item) => {
     const p = document.createElement("p");
     p.textContent = `${item.label}: ${item.reason}`;
     return p;
@@ -124,6 +139,16 @@ async function saveCapture() {
   } catch (error) {
     toast(humanError(error), true);
     await loadCapture();
+  }
+}
+
+async function copySanitizedRoute() {
+  if (!state.capture?.captureUrl) return;
+  try {
+    await navigator.clipboard.writeText(state.capture.captureUrl);
+    toast("Sanitized route copied. This is a URL fallback, not a verified saved configuration.");
+  } catch {
+    toast("The sanitized route could not be copied.", true);
   }
 }
 
@@ -191,21 +216,49 @@ async function handleLibraryAction(event) {
 }
 
 async function moreActions(saved) {
-  const choice = prompt("Choose: rename, duplicate, export, or delete", "rename");
-  if (!choice) return;
-  if (choice.toLowerCase() === "rename") {
-    const name = prompt("New name", saved.name);
-    if (name) await send(MESSAGE.RENAME_STATE, { stateId: saved.id, name });
-  } else if (choice.toLowerCase() === "duplicate") {
-    await send(MESSAGE.DUPLICATE_STATE, { stateId: saved.id });
-  } else if (choice.toLowerCase() === "export") {
-    await exportStates([saved.id]);
-  } else if (choice.toLowerCase() === "delete") {
-    if (confirm(`Delete “${saved.name}”? This cannot be undone.`)) await send(MESSAGE.DELETE_STATE, { stateId: saved.id });
-  } else {
-    throw new Error("Choose rename, duplicate, export, or delete.");
+  state.actionState = saved;
+  $("#rename-value").value = saved.name;
+  elements.actionsDialog.showModal();
+}
+
+async function handleDialogAction(event) {
+  const button = event.target.closest("button[data-library-action]");
+  const saved = state.actionState;
+  if (!button || !saved) return;
+  try {
+    if (button.dataset.libraryAction === "rename") {
+      await send(MESSAGE.RENAME_STATE, { stateId: saved.id, name: $("#rename-value").value });
+      elements.actionsDialog.close();
+      await loadLibrary();
+    } else if (button.dataset.libraryAction === "duplicate") {
+      await send(MESSAGE.DUPLICATE_STATE, { stateId: saved.id });
+      elements.actionsDialog.close();
+      await loadLibrary();
+    } else if (button.dataset.libraryAction === "export") {
+      await exportStates([saved.id]);
+      elements.actionsDialog.close();
+    } else if (button.dataset.libraryAction === "delete") {
+      elements.actionsDialog.close();
+      $("#confirm-copy").textContent = `“${saved.name}” will be permanently removed from this Chrome profile.`;
+      elements.confirmDialog.showModal();
+    }
+  } catch (error) {
+    toast(humanError(error), true);
   }
-  await loadLibrary();
+}
+
+async function confirmDelete() {
+  const saved = state.actionState;
+  if (!saved) return;
+  try {
+    await send(MESSAGE.DELETE_STATE, { stateId: saved.id });
+    elements.confirmDialog.close();
+    state.actionState = null;
+    await loadLibrary();
+    toast(`Deleted “${saved.name}”`);
+  } catch (error) {
+    toast(humanError(error), true);
+  }
 }
 
 async function beginReplay(saved) {
@@ -272,6 +325,7 @@ function showDetails(saved) {
   support.textContent = supportLabel(saved.metadata.supportLevel);
   support.className = `support-badge ${saved.metadata.supportLevel === "LIMITED" ? "limited" : ""}`;
   $("#details-criteria").replaceChildren(...saved.criteria.map((criterion) => criterionNode(criterion)));
+  renderCoverage($("#details-coverage"), saved.metadata.coverage || {});
   const meta = [
     ["Health", saved.metadata.health || "Unknown"],
     ["Locale", saved.site.locale || "Unknown"],
@@ -350,6 +404,21 @@ function supportLabel(level) {
   return ({ VERIFIED: "Verified support", COMPATIBLE: "Generic compatibility", LIMITED: "Limited support", UNSUPPORTED: "Unsupported" })[level] || "Generic compatibility";
 }
 
+function renderCoverage(container, coverage) {
+  const items = [
+    [coverage.captured || 0, "captured", false],
+    [coverage.unsupported || 0, "unsupported", (coverage.unsupported || 0) > 0],
+    [coverage.unresolved || 0, "unresolved", (coverage.unresolved || 0) > 0],
+    [coverage.defaultsIgnored || 0, "defaults ignored", false]
+  ];
+  container.replaceChildren(...items.map(([count, label, warning]) => {
+    const badge = document.createElement("span");
+    badge.textContent = `${count} ${label}`;
+    if (warning) badge.className = "coverage-warning";
+    return badge;
+  }));
+}
+
 function humanSemantic(value) {
   return String(value || "Filter").toLowerCase().split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
@@ -393,7 +462,9 @@ function humanError(error) {
     "UNSUPPORTED_PAGE_TYPE:PRODUCT_DETAIL": "Return to a product listing or search page to save filters.",
     "UNSUPPORTED_PAGE_TYPE:OTHER": "FilterVault could not verify this as a product listing or search page.",
     CAPTURE_STATE_CHANGED: "The page changed during capture. Wait for it to settle, then try again.",
+    CAPTURE_UNSTABLE: "The page kept changing while filters were read. Wait for results to settle, then retry.",
     NO_SUPPORTED_CRITERIA: "No supported active filters were found.",
+    NO_MEANINGFUL_CRITERIA: "Only search or page context was detected; select a filter or non-default sort before saving.",
     REPLAY_ALREADY_ACTIVE: "A replay is already active in this tab."
   };
   return known[code] || code.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());

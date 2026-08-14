@@ -9,16 +9,19 @@ FilterVault is a local-first Chrome/Chromium Manifest V3 extension that saves th
 3. Select **Load unpacked** and choose this repository folder.
 4. Open a retailer listing or search page and select the FilterVault toolbar icon.
 
-The first release targets Chrome 106 or newer. It uses only `activeTab`, `scripting`, and `storage` at install time. Persistent access is requested for one retailer origin only when it is needed for replay navigation.
+FilterVault targets Chrome 106 or newer. It uses only `activeTab`, `scripting`, and `storage` at install time. Persistent access is requested for one retailer origin only when it is needed for replay navigation.
 
 ## Use it
 
 - On a shopping listing/search page, open FilterVault, review the detected route and active DOM-backed criteria, name the configuration, and choose **Save filters**.
 - Open **Library** to search, inspect, replay, rename, duplicate, delete, import, or export configurations.
 - Replay restores the saved route/context first, then applies supported DOM criteria idempotently and verifies the final state.
-- A partial report distinguishes unavailable values, unavailable groups, broken mappings, unsupported controls, inconclusive resolution, and verification failures.
+- The capture coverage report distinguishes meaningful saved settings, search/page context, unsupported controls, unresolved active controls, and ignored defaults before Save is enabled.
+- Replay distinguishes storefront-verified criteria from route-only criteria. Route-only completion is reported with a warning rather than as fully verified.
 
-The MVP includes a verified adapter for Idealo Germany category/result pages. It captures Idealo's route-backed filter tags and selected checkbox filters (including multi-select groups), while ignoring the site's default price-slider bounds until a price filter is actually active.
+Version 0.2 includes hostname-aware route schemas for Amazon.de, Kleinanzeigen, Idealo, rebuy, MediaMarkt, Decathlon, Cyberport, Zalando Germany, Shop Apotheke, OTTO, Autohero, and Home24. The schemas recognize merchant-specific query parameters, aliases, atomic sort pairs, and supported path facets without treating ambiguous short parameters as global filters.
+
+Idealo Germany additionally has a verified DOM adapter for route-backed filter tags and selected checkbox filters, including multi-select groups. Default price-slider bounds are ignored; active dual-handle sliders remain explicitly unsupported until a stable retailer mapping exists.
 
 FilterVault deliberately does not automate login, checkout, consent choices, CAPTCHAs, closed Shadow DOM, arbitrary scripts, dual-handle sliders, or controls it cannot identify and verify safely.
 
@@ -33,7 +36,7 @@ npm run check
 
 No build step and no third-party runtime dependencies are required.
 
-For the optional real-browser regression, install the development dependency and run `npm run smoke:browser`. It starts a local mock shop in isolated Playwright Chromium, loads a temporary copy of the extension, and verifies capture through final replay.
+For the optional real-browser regression, install the development dependency and run `npm run smoke:browser`. It starts local mock shops in isolated Playwright Chromium, loads a temporary copy of the packaged extension, and verifies popup Save, replay diagnostics, Idealo capture, details, rename, duplicate, and delete flows.
 
 ## Privacy
 

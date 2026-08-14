@@ -1,8 +1,15 @@
+import {
+  findRouteSchema,
+  routeSchemaInfo,
+  schemaParameterDescriptor,
+  schemaPathCriteria
+} from "../adapters/route-schemas.js";
+
 const FILTER_KEYS = new Set([
   "brand", "brands", "size", "sizes", "color", "colour", "material", "condition",
   "availability", "stock", "shipping", "seller", "waterproof", "gender", "min_price",
-  "max_price", "price_min", "price_max", "price", "category", "department", "rh",
-  "facets", "bodytype", "pricemin", "pricemax", "instock", "insale", "fullbattery"
+  "max_price", "price_min", "price_max", "price", "department", "rh", "facets",
+  "bodytype", "pricemin", "pricemax", "instock", "insale", "fullbattery"
 ]);
 const CONTEXT_KEYS = new Set([
   "q", "query", "search", "keyword", "category", "department", "k", "ntt",
@@ -21,7 +28,11 @@ export function normalizeSemanticType(value) {
     .toUpperCase() || "UNKNOWN";
 }
 
-export function classifyRouteParameter(name) {
+export function classifyRouteParameter(name, urlLike = null) {
+  if (urlLike) {
+    const owned = schemaParameterDescriptor(findRouteSchema(urlLike), name);
+    if (owned) return owned.role;
+  }
   const key = String(name).toLowerCase();
   if (PAGINATION_KEYS.has(key)) return "PAGINATION";
   if (EPHEMERAL_PATTERN.test(key)) return "EPHEMERAL";
@@ -31,6 +42,10 @@ export function classifyRouteParameter(name) {
   return "IGNORED";
 }
 
+export function getRouteSchemaInfo(urlLike) {
+  return routeSchemaInfo(urlLike);
+}
+
 function stableId(prefix, ...parts) {
   const text = parts.join("|").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return `${prefix}-${text}`.slice(0, 96);
@@ -38,42 +53,82 @@ function stableId(prefix, ...parts) {
 
 export function captureRouteCriteria(urlLike, { includePresentation = false } = {}) {
   const url = new URL(urlLike);
+  const schema = findRouteSchema(url);
   const grouped = new Map();
+
   for (const [parameter, value] of url.searchParams.entries()) {
-    const classification = classifyRouteParameter(parameter);
-    if (classification === "IGNORED" || classification === "EPHEMERAL" || classification === "PAGINATION") continue;
+    const owned = schemaParameterDescriptor(schema, parameter);
+    const classification = owned?.role || classifyRouteParameter(parameter);
+    if (["IGNORED", "EPHEMERAL", "PAGINATION"].includes(classification)) continue;
     if (classification === "PRESENTATION" && !includePresentation) continue;
-    const key = parameter.toLowerCase();
-    if (!grouped.has(key)) grouped.set(key, { parameter, classification, values: [] });
-    grouped.get(key).values.push(value);
+    const canonical = owned?.canonical || parameter.toLowerCase();
+    const semanticType = owned?.semanticType || normalizeSemanticType(parameter);
+    const groupKey = `${classification}:${canonical}:${semanticType}`;
+    if (!grouped.has(groupKey)) {
+      grouped.set(groupKey, {
+        canonical,
+        classification,
+        semanticType,
+        atomicGroup: owned?.atomicGroup || null,
+        values: [],
+        parameters: new Map()
+      });
+    }
+    const group = grouped.get(groupKey);
+    group.values.push(value);
+    if (!group.parameters.has(parameter)) group.parameters.set(parameter, []);
+    group.parameters.get(parameter).push(value);
   }
 
-  return [...grouped.values()].map(({ parameter, classification, values }) => ({
-    criterionId: stableId("route", parameter),
-    role: classification === "PRESENTATION" ? "PRESENTATION" : classification,
-    semanticType: normalizeSemanticType(parameter),
-    desiredValue: [...new Set(values)],
-    observedRepresentation: [...new Set(values)],
+  const queryCriteria = [...grouped.values()].map((group) => ({
+    criterionId: stableId("route", group.canonical, group.semanticType),
+    role: group.classification,
+    semanticType: group.semanticType,
+    desiredValue: [...new Set(group.values)],
+    observedRepresentation: [...new Set(group.values)],
     dependencies: [],
-    bindings: [{
+    atomicGroup: group.atomicGroup || undefined,
+    bindings: [...group.parameters].map(([parameter, values]) => ({
       bindingId: stableId("binding", "query", parameter),
       type: "URL_QUERY",
       parameter,
       encoding: values.length > 1 ? "REPEATED" : "SINGLE",
       values: [...new Set(values)],
+      verificationTexts: [...new Set(values)],
+      applicability: {}
+    }))
+  }));
+
+  const pathCriteria = schemaPathCriteria(schema, url).map((criterion) => ({
+    criterionId: stableId("route", schema?.id || "generic", criterion.key, ...criterion.desiredValue),
+    role: criterion.role,
+    semanticType: criterion.semanticType,
+    desiredValue: criterion.desiredValue,
+    observedRepresentation: criterion.observedRepresentation,
+    dependencies: [],
+    pathSummary: criterion.pathSummary || undefined,
+    bindings: [{
+      bindingId: stableId("binding", "path", schema?.id || "generic", criterion.key),
+      type: "URL_PATH",
+      pathname: criterion.pathname,
+      verificationTexts: criterion.verificationTexts || [],
       applicability: {}
     }]
   }));
+
+  return [...pathCriteria, ...queryCriteria];
 }
 
 export function cleanCaptureUrl(urlLike, { includePresentation = false } = {}) {
   const url = new URL(urlLike);
+  const schema = findRouteSchema(url);
   for (const key of [...url.searchParams.keys()]) {
-    const kind = classifyRouteParameter(key);
-    if (kind === "PAGINATION" || kind === "EPHEMERAL" || kind === "IGNORED" || (kind === "PRESENTATION" && !includePresentation)) {
+    const kind = schemaParameterDescriptor(schema, key)?.role || classifyRouteParameter(key);
+    if (["PAGINATION", "EPHEMERAL", "IGNORED"].includes(kind) || (kind === "PRESENTATION" && !includePresentation)) {
       url.searchParams.delete(key);
     }
   }
+  url.hash = "";
   return url.toString();
 }
 
@@ -90,10 +145,12 @@ export function buildReplayUrl(captureUrl, criteria) {
       for (const value of binding.values || []) url.searchParams.append(binding.parameter, String(value));
     }
   }
+  const schema = findRouteSchema(url);
   for (const key of [...url.searchParams.keys()]) {
-    const kind = classifyRouteParameter(key);
-    if (kind === "PAGINATION" || kind === "EPHEMERAL") url.searchParams.delete(key);
+    const kind = schemaParameterDescriptor(schema, key)?.role || classifyRouteParameter(key);
+    if (["PAGINATION", "EPHEMERAL", "IGNORED"].includes(kind)) url.searchParams.delete(key);
   }
+  url.hash = "";
   return url.toString();
 }
 
@@ -122,5 +179,12 @@ export function mergeCriteria(routeCriteria, domCriteria) {
       merged.push(domCriterion);
     }
   }
-  return merged;
+
+  return merged.filter((criterion) => {
+    if (!criterion.pathSummary) return true;
+    const summaryPath = criterion.bindings.find((binding) => binding.type === "URL_PATH")?.pathname;
+    return !merged.some((other) => other !== criterion
+      && other.bindings?.some((binding) => binding.type === "DOM")
+      && other.bindings?.some((binding) => binding.type === "URL_PATH" && binding.pathname === summaryPath));
+  });
 }

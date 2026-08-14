@@ -1,0 +1,77 @@
+[
+  {
+    "shop": "Amazon.de",
+    "url": "https://www.amazon.de/s?k=running+shoes+men&s=price-asc-rank&utm_source=test&page=3",
+    "schema": "amazon-de",
+    "expected": { "SEARCH_QUERY": ["running shoes men"], "SORT": ["price-asc-rank"] },
+    "removed": ["utm_source", "page"]
+  },
+  {
+    "shop": "Kleinanzeigen",
+    "url": "https://www.kleinanzeigen.de/s-notebooks/laptop/k0c278+notebooks.brand_s:apple+notebooks.ram_s:16gb",
+    "schema": "kleinanzeigen-de",
+    "expected": { "BRAND": ["apple"], "RAM": ["16gb"] }
+  },
+  {
+    "shop": "Idealo",
+    "url": "https://www.idealo.de/preisvergleich/ProductCategory/19116F1820730-8454964-9930992.html?sortKey=minPrice",
+    "schema": "idealo-de",
+    "expected": { "IDEALO_FILTER_STATE": ["1820730", "8454964", "9930992"], "SORT": ["minPrice"] }
+  },
+  {
+    "shop": "rebuy",
+    "url": "https://www.rebuy.de/kaufen/handy/samsung/galaxy-s20-serie?priceMax=50000&sortBy=price_asc",
+    "schema": "rebuy-de",
+    "expected": { "CATEGORY_CONTEXT": ["handy"], "BRAND": ["samsung"], "MODEL": ["galaxy s20 serie"], "MAX_PRICE": ["50000"], "SORT": ["price_asc"] }
+  },
+  {
+    "shop": "MediaMarkt",
+    "url": "https://www.mediamarkt.de/de/category/laptops-notebooks-362.html?query=laptop&queryInitial=laptop&sort=currentprice+asc&queryMeta[queryHash]=secret",
+    "schema": "mediamarkt-de",
+    "expected": { "SEARCH_QUERY": ["laptop"], "SORT": ["currentprice asc"] },
+    "removed": ["queryMeta[queryHash]"]
+  },
+  {
+    "shop": "Decathlon",
+    "url": "https://www.decathlon.de/search?Ntt=laufschuhe&facets=brands:ADIDAS_&sort=asc",
+    "schema": "decathlon-de",
+    "expected": { "SEARCH_QUERY": ["laufschuhe"], "FACETS": ["brands:ADIDAS_"], "SORT": ["asc"] }
+  },
+  {
+    "shop": "Cyberport",
+    "url": "https://www.cyberport.de/tools/search-results.html?query=laptop&sortBy=PRD-2B1T_de_price_asc",
+    "schema": "cyberport-de",
+    "expected": { "SEARCH_QUERY": ["laptop"], "SORT": ["PRD-2B1T_de_price_asc"] }
+  },
+  {
+    "shop": "Zalando",
+    "url": "https://en.zalando.de/mens-shoes/nike-performance.nike-sportswear/?order=price&dir=asc",
+    "schema": "zalando-de",
+    "expected": { "BRAND": ["nike performance", "nike sportswear"], "SORT": ["price", "asc"] }
+  },
+  {
+    "shop": "Shop Apotheke",
+    "url": "https://www.shop-apotheke.com/search.htm?query=vitamin%20d&q=vitamin%20d&category=shop-apotheke.com%2FArzneimittel%20%26%20Gesundheit%2FVitamine%20%26%20Mineralstoffe&sortBy=products_mktplc_prod_DE_de_price_asc",
+    "schema": "shop-apotheke-de",
+    "expected": { "SEARCH_QUERY": ["vitamin d"], "CATEGORY": ["shop-apotheke.com/Arzneimittel & Gesundheit/Vitamine & Mineralstoffe"], "SORT": ["products_mktplc_prod_DE_de_price_asc"] }
+  },
+  {
+    "shop": "OTTO",
+    "url": "https://www.otto.de/suche/laptop/?arbeitsspeicher=16-gb&kategorien~sind=laptops&sortiertnach=preis-aufsteigend",
+    "schema": "otto-de",
+    "expected": { "RAM": ["16-gb"], "CATEGORY": ["laptops"], "SORT": ["preis-aufsteigend"] }
+  },
+  {
+    "shop": "Autohero",
+    "url": "https://www.autohero.com/de/v5/search/?sort=price_asc&brand0=bmw&utm_expid=123",
+    "schema": "autohero-de",
+    "expected": { "SORT": ["price_asc"], "BRAND": ["bmw"] },
+    "removed": ["utm_expid"]
+  },
+  {
+    "shop": "Home24",
+    "url": "https://www.home24.de/sofa-couch/?shop=home24+SE&order=PRICE_ASC",
+    "schema": "home24-de",
+    "expected": { "SELLER": ["home24 SE"], "SORT": ["PRICE_ASC"] }
+  }
+]

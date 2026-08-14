@@ -80,7 +80,14 @@ try {
   assert.equal(preview.criteria.some((criterion) => criterion.semanticType === "COLOR"), true);
   assert.equal(preview.unsupported.some((item) => /slider/i.test(item.reason)), true);
 
-  const saved = await call("SAVE_CAPTURE", { tabId, preview, name: "Smoke test trail shoes" });
+  await extension.evaluate(async (id) => chrome.tabs.update(id, { active: true }), tabId);
+  await extension.reload({ waitUntil: "domcontentloaded" });
+  await extension.locator("#capture-content").waitFor();
+  await extension.locator("#state-name").fill("Smoke test trail shoes");
+  await extension.locator("#save-state").click();
+  await extension.locator(".library-card").first().waitFor();
+  const saved = (await call("LIST_STATES")).find((item) => item.name === "Smoke test trail shoes");
+  assert.ok(saved, "Popup Save action should persist the configuration");
   assert.equal(saved.name, "Smoke test trail shoes");
 
   await shop.evaluate(() => {
@@ -101,7 +108,8 @@ try {
     replay = await call("GET_ACTIVE_REPLAY", { tabId });
   } while (replay && !["COMPLETE", "COMPLETE_WITH_WARNINGS", "PARTIAL", "FAILED", "CANCELLED", "INTERRUPTED"].includes(replay.status) && Date.now() < deadline);
 
-  assert.equal(replay?.status, "COMPLETE", JSON.stringify(replay));
+  assert.equal(replay?.status, "COMPLETE_WITH_WARNINGS", JSON.stringify(replay));
+  assert.equal(replay.results.some((result) => result.status === "ROUTE_ONLY" && result.semanticType === "Q"), true);
   await shop.waitForLoadState("domcontentloaded");
   const restored = await shop.evaluate(() => ({
     brand: document.querySelector("#brand-nike").checked,
@@ -144,9 +152,33 @@ try {
     assert.equal(livePreview.criteria.some((criterion) => criterion.semanticType === "GEBRAUCHTE_PRODUKTE_ANZEIGEN"), true);
   }
 
+  await extension.evaluate(async (id) => chrome.tabs.update(id, { active: true }), idealoTabId);
   await extension.reload({ waitUntil: "domcontentloaded" });
   await extension.locator('[data-view="library"]').click();
   await extension.locator(".library-card").first().waitFor();
+
+  let smokeCard = extension.locator(".library-card").filter({ hasText: "Smoke test trail shoes" });
+  await smokeCard.locator('[data-action="more"]').click();
+  await extension.locator("#actions-dialog").waitFor({ state: "visible" });
+  await extension.locator("#rename-value").fill("Renamed trail shoes");
+  await extension.locator('[data-library-action="rename"]').click();
+  smokeCard = extension.locator(".library-card").filter({ hasText: "Renamed trail shoes" });
+  await smokeCard.waitFor();
+
+  await smokeCard.locator('[data-action="more"]').click();
+  await extension.locator('[data-library-action="duplicate"]').click();
+  const copyCard = extension.locator(".library-card").filter({ hasText: "Renamed trail shoes copy" });
+  await copyCard.waitFor();
+  await copyCard.locator('[data-action="more"]').click();
+  await extension.locator('[data-library-action="delete"]').click();
+  await extension.locator("#confirm-dialog").waitFor({ state: "visible" });
+  await extension.locator("#confirm-delete").click();
+  await copyCard.waitFor({ state: "detached" });
+
+  await smokeCard.locator('[data-action="details"]').click();
+  await extension.locator("#details-dialog").waitFor({ state: "visible" });
+  assert.match(await extension.locator("#details-coverage").innerText(), /captured/);
+  await extension.locator("#close-details").click();
   await extension.screenshot({
     path: resolve(smokeRoot, "library.png"),
     clip: { x: 0, y: 0, width: 430, height: 650 }

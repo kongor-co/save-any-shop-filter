@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateImportPayload, validateSavedState } from "../src/shared/validator.js";
+import { migrateSavedState, validateImportPayload, validateSavedState } from "../src/shared/validator.js";
 
 function validState() {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     id: "state-1",
     name: "Trail shoes",
     site: {
@@ -41,8 +41,20 @@ function validState() {
       createdAt: "2026-08-13T00:00:00.000Z",
       updatedAt: "2026-08-13T00:00:00.000Z",
       captureUrl: "https://shop.example/search?brand=nike",
+      routeSnapshot: "https://shop.example/search?brand=nike",
       supportLevel: "COMPATIBLE",
       unsupported: [],
+      coverage: {
+        activeDetected: 1,
+        captured: 1,
+        meaningfulCaptured: 1,
+        unsupported: 0,
+        unresolved: 0,
+        defaultsIgnored: 0,
+        saveEligible: true,
+        saveReason: null,
+        supportLevel: "COMPATIBLE"
+      },
       lastReplayAt: null,
       lastSuccessfulReplayAt: null,
       health: "UNKNOWN"
@@ -53,14 +65,36 @@ function validState() {
 test("valid state and export are accepted", () => {
   const state = validState();
   assert.equal(validateSavedState(state), state);
-  const payload = { schemaVersion: 3, states: [state] };
+  const payload = { schemaVersion: 4, states: [state] };
   assert.equal(validateImportPayload(JSON.stringify(payload)).states.length, 1);
 });
 
 test("future schema versions are rejected", () => {
   const state = validState();
-  state.schemaVersion = 4;
+  state.schemaVersion = 5;
   assert.throws(() => validateSavedState(state), /Unsupported schema version/);
+});
+
+test("version 3 states migrate without inventing criteria", () => {
+  const legacy = validState();
+  legacy.schemaVersion = 3;
+  delete legacy.metadata.coverage;
+  delete legacy.metadata.routeSnapshot;
+  const migrated = migrateSavedState(legacy);
+  assert.equal(migrated.schemaVersion, 4);
+  assert.equal(migrated.criteria.length, legacy.criteria.length);
+  assert.equal(migrated.metadata.coverage.saveEligible, true);
+  assert.equal(migrated.metadata.health, "UNKNOWN");
+  assert.equal(validateSavedState(migrated), migrated);
+});
+
+test("version 3 exports migrate on import", () => {
+  const legacy = validState();
+  legacy.schemaVersion = 3;
+  delete legacy.metadata.coverage;
+  const imported = validateImportPayload({ schemaVersion: 3, states: [legacy] });
+  assert.equal(imported.schemaVersion, 4);
+  assert.equal(imported.states[0].schemaVersion, 4);
 });
 
 test("cross-origin binding modifications are rejected", () => {
