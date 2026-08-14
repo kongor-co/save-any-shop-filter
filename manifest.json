@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FilterVault",
   "description": "Save and deterministically restore shopping filters with explicit verification.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minimum_chrome_version": "106",
   "permissions": [
     "activeTab",

@@ -9,7 +9,7 @@
     REPLAY_PROGRESS: "REPLAY_PROGRESS",
     REPLAY_COMPLETE: "REPLAY_COMPLETE"
   };
-  const SUCCESS = new Set(["APPLIED", "ALREADY_APPLIED", "VERIFIED"]);
+  const SUCCESS = new Set(["APPLIED", "ALREADY_APPLIED", "VERIFIED", "ROUTE_ONLY"]);
   const cancelledReplays = new Set();
 
   if (globalThis.__FILTER_VAULT_EXECUTOR__) {
@@ -44,9 +44,18 @@
     chrome.runtime.sendMessage({ type: MESSAGE.CONTENT_READY, href: location.href }).catch(() => undefined);
   }
 
-  function capturePage() {
-    const startedUrl = location.href;
-    const startedSignature = activeStateSignature();
+  async function capturePage() {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const startedUrl = location.href;
+      const startedSignature = activeStateSignature();
+      const snapshot = captureSnapshot();
+      await delay(180 + (attempt * 120));
+      if (startedUrl === location.href && startedSignature === activeStateSignature()) return snapshot;
+    }
+    throw new Error("CAPTURE_UNSTABLE");
+  }
+
+  function captureSnapshot() {
     const pageType = detectPageType();
     if (["CHECKOUT", "LOGIN", "ACCOUNT", "PRODUCT_DETAIL", "OTHER"].includes(pageType)) {
       throw new Error(`UNSUPPORTED_PAGE_TYPE:${pageType}`);
@@ -55,9 +64,6 @@
     const candidates = collectSupportedControls();
     let domCriteria = groupCandidates(candidates.supported);
     if (isIdealoAdapter()) domCriteria = enrichIdealoCriteria(domCriteria);
-    const endedSignature = activeStateSignature();
-    if (startedUrl !== location.href || startedSignature !== endedSignature) throw new Error("CAPTURE_STATE_CHANGED");
-
     return {
       url: location.href,
       title: document.title,
@@ -67,7 +73,9 @@
       adapterVersion: 1,
       contextLabel: inferContextLabel(),
       domCriteria,
-      unsupported: candidates.unsupported.slice(0, 30)
+      unsupported: candidates.unsupported.slice(0, 30),
+      unresolved: candidates.unresolved.slice(0, 30),
+      defaultsIgnored: candidates.defaultsIgnored.slice(0, 30)
     };
   }
 
@@ -88,18 +96,25 @@
   function collectSupportedControls() {
     const supported = [];
     const unsupported = [];
+    const unresolved = [];
+    const defaultsIgnored = [];
     const seen = new Set();
     const selectors = [
       'input[type="checkbox"]', 'input[type="radio"]', "select",
       'input[type="number"]', '[role="checkbox"]', '[role="radio"]', '[role="switch"]',
-      '[aria-selected="true"]', '[aria-pressed="true"]'
+      '[aria-selected="true"]', '[aria-pressed="true"]', 'a[aria-current="true"], a[aria-current="page"]'
     ].join(",");
 
     for (const element of queryAllDeep(selectors)) {
       if (seen.has(element) || !isElementVisible(element) || isSensitiveControl(element)) continue;
       seen.add(element);
+      if (element instanceof HTMLSelectElement && isDefaultSelect(element)) {
+        defaultsIgnored.push({ label: controlLabel(element) || "Default selection", reason: "Default selection is not active filter state." });
+        continue;
+      }
       const candidate = captureControl(element);
       if (candidate) supported.push(candidate);
+      else if (appearsActive(element)) unresolved.push({ label: controlLabel(element) || "Unresolved active control", reason: "The active control could not be mapped unambiguously." });
     }
 
     for (const element of queryAllDeep('[role="slider"], input[type="range"], [aria-autocomplete], [role="combobox"]')) {
@@ -110,7 +125,12 @@
         reason: element.matches('[role="slider"], input[type="range"]') ? "Dual/range sliders require a verified adapter." : "Autocomplete controls require a verified adapter."
       });
     }
-    return { supported, unsupported: dedupeUnsupported(unsupported) };
+    return {
+      supported,
+      unsupported: dedupeUnsupported(unsupported),
+      unresolved: dedupeUnsupported(unresolved),
+      defaultsIgnored: dedupeUnsupported(defaultsIgnored)
+    };
   }
 
   function captureControl(element) {
@@ -132,6 +152,7 @@
       interactionAction = "ACTIVATE_IF_NEEDED";
       verificationType = "OPTION_SELECTED";
     } else if (element instanceof HTMLSelectElement) {
+      if (isDefaultSelect(element)) return null;
       const selected = [...element.selectedOptions].filter((option) => option.value && !option.disabled);
       if (!selected.length) return null;
       controlType = "NATIVE_SELECT";
@@ -280,9 +301,13 @@
     for (let index = 0; index < results.length; index += 1) {
       if (!SUCCESS.has(results[index].status)) continue;
       const criterion = message.criteria.find((item) => item.criterionId === results[index].criterionId);
-      const verified = await verifyCriterion(criterion);
-      if (!verified) {
+      const verification = await verifyCriterion(criterion);
+      if (!verification) {
         results[index] = criterionResult(criterion, "VERIFY_FAILED", "The filter changed after it was applied.");
+      } else if (verification === "VERIFIED") {
+        results[index] = criterionResult(criterion, "VERIFIED", "The storefront visibly confirms this criterion.", "VISIBLE_STATE");
+      } else if (verification === "ROUTE_ONLY") {
+        results[index] = criterionResult(criterion, "ROUTE_ONLY", "The route retained this criterion, but no independent visible confirmation was available.", "NORMALIZED_ROUTE");
       }
     }
 
@@ -299,7 +324,10 @@
     const routeSatisfied = routeBindings.length > 0 && routeBindings.every(routeBindingMatches);
     const domSatisfied = domBindings.length > 0 && domBindings.every(bindingCurrentlySatisfied);
     if (routeSatisfied && (!domBindings.length || domSatisfied)) {
-      return criterionResult(criterion, "ALREADY_APPLIED", "The saved route already represents this criterion.");
+      if (domSatisfied || hasVisibleCriterionEvidence(criterion)) {
+        return criterionResult(criterion, "VERIFIED", "The saved route and visible storefront state represent this criterion.", domSatisfied ? "DOM_CONTROL" : "VISIBLE_STATE");
+      }
+      return criterionResult(criterion, "ROUTE_ONLY", "The saved route represents this criterion; visible confirmation is not available.", "NORMALIZED_ROUTE");
     }
     if (!domBindings.length) {
       return criterionResult(criterion, "VERIFY_FAILED", "The retailer did not retain the saved route state.");
@@ -328,19 +356,25 @@
     if (isDisabled(option)) return failure("VALUE_UNAVAILABLE", "The saved value is visible but currently disabled.");
     if (observeDesired(option, mapping)) return { ok: true, changed: false };
 
-    const action = (mapping.interactionPlan || []).find((step) => step.action !== "VERIFY");
-    if (!action) return failure("UNSUPPORTED_INTERACTION", "No supported interaction plan is available.");
-    const changed = performAction(option, mapping, action.action);
-    if (!changed) return failure("UNSUPPORTED_INTERACTION", "This control requires a retailer-specific interaction.");
-    const verified = await waitFor(() => observeDesired(option, mapping), Math.min(action.timeoutMs || 3000, 5000));
+    const plan = (mapping.interactionPlan || []).filter((step) => !["VERIFY", "VERIFY_RESULT"].includes(step.action));
+    if (!plan.length) return failure("UNSUPPORTED_INTERACTION", "No supported interaction plan is available.");
+    let changed = false;
+    for (const step of plan) {
+      const outcome = await performAction({ option, group, mapping, step });
+      if (!outcome) return failure("UNSUPPORTED_INTERACTION", `The ${step.action.toLowerCase().replaceAll("_", " ")} step could not be completed safely.`);
+      changed ||= !["SCROLL_INTO_VIEW", "WAIT_ROUTE_STABLE", "WAIT_FOR_CONDITION"].includes(step.action);
+    }
+    const timeout = Math.min(Math.max(...plan.map((step) => step.timeoutMs || 3000)), 8000);
+    const verified = await waitFor(() => observeDesired(option, mapping), timeout);
     return verified ? { ok: true, changed: true } : failure("VERIFY_FAILED", "The interaction occurred, but the desired state could not be verified.");
   }
 
   async function verifyCriterion(criterion) {
     const routeBindings = (criterion.bindings || []).filter((binding) => ["URL_QUERY", "URL_PATH"].includes(binding.type));
     const domBindings = (criterion.bindings || []).filter((binding) => binding.type === "DOM");
-    if (domBindings.length) return domBindings.every(bindingCurrentlySatisfied);
-    return routeBindings.length > 0 && routeBindings.every(routeBindingMatches);
+    if (domBindings.length) return domBindings.every(bindingCurrentlySatisfied) ? "VERIFIED" : false;
+    if (!routeBindings.length || !routeBindings.every(routeBindingMatches)) return false;
+    return hasVisibleCriterionEvidence(criterion) ? "VERIFIED" : "ROUTE_ONLY";
   }
 
   function bindingCurrentlySatisfied(binding) {
@@ -349,26 +383,52 @@
     return Boolean(option && observeDesired(option, binding.mapping));
   }
 
-  function performAction(element, mapping, action) {
-    if (action === "SELECT_NATIVE_OPTION" && element instanceof HTMLSelectElement) {
-      const desired = (mapping.desiredValue || [])[0];
-      if (![...element.options].some((option) => option.value === desired)) return false;
-      element.value = desired;
-      dispatchControlEvents(element);
+  async function performAction({ option, group, mapping, step }) {
+    const action = step.action;
+    if (["ENSURE_EXPANDED", "OPEN_FILTER_GROUP"].includes(action)) {
+      if (group.getAttribute("aria-expanded") === "false") group.click();
+      const trigger = group.querySelector('[aria-expanded="false"], summary');
+      if (trigger) trigger.click();
       return true;
     }
-    if (action === "SET_INPUT_VALUE" && element instanceof HTMLInputElement) {
+    if (action === "SCROLL_INTO_VIEW" || action === "SCROLL_CONTAINER") {
+      option.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+      return true;
+    }
+    if (action === "FOCUS") {
+      option.focus();
+      return true;
+    }
+    if (action === "SELECT_NATIVE_OPTION" && option instanceof HTMLSelectElement) {
+      const desired = (mapping.desiredValue || [])[0];
+      if (![...option.options].some((candidate) => candidate.value === desired)) return false;
+      option.value = desired;
+      dispatchControlEvents(option);
+      return true;
+    }
+    if (action === "SET_INPUT_VALUE" && option instanceof HTMLInputElement) {
       const desired = String((mapping.desiredValue || [])[0] ?? "");
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-      if (setter) setter.call(element, desired); else element.value = desired;
-      dispatchControlEvents(element);
-      element.blur();
+      if (setter) setter.call(option, desired); else option.value = desired;
+      dispatchControlEvents(option);
+      option.blur();
       return true;
     }
-    if (action === "ACTIVATE_IF_NEEDED") {
-      element.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
-      element.click();
+    if (["ACTIVATE_IF_NEEDED", "ACTIVATE_OPTION", "DEACTIVATE_IF_NEEDED"].includes(action)) {
+      option.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+      option.click();
       return true;
+    }
+    if (action === "COMMIT") {
+      const target = step.locatorChain?.length
+        ? (resolveLocatorChain(step.locatorChain, group, false) || resolveLocatorChain(step.locatorChain, document, false))
+        : [...group.querySelectorAll('button,[role="button"],input[type="submit"]')].find((element) => /apply|show results|submit|anzeigen|übernehmen|anwenden/i.test(element.textContent || element.value || ""));
+      if (!target || isDisabled(target)) return false;
+      target.click();
+      return waitForRouteStable(Math.min(step.timeoutMs || 5000, 8000));
+    }
+    if (action === "WAIT_ROUTE_STABLE" || action === "WAIT_FOR_CONDITION") {
+      return waitForRouteStable(Math.min(step.timeoutMs || 3000, 8000));
     }
     return false;
   }
@@ -428,6 +488,13 @@
       const controls = all('input,select,button,[role="checkbox"],[role="radio"],[role="switch"],[aria-selected],[aria-pressed]');
       return unique(controls.filter((element) => normalizedText(controlLabel(element)) === normalizedText(value)));
     }
+    if (locator.type === "BUTTON_TEXT") {
+      return unique(all('button,[role="button"],input[type="submit"]')
+        .filter((element) => normalizedText(element.textContent || element.value) === normalizedText(value)));
+    }
+    if (locator.type === "LINK_TEXT") {
+      return unique(all("a[href]").filter((element) => normalizedText(element.textContent) === normalizedText(value)));
+    }
     return isContainer ? null : null;
   }
 
@@ -453,6 +520,7 @@
     if ((element instanceof HTMLInputElement || element instanceof HTMLButtonElement) && element.getAttribute("name") && element.getAttribute("value")) {
       locators.push({ type: "NAME_VALUE", value: `${element.getAttribute("name")}\u0000${element.getAttribute("value")}` });
     }
+    if (element instanceof HTMLAnchorElement) locators.push({ type: "LINK_TEXT", value: label });
     locators.push({ type: "LABEL_TEXT", value: label });
     return dedupeLocators(locators);
   }
@@ -537,6 +605,26 @@
     return JSON.stringify(values.sort());
   }
 
+  function hasVisibleCriterionEvidence(criterion) {
+    const evidence = activeEvidenceText();
+    const candidates = [
+      ...(criterion.observedRepresentation || []),
+      ...(criterion.bindings || []).flatMap((binding) => binding.verificationTexts || [])
+    ].map(normalizedText).filter((value) => value.length >= 2 && !/^\d+$/.test(value));
+    return candidates.length > 0 && candidates.every((value) => evidence.includes(value));
+  }
+
+  function activeEvidenceText() {
+    const parts = [];
+    for (const element of queryAllDeep('input:checked, select, [aria-checked="true"], [aria-selected="true"], [aria-pressed="true"], [class*="filterTag"], [class*="filter-tag"], [class*="active-filter"]')) {
+      if (!isElementVisible(element)) continue;
+      if (element instanceof HTMLSelectElement && isDefaultSelect(element)) continue;
+      parts.push(controlLabel(element), element.textContent, element.getAttribute("aria-label"));
+      if (element instanceof HTMLSelectElement) parts.push(...selectedLabels(element));
+    }
+    return normalizedText(parts.filter(Boolean).join(" | "));
+  }
+
   function queryAllDeep(selector, startingScope = document) {
     const results = [];
     const roots = [];
@@ -555,6 +643,7 @@
     for (const attribute of ["aria-checked", "aria-selected", "aria-pressed"]) {
       if (element.hasAttribute(attribute)) return element.getAttribute(attribute) === "true";
     }
+    if (element.hasAttribute("aria-current")) return !["false", ""].includes(element.getAttribute("aria-current"));
     return null;
   }
 
@@ -575,6 +664,20 @@
 
   function isDisabled(element) {
     return Boolean(element.disabled || element.getAttribute("aria-disabled") === "true");
+  }
+
+  function isDefaultSelect(select) {
+    if (!(select instanceof HTMLSelectElement) || select.selectedIndex < 0) return false;
+    const explicitDefault = [...select.options].findIndex((option) => option.defaultSelected);
+    if (explicitDefault >= 0) return select.selectedIndex === explicitDefault;
+    return select.selectedIndex === 0;
+  }
+
+  function appearsActive(element) {
+    if (element instanceof HTMLInputElement && ["checkbox", "radio"].includes(element.type)) return element.checked;
+    if (element instanceof HTMLSelectElement) return !isDefaultSelect(element);
+    if (element instanceof HTMLInputElement && ["number", "range"].includes(element.type)) return Boolean(element.value);
+    return observedBooleanState(element) === true;
   }
 
   function appearsVirtualized(group) {
@@ -606,6 +709,27 @@
     });
   }
 
+  function delay(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  async function waitForRouteStable(timeoutMs) {
+    const started = Date.now();
+    let previous = `${location.href}|${activeStateSignature()}`;
+    let stableSince = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      await delay(100);
+      const current = `${location.href}|${activeStateSignature()}`;
+      if (current !== previous) {
+        previous = current;
+        stableSince = Date.now();
+      } else if (Date.now() - stableSince >= 300) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   async function progress(message, criterion, results, status) {
     await chrome.runtime.sendMessage({
       type: MESSAGE.REPLAY_PROGRESS,
@@ -623,10 +747,12 @@
 
   function routeBindingMatches(binding) {
     if (binding.type === "URL_PATH") {
-      const expected = binding.verificationTexts || [];
-      const actual = idealoActiveTags().map(normalizedText);
-      if (expected.length) return expected.every((value) => actual.includes(normalizedText(value)));
-      return location.pathname === binding.pathname;
+      if (location.pathname !== binding.pathname) return false;
+      if (isIdealoAdapter() && (binding.verificationTexts || []).length) {
+        const actual = idealoActiveTags().map(normalizedText);
+        return binding.verificationTexts.every((value) => actual.includes(normalizedText(value)));
+      }
+      return true;
     }
     const actual = new URL(location.href).searchParams.getAll(binding.parameter).map(String).sort();
     const desired = (binding.values || []).map(String).sort();
@@ -635,18 +761,19 @@
 
   function overallStatus(results) {
     const successful = results.filter((result) => SUCCESS.has(result.status)).length;
-    if (successful === results.length) return "COMPLETE";
+    if (successful === results.length) return results.some((result) => result.status === "ROUTE_ONLY") ? "COMPLETE_WITH_WARNINGS" : "COMPLETE";
     if (successful === 0) return results.some((result) => result.status === "CANCELLED") ? "CANCELLED" : "FAILED";
     return "PARTIAL";
   }
 
-  function criterionResult(criterion, status, message) {
+  function criterionResult(criterion, status, message, evidence = null) {
     return {
       criterionId: criterion.criterionId,
       semanticType: criterion.semanticType,
       desiredValue: criterion.desiredValue,
       status,
-      message
+      message,
+      evidence
     };
   }
 
@@ -669,7 +796,7 @@
 
   function conciseLabel(value) {
     const text = String(value || "").replace(/\s+/g, " ").trim();
-    return text && text.length <= 160 ? text : "";
+    return text && text.length <= 160 && text !== "[object Object]" && !/^(apply|submit|show results|anzeigen|anwenden)$/i.test(text) ? text : "";
   }
 
   function normalizedText(value) {

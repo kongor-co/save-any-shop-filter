@@ -28,3 +28,12 @@ export function topologicalSort(criteria) {
   if (ordered.length !== criteria.length) throw new Error("DEPENDENCY_CYCLE");
   return ordered;
 }
+
+export function calculateReplayBudget(criteria, { hardMaximumMs = 90_000 } = {}) {
+  const actionCount = criteria.reduce((count, criterion) => count + (criterion.bindings || []).reduce((bindingCount, binding) =>
+    bindingCount + (binding.mapping?.interactionPlan?.length || 0), 0), 0);
+  const commitCount = criteria.reduce((count, criterion) => count + (criterion.bindings || []).reduce((bindingCount, binding) =>
+    bindingCount + (binding.mapping?.interactionPlan || []).filter((step) => step.action === "COMMIT").length, 0), 0);
+  const calculated = 20_000 + (criteria.length * 2_000) + (actionCount * 1_500) + (commitCount * 6_000);
+  return Math.min(Math.max(calculated, 30_000), hardMaximumMs);
+}

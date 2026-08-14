@@ -1,16 +1,17 @@
 import {
   ACTIVE_REPLAY_PREFIX,
   LIBRARY_INDEX_KEY,
-  MAX_REPLAY_MS,
   MESSAGE,
   REPLAY_STATUS,
   SCHEMA_VERSION
 } from "../shared/constants.js";
-import { topologicalSort } from "../shared/planner.js";
+import { calculateReplayBudget, topologicalSort } from "../shared/planner.js";
+import { calculateCoverage } from "../shared/coverage.js";
 import {
   buildReplayUrl,
   captureRouteCriteria,
   cleanCaptureUrl,
+  getRouteSchemaInfo,
   mergeCriteria
 } from "../shared/route.js";
 import {
@@ -46,6 +47,7 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
       "fv:meta": { schemaVersion: SCHEMA_VERSION, installedAt: new Date().toISOString() }
     });
   }
+  if (reason === "update") await listStates();
   await chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
   await chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
 });
@@ -161,25 +163,34 @@ async function captureTab(tabId) {
   const routeCriteria = captureRouteCriteria(response.snapshot.url, { includePresentation: true });
   const criteria = mergeCriteria(routeCriteria, response.snapshot.domCriteria || []);
   const captureUrl = cleanCaptureUrl(response.snapshot.url, { includePresentation: true });
-  const context = buildContext(response.snapshot, captureUrl);
+  const routeSchema = getRouteSchemaInfo(captureUrl);
+  const context = buildContext(response.snapshot, captureUrl, criteria);
+  const unsupported = response.snapshot.unsupported || [];
+  const unresolved = response.snapshot.unresolved || [];
+  const defaultsIgnored = response.snapshot.defaultsIgnored || [];
+  const adapterId = response.snapshot.adapterId && response.snapshot.adapterId !== "generic"
+    ? response.snapshot.adapterId
+    : routeSchema.id;
+  const coverage = calculateCoverage({ criteria, unsupported, unresolved, defaultsIgnored, adapterId });
   const preview = {
     site: {
       origin: new URL(captureUrl).origin,
       hostname: new URL(captureUrl).hostname,
       locale: response.snapshot.locale || "und",
-      adapterId: response.snapshot.adapterId || "generic",
-      adapterVersion: response.snapshot.adapterVersion || 1
+      adapterId,
+      adapterVersion: response.snapshot.adapterId && response.snapshot.adapterId !== "generic"
+        ? (response.snapshot.adapterVersion || 1)
+        : routeSchema.version,
+      routeSchemaId: routeSchema.id,
+      routeSchemaVersion: routeSchema.version
     },
     context,
     criteria,
-    unsupported: response.snapshot.unsupported || [],
-    supportLevel: criteria.length === 0
-      ? "UNSUPPORTED"
-      : response.snapshot.unsupported?.length
-        ? "LIMITED"
-        : response.snapshot.adapterId && response.snapshot.adapterId !== "generic"
-          ? "VERIFIED"
-          : "COMPATIBLE",
+    unsupported,
+    unresolved,
+    defaultsIgnored,
+    coverage,
+    supportLevel: coverage.supportLevel,
     captureUrl,
     pageTitle: response.snapshot.title || new URL(captureUrl).hostname,
     capturedAt: new Date().toISOString()
@@ -194,7 +205,7 @@ async function saveCapture(message) {
   if (!message.preview || typeof message.preview !== "object") throw new Error("MISSING_CAPTURE_PREVIEW");
   const fresh = await captureTab(tabId);
   if (fresh.captureFingerprint !== message.preview.captureFingerprint) throw new Error("CAPTURE_STATE_CHANGED");
-  if (!fresh.criteria.length) throw new Error("NO_SUPPORTED_CRITERIA");
+  if (!fresh.coverage.saveEligible) throw new Error("NO_MEANINGFUL_CRITERIA");
   const now = new Date().toISOString();
   const state = {
     schemaVersion: SCHEMA_VERSION,
@@ -207,8 +218,12 @@ async function saveCapture(message) {
       createdAt: now,
       updatedAt: now,
       captureUrl: fresh.captureUrl,
+      routeSnapshot: fresh.captureUrl,
       supportLevel: fresh.supportLevel,
       unsupported: fresh.unsupported,
+      unresolved: fresh.unresolved,
+      defaultsIgnored: fresh.defaultsIgnored,
+      coverage: fresh.coverage,
       lastReplayAt: null,
       lastSuccessfulReplayAt: null,
       health: "UNKNOWN"
@@ -287,7 +302,7 @@ async function startReplay(stateId, tabId) {
   }
 
   const replayId = crypto.randomUUID();
-  const replayUrl = buildReplayUrl(state.metadata.captureUrl, state.criteria);
+  const replayUrl = buildReplayUrl(state.metadata.routeSnapshot || state.metadata.captureUrl, state.criteria);
   const now = new Date().toISOString();
   const checkpoint = {
     checkpointVersion: 1,
@@ -339,7 +354,7 @@ async function executeReplay(checkpoint, state) {
     replayId: checkpoint.replayId,
     expectedOrigin: checkpoint.expectedOrigin,
     expectedContext: state.context,
-    deadlineAt: Date.now() + MAX_REPLAY_MS,
+    deadlineAt: Date.now() + calculateReplayBudget(state.criteria),
     criteria: topologicalSort(state.criteria)
   });
   if (!response?.ok) throw new Error(response?.error || "REPLAY_EXECUTOR_FAILED");
@@ -405,9 +420,12 @@ async function updateReplayMetadata(checkpoint) {
   }
 }
 
-function buildContext(snapshot, captureUrl) {
+function buildContext(snapshot, captureUrl, criteria = []) {
   const url = new URL(captureUrl);
-  const searchQuery = ["q", "query", "search", "keyword"].map((key) => url.searchParams.get(key)).find(Boolean) || null;
+  const searchCriterion = criteria.find((criterion) => criterion.role === "CONTEXT" && criterion.semanticType === "SEARCH_QUERY");
+  const searchQuery = searchCriterion?.desiredValue?.[0]
+    || ["q", "query", "search", "keyword", "k", "Ntt"].map((key) => url.searchParams.get(key)).find(Boolean)
+    || (/\/suche\/([^/]+)/i.exec(url.pathname)?.[1] ? decodeURIComponent(/\/suche\/([^/]+)/i.exec(url.pathname)[1]).replace(/[-_]+/g, " ") : null);
   const surface = snapshot.pageType === "LISTING" ? "PRODUCT_LIST" : "SEARCH_RESULTS";
   const routeClass = url.pathname.replace(/\b\d+\b/g, ":id").replace(/\/+$/, "") || "/";
   return {
@@ -426,7 +444,9 @@ function semanticFingerprint(preview) {
     desiredValue: [...criterion.desiredValue].map(String).sort(),
     bindingTypes: [...new Set(criterion.bindings.map((binding) => binding.type))].sort()
   })).sort((a, b) => `${a.role}:${a.semanticType}`.localeCompare(`${b.role}:${b.semanticType}`));
-  return JSON.stringify({ origin: preview.site.origin, context: preview.context, criteria });
+  const omissions = [...(preview.unsupported || []), ...(preview.unresolved || [])]
+    .map((item) => `${item.label || ""}:${item.reason || ""}`).sort();
+  return JSON.stringify({ origin: preview.site.origin, context: preview.context, criteria, omissions });
 }
 
 function suggestName(preview) {

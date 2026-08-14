@@ -4,7 +4,7 @@ import {
   REPLAY_KEY_PREFIX,
   STATE_KEY_PREFIX
 } from "../shared/constants.js";
-import { validateSavedState } from "../shared/validator.js";
+import { migrateSavedState, validateSavedState } from "../shared/validator.js";
 
 function stateKey(id) {
   return `${STATE_KEY_PREFIX}${id}`;
@@ -19,11 +19,13 @@ export async function listStates() {
   const states = [];
   const validIds = [];
   for (const id of index) {
-    const state = stored[stateKey(id)];
+    const rawState = stored[stateKey(id)];
     try {
+      const state = migrateSavedState(rawState);
       validateSavedState(state);
       states.push(state);
       validIds.push(id);
+      if (rawState?.schemaVersion !== state.schemaVersion) await chrome.storage.local.set({ [stateKey(id)]: state });
     } catch {
       // Corrupt entries are isolated rather than making the whole library unreadable.
     }
@@ -34,8 +36,10 @@ export async function listStates() {
 
 export async function getState(id) {
   const result = await chrome.storage.local.get(stateKey(id));
-  const state = result[stateKey(id)];
+  const rawState = result[stateKey(id)];
+  const state = migrateSavedState(rawState);
   validateSavedState(state);
+  if (rawState?.schemaVersion !== state.schemaVersion) await chrome.storage.local.set({ [stateKey(id)]: state });
   return state;
 }
 

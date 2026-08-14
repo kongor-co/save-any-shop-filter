@@ -8,6 +8,8 @@ import {
   SCHEMA_VERSION
 } from "./constants.js";
 import { topologicalSort } from "./planner.js";
+import { calculateCoverage } from "./coverage.js";
+import { routeSchemaInfo } from "../adapters/route-schemas.js";
 
 const FORBIDDEN_TEXT = /(?:javascript\s*:|\beval\s*\(|\bFunction\s*\(|<script\b)/i;
 
@@ -38,10 +40,14 @@ export function validateSavedState(state) {
     assert(Array.isArray(criterion.desiredValue) && criterion.desiredValue.length <= 100, "Invalid desired value");
     for (const value of criterion.desiredValue) assert(validString(String(value), 500), "Invalid desired value item");
     assert(Array.isArray(criterion.dependencies), "Invalid dependencies");
+    if (criterion.atomicGroup !== undefined) assert(validString(criterion.atomicGroup, 100), "Invalid atomic group");
     assert(Array.isArray(criterion.bindings) && criterion.bindings.length <= 20, "Invalid bindings");
     for (const binding of criterion.bindings) validateBinding(binding, state.site.origin);
   }
   topologicalSort(state.criteria);
+  assert(state.metadata && typeof state.metadata === "object", "Missing metadata");
+  assert(state.metadata.coverage && typeof state.metadata.coverage === "object", "Missing coverage report");
+  assert(typeof state.metadata.coverage.saveEligible === "boolean", "Invalid coverage report");
   return state;
 }
 
@@ -49,7 +55,7 @@ function validateLocator(locator) {
   assert(locator && typeof locator === "object", "Invalid locator");
   assert(validString(locator.type, 80), "Invalid locator type");
   assert(validString(String(locator.value), 500), "Invalid locator value");
-  const allowed = new Set(["ID", "NAME_VALUE", "ARIA_LABEL", "LABEL_TEXT", "SELECT_NAME", "FIELDSET_LEGEND", "GROUP_ARIA_LABEL", "HEADING_TEXT", "IDEALO_FILTER_GROUP", "IDEALO_OPTION"]);
+  const allowed = new Set(["ID", "NAME_VALUE", "ARIA_LABEL", "LABEL_TEXT", "BUTTON_TEXT", "LINK_TEXT", "SELECT_NAME", "FIELDSET_LEGEND", "GROUP_ARIA_LABEL", "HEADING_TEXT", "IDEALO_FILTER_GROUP", "IDEALO_OPTION"]);
   assert(allowed.has(locator.type), "Unknown locator type");
 }
 
@@ -62,6 +68,10 @@ function validateBinding(binding, origin) {
     assert(validString(binding.parameter, 200), "Invalid query parameter");
     assert(Array.isArray(binding.values) && binding.values.length <= 100, "Invalid query values");
     for (const value of binding.values) assert(validString(String(value), 500), "Invalid query value");
+    if (binding.verificationTexts !== undefined) {
+      assert(Array.isArray(binding.verificationTexts) && binding.verificationTexts.length <= 100, "Invalid query verification values");
+      for (const value of binding.verificationTexts) assert(validString(String(value), 500), "Invalid query verification value");
+    }
     return;
   }
   if (binding.type === "URL_PATH") {
@@ -84,6 +94,10 @@ function validateBinding(binding, origin) {
     for (const step of mapping.interactionPlan) {
       assert(step && ACTION_TYPES.has(step.action), "Unknown interaction action");
       assert(!Object.values(step).some((value) => typeof value === "string" && FORBIDDEN_TEXT.test(value)), "Forbidden executable text");
+      if (step.locatorChain !== undefined) {
+        assert(Array.isArray(step.locatorChain) && step.locatorChain.length <= 10, "Invalid action locator chain");
+        step.locatorChain.forEach(validateLocator);
+      }
     }
   }
 }
@@ -93,10 +107,45 @@ export function validateImportPayload(payload) {
   assert(new TextEncoder().encode(serialized).length <= MAX_IMPORT_BYTES, "Import exceeds size limit");
   const parsed = typeof payload === "string" ? JSON.parse(payload) : payload;
   assert(parsed && typeof parsed === "object", "Import must be an object");
-  assert(parsed.schemaVersion === SCHEMA_VERSION, "Unsupported export schema version");
+  assert([3, SCHEMA_VERSION].includes(parsed.schemaVersion), "Unsupported export schema version");
   assert(Array.isArray(parsed.states) && parsed.states.length <= MAX_IMPORT_STATES, "Invalid import state count");
-  parsed.states.forEach(validateSavedState);
-  return parsed;
+  const migrated = { ...parsed, schemaVersion: SCHEMA_VERSION, states: parsed.states.map(migrateSavedState) };
+  migrated.states.forEach(validateSavedState);
+  return migrated;
+}
+
+export function migrateSavedState(rawState) {
+  assert(rawState && typeof rawState === "object" && !Array.isArray(rawState), "State must be an object");
+  if (rawState.schemaVersion === SCHEMA_VERSION) return structuredClone(rawState);
+  assert(rawState.schemaVersion === 3, "Unsupported schema version");
+  const state = structuredClone(rawState);
+  const captureUrl = state.metadata?.captureUrl;
+  const schema = captureUrl ? routeSchemaInfo(captureUrl) : { id: "generic", version: 1 };
+  state.schemaVersion = SCHEMA_VERSION;
+  state.site = {
+    ...state.site,
+    routeSchemaId: state.site?.routeSchemaId || schema.id,
+    routeSchemaVersion: state.site?.routeSchemaVersion || schema.version
+  };
+  for (const criterion of state.criteria || []) {
+    for (const binding of criterion.bindings || []) {
+      if (binding.type === "DOM" && binding.mapping) {
+        binding.mapping.mappingVersion ||= 1;
+      }
+    }
+  }
+  const unsupported = state.metadata?.unsupported || [];
+  state.metadata = {
+    ...state.metadata,
+    routeSnapshot: state.metadata?.routeSnapshot || captureUrl,
+    coverage: state.metadata?.coverage || calculateCoverage({
+      criteria: state.criteria || [],
+      unsupported,
+      adapterId: state.site?.adapterId || "generic"
+    }),
+    health: "UNKNOWN"
+  };
+  return state;
 }
 
 export function validateUiMessage(message) {

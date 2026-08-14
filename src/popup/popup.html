@@ -44,14 +44,17 @@
           </div>
 
           <div id="criteria-list" class="criteria-list"></div>
+          <div id="coverage-summary" class="coverage-summary" aria-live="polite"></div>
           <details id="unsupported-wrap" class="unsupported" hidden>
-            <summary><span id="unsupported-count">0</span> unsupported controls</summary>
+            <summary><span id="unsupported-count">0</span> omitted or unresolved controls</summary>
             <div id="unsupported-list"></div>
           </details>
 
           <label class="field-label" for="state-name">Configuration name</label>
           <input id="state-name" class="text-field" maxlength="160" autocomplete="off">
           <button id="save-state" class="primary-button" type="button">Save filters</button>
+          <p id="save-reason" class="save-reason" hidden></p>
+          <button id="copy-route" class="secondary-button fallback-button" type="button" hidden>Copy sanitized current route</button>
           <p class="privacy-note">Stored in this Chrome profile. Nothing is sent to a server.</p>
         </div>
       </section>
@@ -93,7 +96,29 @@
       <div class="dialog-header"><div><span id="details-support" class="support-badge"></span><h2 id="details-name"></h2></div><button id="close-details" class="icon-button" type="button" aria-label="Close details">×</button></div>
       <p id="details-context" class="muted"></p>
       <div id="details-criteria" class="criteria-list"></div>
+      <div id="details-coverage" class="coverage-summary"></div>
       <div id="details-meta" class="detail-grid"></div>
+    </dialog>
+
+    <dialog id="actions-dialog" aria-labelledby="actions-title">
+      <div class="dialog-header"><div><p class="eyebrow">SAVED CONFIGURATION</p><h2 id="actions-title">More actions</h2></div><button id="close-actions" class="icon-button" type="button" aria-label="Close actions">×</button></div>
+      <label class="field-label" for="rename-value">Configuration name</label>
+      <input id="rename-value" class="text-field" maxlength="160" autocomplete="off">
+      <div class="action-grid">
+        <button class="secondary-button" type="button" data-library-action="rename">Rename</button>
+        <button class="secondary-button" type="button" data-library-action="duplicate">Duplicate</button>
+        <button class="secondary-button" type="button" data-library-action="export">Export JSON</button>
+        <button class="secondary-button danger" type="button" data-library-action="delete">Delete…</button>
+      </div>
+    </dialog>
+
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+      <h2 id="confirm-title">Delete saved configuration?</h2>
+      <p id="confirm-copy" class="muted"></p>
+      <div class="confirm-actions">
+        <button id="cancel-delete" class="secondary-button" type="button">Cancel</button>
+        <button id="confirm-delete" class="secondary-button danger" type="button">Delete</button>
+      </div>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

@@ -1,12 +1,12 @@
-export const SCHEMA_VERSION = 3;
-export const MAPPING_VERSION = 1;
+export const SCHEMA_VERSION = 4;
+export const MAPPING_VERSION = 2;
 export const LIBRARY_INDEX_KEY = "fv:library:index";
 export const STATE_KEY_PREFIX = "fv:state:";
 export const REPLAY_KEY_PREFIX = "fv:replay:";
 export const ACTIVE_REPLAY_PREFIX = "fv:active-tab:";
 export const MAX_IMPORT_BYTES = 1_000_000;
 export const MAX_IMPORT_STATES = 250;
-export const MAX_REPLAY_MS = 30_000;
+export const MAX_REPLAY_MS = 90_000;
 
 export const MESSAGE = Object.freeze({
   GET_CAPTURE_PREVIEW: "GET_CAPTURE_PREVIEW",
@@ -41,6 +41,9 @@ export const CONTROL_TYPES = new Set([
 ]);
 export const ACTION_TYPES = new Set([
   "ENSURE_EXPANDED",
+  "OPEN_FILTER_GROUP",
+  "SCROLL_INTO_VIEW",
+  "ACTIVATE_OPTION",
   "ACTIVATE_IF_NEEDED",
   "DEACTIVATE_IF_NEEDED",
   "SET_INPUT_VALUE",
@@ -48,6 +51,9 @@ export const ACTION_TYPES = new Set([
   "FOCUS",
   "SCROLL_CONTAINER",
   "WAIT_FOR_CONDITION",
+  "WAIT_ROUTE_STABLE",
+  "COMMIT",
+  "VERIFY_RESULT",
   "VERIFY"
 ]);
 
@@ -55,6 +61,7 @@ export const CRITERION_STATUS = Object.freeze({
   ALREADY_APPLIED: "ALREADY_APPLIED",
   APPLIED: "APPLIED",
   VERIFIED: "VERIFIED",
+  ROUTE_ONLY: "ROUTE_ONLY",
   VALUE_UNAVAILABLE: "VALUE_UNAVAILABLE",
   FILTER_UNAVAILABLE: "FILTER_UNAVAILABLE",
   MAPPING_BROKEN: "MAPPING_BROKEN",
