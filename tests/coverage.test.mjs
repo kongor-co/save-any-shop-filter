@@ -34,3 +34,20 @@ test("adapter evidence can qualify as verified", () => {
   });
   assert.equal(coverage.supportLevel, "VERIFIED");
 });
+
+test("verified DOM adapters qualify without route evidence", () => {
+  const coverage = calculateCoverage({ criteria: [criterion("FILTER", [{ type: "DOM" }])], adapterId: "shop-adapter" });
+  assert.equal(coverage.supportLevel, "VERIFIED");
+});
+
+test("unsupported active state without criteria explains the safety boundary", () => {
+  const coverage = calculateCoverage({ unsupported: [{ label: "Price", reason: "Slider" }] });
+  assert.equal(coverage.saveEligible, false);
+  assert.match(coverage.saveReason, /none can be replayed safely/);
+});
+
+test("empty pages report that no active state was detected", () => {
+  const coverage = calculateCoverage();
+  assert.equal(coverage.activeDetected, 0);
+  assert.match(coverage.saveReason, /No active filter/);
+});

@@ -39,6 +39,7 @@ const TERMINAL_STATUSES = new Set([
   REPLAY_STATUS.CANCELLED,
   REPLAY_STATUS.INTERRUPTED
 ]);
+const replayLocks = new Map();
 
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   if (reason === "install") {
@@ -113,11 +114,15 @@ async function handleContentMessage(message, sender) {
     throw new Error("UNAUTHORIZED_CONTENT_MESSAGE");
   }
   if (message.type === MESSAGE.CONTENT_READY) return ok(true);
+  return withReplayLock(message.replayId, () => updateReplayFromContent(message, sender, tabId));
+}
 
+async function updateReplayFromContent(message, sender, tabId) {
   const checkpoint = await getReplay(message.replayId);
   if (!checkpoint || checkpoint.tabId !== tabId) throw new Error("STALE_REPLAY_ID");
   if (checkpoint.expectedOrigin !== sender.origin) throw new Error("ORIGIN_MISMATCH");
   if (checkpoint.documentId && sender.documentId && checkpoint.documentId !== sender.documentId) throw new Error("STALE_DOCUMENT");
+  if (checkpoint.cancelRequested || TERMINAL_STATUSES.has(checkpoint.status)) return ok(true);
 
   if (message.type === MESSAGE.REPLAY_PROGRESS) {
     const updated = {
@@ -346,8 +351,15 @@ async function resumeAfterNavigation(tabId) {
 }
 
 async function executeReplay(checkpoint, state) {
-  const applying = { ...checkpoint, status: REPLAY_STATUS.APPLYING, updatedAt: new Date().toISOString() };
-  await putReplay(applying);
+  const applying = await withReplayLock(checkpoint.replayId, async () => {
+    const latest = await getReplay(checkpoint.replayId);
+    if (!latest || latest.cancelRequested || TERMINAL_STATUSES.has(latest.status)) return null;
+    if (![REPLAY_STATUS.PLANNING, REPLAY_STATUS.WAITING_NAVIGATION].includes(latest.status)) return null;
+    const next = { ...latest, status: REPLAY_STATUS.APPLYING, updatedAt: new Date().toISOString() };
+    await putReplay(next);
+    return next;
+  });
+  if (!applying) return;
   await ensureExecutor(checkpoint.tabId);
   const response = await chrome.tabs.sendMessage(checkpoint.tabId, {
     type: MESSAGE.EXECUTE_REPLAY,
@@ -358,10 +370,11 @@ async function executeReplay(checkpoint, state) {
     criteria: topologicalSort(state.criteria)
   });
   if (!response?.ok) throw new Error(response?.error || "REPLAY_EXECUTOR_FAILED");
-  const finalCheckpoint = await getReplay(checkpoint.replayId);
-  if (!finalCheckpoint || !TERMINAL_STATUSES.has(finalCheckpoint.status)) {
+  await withReplayLock(checkpoint.replayId, async () => {
+    const finalCheckpoint = await getReplay(checkpoint.replayId);
+    if (finalCheckpoint && TERMINAL_STATUSES.has(finalCheckpoint.status)) return;
     const completed = {
-      ...applying,
+      ...(finalCheckpoint || applying),
       status: response.result?.status || REPLAY_STATUS.FAILED,
       results: response.result?.results || [],
       completedAt: new Date().toISOString(),
@@ -369,16 +382,20 @@ async function executeReplay(checkpoint, state) {
     };
     await putReplay(completed);
     await updateReplayMetadata(completed);
-  }
+  });
 }
 
 async function cancelReplay(replayId) {
-  const checkpoint = await getReplay(replayId);
-  if (!checkpoint) throw new Error("REPLAY_NOT_FOUND");
-  const cancelled = { ...checkpoint, cancelRequested: true, status: REPLAY_STATUS.CANCELLED, updatedAt: new Date().toISOString() };
-  await putReplay(cancelled);
+  const cancelled = await withReplayLock(replayId, async () => {
+    const checkpoint = await getReplay(replayId);
+    if (!checkpoint) throw new Error("REPLAY_NOT_FOUND");
+    if (TERMINAL_STATUSES.has(checkpoint.status)) return checkpoint;
+    const next = { ...checkpoint, cancelRequested: true, status: REPLAY_STATUS.CANCELLED, updatedAt: new Date().toISOString() };
+    await putReplay(next);
+    return next;
+  });
   try {
-    await chrome.tabs.sendMessage(checkpoint.tabId, { type: MESSAGE.CANCEL_REPLAY_EXECUTOR, replayId });
+    await chrome.tabs.sendMessage(cancelled.tabId, { type: MESSAGE.CANCEL_REPLAY_EXECUTOR, replayId });
   } catch {
     // Navigation may already have removed the executor.
   }
@@ -386,17 +403,19 @@ async function cancelReplay(replayId) {
 }
 
 async function failReplay(checkpoint, error) {
-  const latest = await getReplay(checkpoint.replayId);
-  if (latest?.status === REPLAY_STATUS.CANCELLED) return;
-  const failed = {
-    ...(latest || checkpoint),
-    status: REPLAY_STATUS.FAILED,
-    error: normalizeError(error),
-    completedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  await putReplay(failed);
-  await updateReplayMetadata(failed);
+  await withReplayLock(checkpoint.replayId, async () => {
+    const latest = await getReplay(checkpoint.replayId);
+    if (latest?.status === REPLAY_STATUS.CANCELLED) return;
+    const failed = {
+      ...(latest || checkpoint),
+      status: REPLAY_STATUS.FAILED,
+      error: normalizeError(error),
+      completedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await putReplay(failed);
+    await updateReplayMetadata(failed);
+  });
 }
 
 async function updateReplayMetadata(checkpoint) {
@@ -482,4 +501,13 @@ function normalizeError(error) {
   const message = error instanceof Error ? error.message : String(error || "UNKNOWN_ERROR");
   if (/Cannot access|chrome:\/\/|edge:\/\/|Missing host permission/i.test(message)) return "PAGE_NOT_ACCESSIBLE";
   return message.slice(0, 300);
+}
+
+function withReplayLock(replayId, operation) {
+  const previous = replayLocks.get(replayId) || Promise.resolve();
+  const current = previous.catch(() => undefined).then(operation);
+  replayLocks.set(replayId, current);
+  return current.finally(() => {
+    if (replayLocks.get(replayId) === current) replayLocks.delete(replayId);
+  });
 }

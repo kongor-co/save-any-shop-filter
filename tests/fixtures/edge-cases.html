@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Filter edge cases | Demo Shop</title>
+    <style>
+      body { font: 16px system-ui, sans-serif; }
+      main { max-width: 800px; margin: auto; }
+      fieldset { margin: 12px 0; }
+      .products { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .product { min-height: 50px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Filter edge cases</h1>
+      <fieldset>
+        <legend>Sort</legend>
+        <label for="sort">Sort products</label>
+        <select id="sort" name="sort">
+          <option value="relevance">Recommended</option>
+          <option value="price_asc">Price ascending</option>
+        </select>
+      </fieldset>
+      <fieldset id="feature-group">
+        <legend>Feature</legend>
+        <a id="feature-link" href="#feature" aria-current="false">Waterproof</a>
+      </fieldset>
+      <fieldset>
+        <legend>Brand</legend>
+        <label><input id="unstable-brand" type="checkbox" name="brand" value="nike"> Nike</label>
+      </fieldset>
+      <fieldset>
+        <legend>Price</legend>
+        <label for="price-range">Price range</label>
+        <input id="price-range" type="range" min="0" max="100">
+      </fieldset>
+      <input id="orphan-active" type="checkbox" checked aria-label="Unscoped option">
+      <input id="email" type="email" value="private@example.com" aria-label="Email">
+      <section class="products" aria-label="Products">
+        <a class="product" href="/product/a">Product A</a>
+        <a class="product" href="/product/b">Product B</a>
+        <a class="product" href="/product/c">Product C</a>
+        <a class="product" href="/product/d">Product D</a>
+      </section>
+    </main>
+    <script>
+      const mode = new URL(location.href).searchParams.get("mode");
+      const feature = document.querySelector("#feature-link");
+      if (mode === "link") feature.setAttribute("aria-current", "true");
+      feature.addEventListener("click", (event) => {
+        event.preventDefault();
+        feature.setAttribute("aria-current", feature.getAttribute("aria-current") === "true" ? "false" : "true");
+      });
+      if (mode !== "orphan") document.querySelector("#orphan-active").checked = false;
+      if (mode === "unstable") {
+        document.querySelector("#unstable-brand").checked = true;
+        let tick = 0;
+        setInterval(() => history.replaceState({}, "", `${location.pathname}?q=trail&mode=unstable&tick=${++tick}`), 40);
+      }
+    </script>
+  </body>
+</html>

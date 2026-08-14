@@ -4,9 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-isolation=none",
-    "check": "node scripts/check-extension.mjs && node --test --test-isolation=none",
-    "smoke:browser": "node scripts/browser-smoke.mjs"
+    "test": "npm run test:unit",
+    "test:unit": "node --test --test-isolation=none",
+    "test:coverage": "node --experimental-test-coverage --test --test-isolation=none --test-coverage-include=src/shared/*.js --test-coverage-include=src/adapters/*.js --test-coverage-lines=95 --test-coverage-branches=80 --test-coverage-functions=90",
+    "test:security": "node --test --test-isolation=none tests/security-privacy.test.mjs tests/popup-structure.test.mjs",
+    "test:integration": "node --test --test-isolation=none tests/storage.test.mjs tests/live-routes.test.mjs",
+    "check": "node scripts/check-extension.mjs && npm run test:unit",
+    "smoke:browser": "node scripts/browser-smoke.mjs",
+    "test:release": "npm run check && npm run test:coverage && npm run smoke:browser"
   },
   "engines": {
     "node": ">=20"
