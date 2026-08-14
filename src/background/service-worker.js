@@ -158,9 +158,9 @@ async function captureTab(tabId) {
   const response = await chrome.tabs.sendMessage(tabId, { type: MESSAGE.CAPTURE_PAGE });
   if (!response?.ok) throw new Error(response?.error || "CAPTURE_FAILED");
 
-  const routeCriteria = captureRouteCriteria(response.snapshot.url);
+  const routeCriteria = captureRouteCriteria(response.snapshot.url, { includePresentation: true });
   const criteria = mergeCriteria(routeCriteria, response.snapshot.domCriteria || []);
-  const captureUrl = cleanCaptureUrl(response.snapshot.url);
+  const captureUrl = cleanCaptureUrl(response.snapshot.url, { includePresentation: true });
   const context = buildContext(response.snapshot, captureUrl);
   const preview = {
     site: {
