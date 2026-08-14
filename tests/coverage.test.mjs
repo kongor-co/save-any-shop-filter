@@ -35,6 +35,19 @@ test("adapter evidence can qualify as verified", () => {
   assert.equal(coverage.supportLevel, "VERIFIED");
 });
 
+test("schema-owned query evidence must be explicitly semantic to qualify as verified", () => {
+  const verified = calculateCoverage({
+    criteria: [criterion("FILTER", [{ type: "URL_QUERY", verificationTexts: ["0 €", "51 €"], semanticEvidence: true }])],
+    adapterId: "decathlon-de"
+  });
+  const routeOnly = calculateCoverage({
+    criteria: [criterion("FILTER", [{ type: "URL_QUERY", verificationTexts: ["raw-value"] }])],
+    adapterId: "shop-adapter"
+  });
+  assert.equal(verified.supportLevel, "VERIFIED");
+  assert.equal(routeOnly.supportLevel, "COMPATIBLE");
+});
+
 test("verified DOM adapters qualify without route evidence", () => {
   const coverage = calculateCoverage({ criteria: [criterion("FILTER", [{ type: "DOM" }])], adapterId: "shop-adapter" });
   assert.equal(coverage.supportLevel, "VERIFIED");

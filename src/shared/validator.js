@@ -64,6 +64,7 @@ function validateBinding(binding, origin) {
   assert(validString(binding.bindingId, 100), "Invalid binding id");
   assert(BINDING_TYPES.has(binding.type), "Unknown binding type");
   if (binding.origin) assert(binding.origin === origin, "Binding origin mismatch");
+  if (binding.semanticEvidence !== undefined) assert(typeof binding.semanticEvidence === "boolean", "Invalid semantic evidence flag");
   if (binding.type === "URL_QUERY") {
     assert(validString(binding.parameter, 200), "Invalid query parameter");
     assert(Array.isArray(binding.values) && binding.values.length <= 100, "Invalid query values");

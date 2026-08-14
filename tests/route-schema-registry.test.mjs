@@ -52,3 +52,23 @@ test("Idealo path summary is removed when DOM-backed tags cover the pathname", (
   assert.equal(merged.some((criterion) => criterion.pathSummary), false);
   assert.equal(merged.some((criterion) => criterion.semanticType === "BRAND"), true);
 });
+
+test("Decathlon path filters and modern query state are decoded semantically", () => {
+  const url = "https://www.decathlon.de/herren/t-shirts-hemden/f-zustand_neu/f-partner_decathlon/f-sg_37-l-19_37-m?price=from_0_to_51&Ns=priceAscending";
+  const criteria = captureRouteCriteria(url, { includePresentation: true });
+  const byType = Object.fromEntries(criteria.map((criterion) => [criterion.semanticType, criterion]));
+
+  assert.deepEqual(byType.CONDITION.desiredValue, ["Neu"]);
+  assert.deepEqual(byType.SELLER.desiredValue, ["Decathlon"]);
+  assert.deepEqual(byType.SIZE.desiredValue, ["L", "M"]);
+  assert.deepEqual(byType.PRICE_RANGE.observedRepresentation, ["0 € – 51 €"]);
+  assert.deepEqual(byType.PRICE_RANGE.bindings[0].verificationTexts, ["0 €", "51 €"]);
+  assert.deepEqual(byType.SORT.observedRepresentation, ["Preis aufsteigend"]);
+  assert.equal(getRouteSchemaInfo(url).version, 2);
+});
+
+test("Decathlon default sorting is not invented when Ns is absent", () => {
+  const url = "https://www.decathlon.de/herren/t-shirts-hemden/f-zustand_neu?price=from_0_to_51";
+  const criteria = captureRouteCriteria(url, { includePresentation: true });
+  assert.equal(criteria.some((criterion) => criterion.semanticType === "SORT"), false);
+});

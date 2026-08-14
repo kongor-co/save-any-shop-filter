@@ -49,13 +49,22 @@ const SCHEMAS = [
   },
   {
     id: "decathlon-de",
-    version: 1,
+    version: 2,
     hosts: ["decathlon.de", "www.decathlon.de"],
     parameters: {
       ntt: descriptor("CONTEXT", "SEARCH_QUERY", { canonical: "search" }),
       facets: descriptor("FILTER", "FACETS"),
+      price: descriptor("FILTER", "PRICE_RANGE", {
+        describeValues: describeDecathlonPrice,
+        verificationTexts: verifyDecathlonPrice
+      }),
+      ns: descriptor("PRESENTATION", "SORT", {
+        describeValues: describeDecathlonSort,
+        verificationTexts: describeDecathlonSort
+      }),
       sort: descriptor("PRESENTATION", "SORT")
-    }
+    },
+    parsePath: parseDecathlonPath
   },
   {
     id: "cyberport-de",
@@ -178,6 +187,26 @@ function parseRebuyPath(url) {
   return criteria;
 }
 
+function parseDecathlonPath(url) {
+  const criteria = [];
+  for (const segment of pathSegments(url.pathname)) {
+    const match = segment.match(/^f-([^_]+)_(.+)$/i);
+    if (!match) continue;
+    const facet = match[1].toLowerCase();
+    const rawValue = match[2];
+    const semanticType = facet === "zustand"
+      ? "CONDITION"
+      : facet === "partner"
+        ? "SELLER"
+        : facet === "sg"
+          ? "SIZE"
+          : semantic(facet);
+    const values = facet === "sg" ? decodeDecathlonSizes(rawValue) : decodeDecathlonFacetValues(rawValue);
+    if (values.length) criteria.push(pathCriterion(url, `path-${facet}`, "FILTER", semanticType, values));
+  }
+  return criteria;
+}
+
 function parseZalandoPath(url) {
   const segments = pathSegments(url.pathname);
   if (segments.length < 2 || !segments[1].includes(".")) return [];
@@ -203,6 +232,47 @@ function pathSegments(pathname) {
 
 function decodePathValue(value) {
   return decodeURIComponent(String(value)).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function decodeDecathlonFacetValues(value) {
+  return String(value).split("_").map((part) => titleCase(decodePathValue(part))).filter(Boolean);
+}
+
+function decodeDecathlonSizes(value) {
+  const sizes = [];
+  for (const part of String(value).split("_")) {
+    const match = part.match(/(?:^|-)(5xl|4xl|3xl|2xl|xxxl|xxl|xl|xs|s|m|l)(?:-|$)/i);
+    if (match) sizes.push(match[1].toUpperCase().replace("XXXL", "3XL").replace("XXL", "2XL"));
+  }
+  return [...new Set(sizes.length ? sizes : decodeDecathlonFacetValues(value))];
+}
+
+function describeDecathlonPrice(values) {
+  const match = String(values[0] || "").match(/^from_([^_]+)_to_([^_]+)$/i);
+  return match ? [`${match[1]} € – ${match[2]} €`] : values;
+}
+
+function verifyDecathlonPrice(values) {
+  const match = String(values[0] || "").match(/^from_([^_]+)_to_([^_]+)$/i);
+  return match ? [`${match[1]} €`, `${match[2]} €`] : values;
+}
+
+function describeDecathlonSort(values) {
+  const labels = {
+    rankingrule: "Am relevantesten",
+    priceascending: "Preis aufsteigend",
+    pricedescending: "Preis absteigend",
+    discountdescending: "Rabatt absteigend",
+    ratingdescending: "Höchste Bewertungen",
+    lastchance: "Letzte Chance",
+    newest: "Neueste"
+  };
+  return values.map((value) => labels[String(value).toLowerCase()] || String(value));
+}
+
+function titleCase(value) {
+  const text = String(value || "").trim();
+  return text ? text[0].toLocaleUpperCase("de-DE") + text.slice(1) : "";
 }
 
 function semantic(value) {

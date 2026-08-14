@@ -125,6 +125,12 @@ test("javascript URL values are rejected", () => {
   assert.throws(() => validateSavedState(state), /Invalid query value/);
 });
 
+test("semantic evidence flags must be boolean", () => {
+  const state = validState();
+  state.criteria[0].bindings[0].semanticEvidence = "yes";
+  assert.throws(() => validateSavedState(state), /Invalid semantic evidence flag/);
+});
+
 test("declarative Idealo path and adapter locators are accepted", () => {
   const state = validState();
   state.criteria[0].bindings = [
