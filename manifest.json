@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "FilterVault",
+  "description": "Save and deterministically restore shopping filters with explicit verification.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "106",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "FilterVault",
+    "default_popup": "src/popup/popup.html"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Open FilterVault"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "filter-vault-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-isolation=none",
+    "check": "node scripts/check-extension.mjs && node --test --test-isolation=none",
+    "smoke:browser": "node scripts/browser-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

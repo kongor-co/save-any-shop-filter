@@ -1,0 +1,5 @@
+.codex-prd/
+.browser-smoke/
+node_modules/
+*.zip
+coverage/

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de" data-filter-vault-adapter="idealo">
+  <head>
+    <meta charset="utf-8">
+    <title>Samsung Handys & Smartphones | idealo.de</title>
+    <style>
+      body { font: 16px system-ui, sans-serif; }
+      main { display: grid; grid-template-columns: 260px 1fr; gap: 24px; }
+      .sr-filterBox_FIXTURE { margin: 12px; padding: 12px; border: 1px solid #ccd8d2; }
+      label { display: block; margin: 8px 0; }
+      .products { display: grid; grid-template-columns: repeat(2, 1fr); }
+      .products a { min-height: 80px; margin: 5px; padding: 10px; background: #eef4f1; }
+    </style>
+  </head>
+  <body>
+    <h1>Samsung Handys & Smartphones 256 GB interner Speicher</h1>
+    <main>
+      <aside>
+        <div class="sr-filterBox_FIXTURE">
+          <span class="sr-boxTitle__text_FIXTURE" title="Preis">Preis</span>
+          <label>Preis Minimum <input aria-label="Preis Minimum" type="range" min="0" max="1000" value="200"></label>
+          <label>Preis Maximum <input aria-label="Preis Maximum" type="range" min="0" max="2500" value="2200"></label>
+        </div>
+        <div class="sr-filterBox_FIXTURE">
+          <span class="sr-boxTitle__text_FIXTURE" title="Hersteller">Hersteller</span>
+          <div class="sr-filterBox__content_FIXTURE">
+            <label class="trackableCheckbox__standard--checked">
+              <input class="sr-checkbox_FIXTURE" type="checkbox" role="checkbox" checked>
+              <a title="Samsung"><span class="sr-filter__label_FIXTURE">Samsung</span><span>240</span></a>
+            </label>
+          </div>
+        </div>
+        <div class="sr-filterBox_FIXTURE">
+          <span class="sr-boxTitle__text_FIXTURE" title="RAM">RAM</span>
+          <div class="sr-filterBox__content_FIXTURE">
+            <label><input class="sr-checkbox_FIXTURE" type="checkbox" role="checkbox" checked><a title="12 GB"><span class="sr-filter__label_FIXTURE">12 GB</span></a></label>
+            <label><input class="sr-checkbox_FIXTURE" type="checkbox" role="checkbox" checked><a title="8 GB"><span class="sr-filter__label_FIXTURE">8 GB</span></a></label>
+          </div>
+        </div>
+      </aside>
+      <section>
+        <div class="sr-filterTagPanel__tags_FIXTURE">
+          <button class="sr-filterTag_FIXTURE">Samsung</button>
+          <button class="sr-filterTag_FIXTURE">12 GB</button>
+          <button class="sr-filterTag_FIXTURE">8 GB</button>
+          <button class="sr-filterTag_FIXTURE">Gebrauchte Produkte anzeigen: Nein</button>
+        </div>
+        <div class="products">
+          <a href="/product/1">Phone one</a><a href="/product/2">Phone two</a>
+          <a href="/product/3">Phone three</a><a href="/product/4">Phone four</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

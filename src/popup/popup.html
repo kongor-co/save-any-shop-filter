@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FilterVault</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand" aria-label="FilterVault">
+        <span class="brand-mark" aria-hidden="true">FV</span>
+        <div>
+          <strong>FilterVault</strong>
+          <span>State saved. Results current.</span>
+        </div>
+      </div>
+      <span class="privacy-pill">Local only</span>
+    </header>
+
+    <nav class="tabs" aria-label="FilterVault sections">
+      <button class="tab is-active" type="button" data-view="capture" aria-selected="true">Save current</button>
+      <button class="tab" type="button" data-view="library" aria-selected="false">Library <span id="library-count" class="count">0</span></button>
+    </nav>
+
+    <main>
+      <section id="capture-view" class="view" aria-labelledby="capture-title">
+        <div id="capture-loading" class="state-panel">
+          <span class="spinner" aria-hidden="true"></span>
+          <div><strong>Reading active filter state</strong><p>Only verifiable controls will be included.</p></div>
+        </div>
+        <div id="capture-error" class="state-panel error" hidden>
+          <span aria-hidden="true">!</span>
+          <div><strong id="capture-error-title">This page is not supported</strong><p id="capture-error-message"></p></div>
+        </div>
+        <div id="capture-content" hidden>
+          <div class="page-summary">
+            <div>
+              <span id="support-level" class="support-badge">Generic compatibility</span>
+              <h1 id="capture-title">Current filters</h1>
+              <p id="page-context" class="muted"></p>
+            </div>
+            <button id="refresh-capture" class="icon-button" type="button" aria-label="Refresh capture">↻</button>
+          </div>
+
+          <div id="criteria-list" class="criteria-list"></div>
+          <details id="unsupported-wrap" class="unsupported" hidden>
+            <summary><span id="unsupported-count">0</span> unsupported controls</summary>
+            <div id="unsupported-list"></div>
+          </details>
+
+          <label class="field-label" for="state-name">Configuration name</label>
+          <input id="state-name" class="text-field" maxlength="160" autocomplete="off">
+          <button id="save-state" class="primary-button" type="button">Save filters</button>
+          <p class="privacy-note">Stored in this Chrome profile. Nothing is sent to a server.</p>
+        </div>
+      </section>
+
+      <section id="library-view" class="view" aria-labelledby="library-title" hidden>
+        <div class="library-header">
+          <div><h1 id="library-title">Saved filters</h1><p class="muted">Grouped by shop and context</p></div>
+          <button id="export-all" class="secondary-button compact" type="button">Export</button>
+        </div>
+        <label class="search-field">
+          <span aria-hidden="true">⌕</span>
+          <span class="sr-only">Search saved filters</span>
+          <input id="library-search" type="search" placeholder="Search the library">
+        </label>
+        <div id="library-list"></div>
+        <div id="empty-library" class="empty-state" hidden>
+          <span aria-hidden="true">◇</span>
+          <strong>No saved filters yet</strong>
+          <p>Save a configuration from a shopping results page.</p>
+        </div>
+        <div class="library-footer">
+          <button id="import-trigger" class="secondary-button" type="button">Import JSON</button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+      </section>
+
+      <section id="replay-view" class="view" aria-labelledby="replay-title" hidden>
+        <div class="replay-heading">
+          <span class="spinner" id="replay-spinner" aria-hidden="true"></span>
+          <div><p class="eyebrow">REPLAY IN PROGRESS</p><h1 id="replay-title">Applying filters</h1></div>
+        </div>
+        <div id="replay-results" class="criteria-list"></div>
+        <button id="cancel-replay" class="secondary-button danger" type="button">Cancel replay</button>
+        <button id="replay-done" class="primary-button" type="button" hidden>Back to library</button>
+      </section>
+    </main>
+
+    <dialog id="details-dialog">
+      <div class="dialog-header"><div><span id="details-support" class="support-badge"></span><h2 id="details-name"></h2></div><button id="close-details" class="icon-button" type="button" aria-label="Close details">×</button></div>
+      <p id="details-context" class="muted"></p>
+      <div id="details-criteria" class="criteria-list"></div>
+      <div id="details-meta" class="detail-grid"></div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
