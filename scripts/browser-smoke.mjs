@@ -24,7 +24,15 @@ const { chromium } = await import(playwrightUrl).catch(async () => import("playw
 
 const fixture = await readFile(resolve(root, "tests", "fixtures", "shop.html"));
 const idealoFixture = await readFile(resolve(root, "tests", "fixtures", "idealo.html"));
+const edgeFixture = await readFile(resolve(root, "tests", "fixtures", "edge-cases.html"));
 const server = createServer((request, response) => {
+  if (request.url?.startsWith("/delayed/search")) {
+    setTimeout(() => {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(fixture);
+    }, 500);
+    return;
+  }
   if (request.url?.startsWith("/search")) {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(fixture);
@@ -33,6 +41,11 @@ const server = createServer((request, response) => {
   if (request.url?.startsWith("/idealo/")) {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(idealoFixture);
+    return;
+  }
+  if (request.url?.startsWith("/edge/")) {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(edgeFixture);
     return;
   }
   response.writeHead(404);
@@ -120,6 +133,23 @@ try {
   }));
   assert.deepEqual(restored, { brand: true, size: "42", color: "true", price: "50", routeBrand: "nike" });
 
+  const cancellationPage = await context.newPage();
+  await cancellationPage.goto(`http://127.0.0.1:${port}/delayed/search?q=trail&brand=nike&preset=1`, { waitUntil: "domcontentloaded" });
+  const cancellationTabId = await extension.evaluate(async (portNumber) => {
+    const tabs = await chrome.tabs.query({});
+    return tabs.find((tab) => tab.url?.includes(`127.0.0.1:${portNumber}/delayed/search`))?.id;
+  }, port);
+  const cancellationPreview = await call("GET_CAPTURE_PREVIEW", { tabId: cancellationTabId });
+  const cancellationState = await call("SAVE_CAPTURE", { tabId: cancellationTabId, preview: cancellationPreview, name: "Cancellation fixture" });
+  for (let cancelAttempt = 1; cancelAttempt <= 5; cancelAttempt += 1) {
+    await cancellationPage.goto(`http://127.0.0.1:${port}/search?cancel-test=${cancelAttempt}`, { waitUntil: "domcontentloaded" });
+    const cancelStarted = await call("START_REPLAY", { stateId: cancellationState.id, tabId: cancellationTabId });
+    await call("CANCEL_REPLAY", { replayId: cancelStarted.replayId });
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+    const cancelled = await call("GET_ACTIVE_REPLAY", { tabId: cancellationTabId });
+    assert.equal(cancelled.status, "CANCELLED", `Cancellation attempt ${cancelAttempt} was overwritten`);
+  }
+
   const idealo = await context.newPage();
   await idealo.goto(`http://127.0.0.1:${port}/idealo/preisvergleich/ProductCategory/19116F1820730-7777739.html`, { waitUntil: "domcontentloaded" });
   const idealoTabId = await extension.evaluate(async (portNumber) => {
@@ -135,6 +165,40 @@ try {
   assert.equal(idealoPreview.criteria.every((criterion) => criterion.bindings.some((binding) => binding.type === "URL_PATH")), true);
   assert.equal(idealoPreview.unsupported.length, 0, "Default Idealo price bounds must not be reported as active unsupported filters");
   await call("SAVE_CAPTURE", { tabId: idealoTabId, preview: idealoPreview, name: "Idealo Samsung phones" });
+
+  const edge = await context.newPage();
+  await edge.goto(`http://127.0.0.1:${port}/edge/search?q=trail&mode=context`, { waitUntil: "domcontentloaded" });
+  const edgeTabId = await extension.evaluate(async (portNumber) => {
+    const tabs = await chrome.tabs.query({});
+    return tabs.find((tab) => tab.url?.includes(`127.0.0.1:${portNumber}/edge/`))?.id;
+  }, port);
+  const contextOnly = await call("GET_CAPTURE_PREVIEW", { tabId: edgeTabId });
+  assert.equal(contextOnly.coverage.saveEligible, false);
+  assert.equal(contextOnly.coverage.defaultsIgnored >= 1, true, "Default selects must be ignored");
+  assert.equal(contextOnly.unsupported.some((item) => /slider/i.test(item.reason)), true);
+  assert.equal(contextOnly.criteria.some((criterion) => criterion.desiredValue.includes("private@example.com")), false, "Sensitive fields must not be captured");
+
+  await extension.evaluate(async (id) => chrome.tabs.update(id, { active: true }), edgeTabId);
+  await extension.reload({ waitUntil: "domcontentloaded" });
+  await extension.locator("#capture-content").waitFor();
+  assert.equal(await extension.locator("#save-state").isDisabled(), true);
+  assert.match(await extension.locator("#save-reason").innerText(), /Only search or page context/);
+  assert.equal(await extension.locator("#copy-route").isVisible(), true);
+
+  await edge.goto(`http://127.0.0.1:${port}/edge/search?q=trail&mode=orphan`, { waitUntil: "domcontentloaded" });
+  const unresolved = await call("GET_CAPTURE_PREVIEW", { tabId: edgeTabId });
+  assert.equal(unresolved.coverage.unresolved >= 1, true, "Unscoped active controls must be reported, not guessed");
+
+  await edge.goto(`http://127.0.0.1:${port}/edge/search?q=trail&mode=link`, { waitUntil: "domcontentloaded" });
+  const linkPreview = await call("GET_CAPTURE_PREVIEW", { tabId: edgeTabId });
+  assert.equal(linkPreview.criteria.some((criterion) => criterion.semanticType === "FEATURE" && criterion.desiredValue.includes("Waterproof")), true);
+  assert.equal(linkPreview.coverage.saveEligible, true);
+
+  await edge.goto(`http://127.0.0.1:${port}/edge/search?q=trail&mode=unstable`, { waitUntil: "domcontentloaded" });
+  await assert.rejects(() => call("GET_CAPTURE_PREVIEW", { tabId: edgeTabId }), /CAPTURE_UNSTABLE/);
+
+  await edge.goto(`http://127.0.0.1:${port}/edge/checkout?q=trail`, { waitUntil: "domcontentloaded" });
+  await assert.rejects(() => call("GET_CAPTURE_PREVIEW", { tabId: edgeTabId }), /UNSUPPORTED_PAGE_TYPE:CHECKOUT/);
 
   if (liveIdealoUrl) {
     const liveIdealo = await context.newPage();
@@ -160,6 +224,10 @@ try {
   let smokeCard = extension.locator(".library-card").filter({ hasText: "Smoke test trail shoes" });
   await smokeCard.locator('[data-action="more"]').click();
   await extension.locator("#actions-dialog").waitFor({ state: "visible" });
+  assert.equal(await extension.locator("#actions-dialog").evaluate((dialog) => dialog.contains(document.activeElement)), true);
+  await extension.locator("#actions-dialog").press("Escape");
+  await extension.locator("#actions-dialog").waitFor({ state: "hidden" });
+  await smokeCard.locator('[data-action="more"]').click();
   await extension.locator("#rename-value").fill("Renamed trail shoes");
   await extension.locator('[data-library-action="rename"]').click();
   smokeCard = extension.locator(".library-card").filter({ hasText: "Renamed trail shoes" });
@@ -179,6 +247,29 @@ try {
   await extension.locator("#details-dialog").waitFor({ state: "visible" });
   assert.match(await extension.locator("#details-coverage").innerText(), /captured/);
   await extension.locator("#close-details").click();
+
+  const beforeImport = Number(await extension.locator("#library-count").innerText());
+  const downloadPromise = extension.waitForEvent("download");
+  await extension.locator("#export-all").click();
+  const download = await downloadPromise;
+  const exportPath = resolve(smokeRoot, "filtervault-export.json");
+  await download.saveAs(exportPath);
+  const exported = JSON.parse(await readFile(exportPath, "utf8"));
+  assert.equal(exported.schemaVersion, 4);
+  assert.equal(exported.states.length, beforeImport);
+  await extension.locator("#import-file").setInputFiles(exportPath);
+  await extension.waitForFunction((expected) => Number(document.querySelector("#library-count")?.textContent) === expected, beforeImport * 2);
+  assert.equal(Number(await extension.locator("#library-count").innerText()), beforeImport * 2);
+
+  const restrictedPage = await context.newPage();
+  await restrictedPage.goto("chrome://version", { waitUntil: "domcontentloaded" });
+  await restrictedPage.bringToFront();
+  const restrictedTabId = await extension.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab?.id;
+  });
+  assert.equal(Number.isInteger(restrictedTabId), true);
+  await assert.rejects(() => call("GET_CAPTURE_PREVIEW", { tabId: restrictedTabId }), /(?:RESTRICTED_PAGE|NO_ACTIVE_PAGE)/);
   await extension.screenshot({
     path: resolve(smokeRoot, "library.png"),
     clip: { x: 0, y: 0, width: 430, height: 650 }

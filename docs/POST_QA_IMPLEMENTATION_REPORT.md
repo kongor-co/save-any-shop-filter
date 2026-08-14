@@ -80,14 +80,15 @@ Decathlon, Cyberport, Zalando, and OTTO initially returned blank documents in th
 ## Automated verification
 
 - Extension manifest/runtime syntax check: passed.
-- Unit and contract suite: 38 tests passed.
+- Deterministic unit, contract, storage, security, privacy, and structural accessibility suite: 70 tests passed.
 - Twelve-store route suite: 12/12 passed.
 - Negative route cases: ambiguous short parameters and context-only save both passed.
 - Migration tests: v3 state and v3 export migration passed.
 - Packaged Chromium smoke test: passed.
-- Popup-level flows tested in the packaged build: Save, Details, Rename, Duplicate, Delete, and confirmation.
+- Popup-level flows tested in the packaged build: Save, Details, Rename, Duplicate, Delete confirmation, Export, Import, keyboard dialog focus, and disabled-Save fallback.
 - Replay smoke result: supported filters visibly verified; route-only search context correctly produced `COMPLETE_WITH_WARNINGS`.
 - Idealo fixture: three criteria captured with verified adapter evidence; default price bounds were not reported as active filters.
+- Browser edge cases: defaults, sensitive values, unresolved controls, link-backed facets, unstable capture, checkout rejection, restricted browser pages, and replay cancellation passed.
 
 ## Release-readiness boundary
 
@@ -107,4 +108,3 @@ This boundary should not be represented as a 12/12 live extension replay certifi
 - Custom/virtualized controls are reported when they cannot be mapped uniquely.
 - Some URL-backed criteria will remain route-only when the storefront exposes no stable active token or selected control.
 - Storefront redesigns can invalidate host schemas or DOM mappings; criterion-level diagnostics and health state are intended to make that degradation visible.
-
