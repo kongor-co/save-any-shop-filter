@@ -61,16 +61,19 @@
       throw new Error(`UNSUPPORTED_PAGE_TYPE:${pageType}`);
     }
 
-    const candidates = collectSupportedControls();
+    const candidates = isDecathlonAdapter()
+      ? { supported: [], unsupported: [], unresolved: [], defaultsIgnored: [] }
+      : collectSupportedControls();
     let domCriteria = groupCandidates(candidates.supported);
     if (isIdealoAdapter()) domCriteria = enrichIdealoCriteria(domCriteria);
+    const adapterId = isIdealoAdapter() ? "idealo-de" : isDecathlonAdapter() ? "decathlon-de" : "generic";
     return {
       url: location.href,
       title: document.title,
       locale: document.documentElement.lang || navigator.language || "und",
       pageType,
-      adapterId: isIdealoAdapter() ? "idealo-de" : "generic",
-      adapterVersion: 1,
+      adapterId,
+      adapterVersion: isDecathlonAdapter() ? 2 : 1,
       contextLabel: inferContextLabel(),
       domCriteria,
       unsupported: candidates.unsupported.slice(0, 30),
@@ -606,12 +609,70 @@
   }
 
   function hasVisibleCriterionEvidence(criterion) {
+    if (isDecathlonAdapter()) return hasDecathlonVisibleCriterionEvidence(criterion);
     const evidence = activeEvidenceText();
     const candidates = [
       ...(criterion.observedRepresentation || []),
       ...(criterion.bindings || []).flatMap((binding) => binding.verificationTexts || [])
     ].map(normalizedText).filter((value) => value.length >= 2 && !/^\d+$/.test(value));
     return candidates.length > 0 && candidates.every((value) => evidence.includes(value));
+  }
+
+  function hasDecathlonVisibleCriterionEvidence(criterion) {
+    if (criterion.semanticType === "PRICE_RANGE") {
+      const raw = (criterion.bindings || []).find((binding) => binding.type === "URL_QUERY" && binding.parameter.toLowerCase() === "price")?.values?.[0];
+      const bounds = String(raw || "").match(/^from_([^_]+)_to_([^_]+)$/i);
+      const minimum = queryAllDeep('input[aria-label="Minimum"]').find(isElementVisible);
+      const maximum = queryAllDeep('input[aria-label="Maximum"]').find(isElementVisible);
+      if (bounds && minimum && maximum
+        && normalizedNumber(minimum.value) === normalizedNumber(bounds[1])
+        && normalizedNumber(maximum.value) === normalizedNumber(bounds[2])) return true;
+      const summary = queryAllDeep("button.accordion__trigger").find((button) =>
+        isElementVisible(button) && /preis/i.test(button.innerText || button.textContent || ""));
+      const displayedBounds = (summary?.innerText || summary?.textContent || "").match(/\d+(?:[.,]\d+)?/g) || [];
+      return Boolean(bounds && displayedBounds.some((value) => Number(normalizedNumber(value)) === Number(normalizedNumber(bounds[1])))
+        && displayedBounds.some((value) => Number(normalizedNumber(value)) === Number(normalizedNumber(bounds[2]))));
+    }
+    if (criterion.semanticType === "SORT") {
+      const sort = queryAllDeep('[role="combobox"][aria-label*="Sortieren nach"]')
+        .find(isElementVisible);
+      return Boolean(sort && (criterion.observedRepresentation || [])
+        .some((value) => normalizedText(sort.textContent) === normalizedText(value)));
+    }
+
+    const selected = queryAllDeep('input:checked, [role="switch"][aria-checked="true"], [role="checkbox"][aria-checked="true"], [role="radio"][aria-checked="true"]')
+      .filter(isElementVisible)
+      .map((element) => cleanDecathlonControlLabel(controlLabel(element)))
+      .filter(Boolean);
+    selected.push(...queryAllDeep("button.accordion__trigger")
+      .filter(isElementVisible)
+      .map((element) => cleanDecathlonControlLabel(element.innerText || element.textContent))
+      .filter(Boolean));
+    selected.push(...queryAllDeep("button.accordion__trigger .accordion__subline")
+      .filter(isElementVisible)
+      .map((element) => cleanDecathlonControlLabel(element.innerText || element.textContent))
+      .filter(Boolean));
+    const desired = (criterion.observedRepresentation || []).map(cleanDecathlonControlLabel).filter(Boolean);
+    return desired.length > 0 && desired.every((value) => selected.some((actual) =>
+      normalizedText(actual) === normalizedText(value)
+      || decathlonSummaryContains(actual, value)));
+  }
+
+  function decathlonSummaryContains(summary, value) {
+    const wanted = normalizedText(value);
+    const actual = normalizedText(summary);
+    if (wanted.length > 1) return actual.includes(wanted);
+    return actual.split(/[^a-z0-9]+/i).includes(wanted);
+  }
+
+  function cleanDecathlonControlLabel(value) {
+    return conciseLabel(String(value || "")
+      .replace(/\s+\d+[\d.,]*\s+Artikel$/i, "")
+      .replace(/^Verkauft\s+durch\s+/i, ""));
+  }
+
+  function normalizedNumber(value) {
+    return String(value || "").replace(/[^\d,.-]/g, "").replace(",", ".").replace(/^0+(?=\d)/, "");
   }
 
   function activeEvidenceText() {
@@ -834,6 +895,10 @@
 
   function isIdealoAdapter() {
     return /(^|\.)idealo\.de$/i.test(location.hostname) || document.documentElement.dataset.filterVaultAdapter === "idealo";
+  }
+
+  function isDecathlonAdapter() {
+    return /(^|\.)decathlon\.de$/i.test(location.hostname) || document.documentElement.dataset.filterVaultAdapter === "decathlon";
   }
 
   function idealoOptionLabel(element) {

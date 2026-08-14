@@ -11,7 +11,8 @@ export function calculateCoverage({ criteria = [], unsupported = [], unresolved 
   const allMeaningfulHaveSemanticEvidence = meaningful.length > 0 && meaningful.every((criterion) =>
     criterion.bindings?.some((binding) => binding.type === "DOM")
     || (adapterId !== "generic" && criterion.bindings?.some((binding) =>
-      binding.type === "URL_PATH" && binding.verificationTexts?.length > 0)));
+      binding.verificationTexts?.length > 0
+      && (binding.type === "URL_PATH" || (binding.type === "URL_QUERY" && binding.semanticEvidence === true)))));
 
   let supportLevel = "UNSUPPORTED";
   if (saveEligible && hasOmissions) supportLevel = "LIMITED";

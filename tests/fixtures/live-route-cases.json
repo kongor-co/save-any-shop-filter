@@ -33,9 +33,9 @@
   },
   {
     "shop": "Decathlon",
-    "url": "https://www.decathlon.de/search?Ntt=laufschuhe&facets=brands:ADIDAS_&sort=asc",
+    "url": "https://www.decathlon.de/herren/t-shirts-hemden/f-zustand_neu/f-partner_decathlon/f-sg_37-l-19_37-m?price=from_0_to_51&Ns=priceAscending",
     "schema": "decathlon-de",
-    "expected": { "SEARCH_QUERY": ["laufschuhe"], "FACETS": ["brands:ADIDAS_"], "SORT": ["asc"] }
+    "expected": { "CONDITION": ["Neu"], "SELLER": ["Decathlon"], "SIZE": ["L", "M"], "PRICE_RANGE": ["from_0_to_51"], "SORT": ["priceAscending"] }
   },
   {
     "shop": "Cyberport",

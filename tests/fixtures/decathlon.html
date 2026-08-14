@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="de" data-filter-vault-adapter="decathlon">
+  <head>
+    <meta charset="utf-8">
+    <title>T-Shirts & Hemden für Herren | Decathlon</title>
+    <style>
+      body { font: 16px system-ui, sans-serif; }
+      .accordion__trigger, label, [role="switch"] { display: block; margin: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>T-Shirts & Hemden für Herren</h1>
+      <button type="button" aria-pressed="true">Filter ausblenden (5)</button>
+      <button type="button" role="combobox" aria-label="Am relevantesten (Sortieren nach)">Am relevantesten</button>
+      <div role="switch" aria-label="Verkauft durch Decathlon" aria-checked="true"></div>
+      <button class="accordion__trigger" type="button"><span>Verkauft durch</span><span class="accordion__subline">Decathlon</span></button>
+      <section aria-label="Größen">
+        <button class="accordion__trigger" type="button"><span>Größen</span><span class="accordion__subline">M, L</span></button>
+        <label><input type="checkbox" aria-label="M 94 Artikel" checked> M</label>
+        <label><input type="checkbox" aria-label="L 94 Artikel" checked> L</label>
+      </section>
+      <section aria-label="Preis">
+        <button class="accordion__trigger" type="button"><span>Preis</span><span class="accordion__subline">Von 0,00 € bis 51,00 €</span></button>
+        <span role="slider" aria-label="Minimum Preis" aria-valuenow="0"></span>
+        <span role="slider" aria-label="Maximum Preis" aria-valuenow="51"></span>
+        <input type="text" aria-label="Minimum" value="0 €">
+        <input type="text" aria-label="Maximum" value="51 €">
+      </section>
+      <section aria-label="Zustand">
+        <button class="accordion__trigger" type="button"><span>Zustand</span><span class="accordion__subline">Neu</span></button>
+        <label><input type="radio" aria-label="Neu 99 Artikel" checked> Neu</label>
+      </section>
+      <a href="/product/1">Produkt 1</a><a href="/product/2">Produkt 2</a>
+      <a href="/product/3">Produkt 3</a><a href="/product/4">Produkt 4</a>
+    </main>
+  </body>
+</html>

@@ -70,6 +70,7 @@ export function captureRouteCriteria(urlLike, { includePresentation = false } = 
         classification,
         semanticType,
         atomicGroup: owned?.atomicGroup || null,
+        descriptor: owned || null,
         values: [],
         parameters: new Map()
       });
@@ -85,7 +86,7 @@ export function captureRouteCriteria(urlLike, { includePresentation = false } = 
     role: group.classification,
     semanticType: group.semanticType,
     desiredValue: [...new Set(group.values)],
-    observedRepresentation: [...new Set(group.values)],
+    observedRepresentation: [...new Set(group.descriptor?.describeValues?.([...new Set(group.values)]) || group.values)],
     dependencies: [],
     atomicGroup: group.atomicGroup || undefined,
     bindings: [...group.parameters].map(([parameter, values]) => ({
@@ -94,7 +95,8 @@ export function captureRouteCriteria(urlLike, { includePresentation = false } = 
       parameter,
       encoding: values.length > 1 ? "REPEATED" : "SINGLE",
       values: [...new Set(values)],
-      verificationTexts: [...new Set(values)],
+      verificationTexts: [...new Set(group.descriptor?.verificationTexts?.([...new Set(values)]) || values)],
+      semanticEvidence: Boolean(group.descriptor?.verificationTexts),
       applicability: {}
     }))
   }));
