@@ -1,12 +1,17 @@
 const FILTER_KEYS = new Set([
   "brand", "brands", "size", "sizes", "color", "colour", "material", "condition",
   "availability", "stock", "shipping", "seller", "waterproof", "gender", "min_price",
-  "max_price", "price_min", "price_max", "price", "category", "department"
+  "max_price", "price_min", "price_max", "price", "category", "department", "rh",
+  "facets", "bodytype", "pricemin", "pricemax", "instock", "insale", "fullbattery"
 ]);
-const CONTEXT_KEYS = new Set(["q", "query", "search", "keyword", "category", "department"]);
-const PRESENTATION_KEYS = new Set(["sort", "order", "view", "layout"]);
+const CONTEXT_KEYS = new Set([
+  "q", "query", "search", "keyword", "category", "department", "k", "ntt",
+  "originquery", "queryinitial"
+]);
+const PRESENTATION_KEYS = new Set(["sort", "sortby", "sortkey", "order", "view", "layout"]);
 const PAGINATION_KEYS = new Set(["page", "p", "cursor", "offset", "start", "limit"]);
-const EPHEMERAL_PATTERN = /^(utm_|gclid$|fbclid$|msclkid$|ref$|ref_|affiliate|aff_|campaign|experiment|session|token)/i;
+const EPHEMERAL_PATTERN = /^(utm_|gclid$|fbclid$|msclkid$|ref$|ref_|affiliate|aff_|campaign|experiment|session|token|querymeta|queryrequestid|searchfeatures|qid$|rnid$|ds$|dc$)/i;
+const FILTER_PATTERN = /(?:^f_(?:prop|variant)_|^refinementlist\[|filter|facet|refinement|(?:^|[_~-])(?:min|max|preis|price)(?:$|[_~-])|brand|size|color|colour|bodytype|wsvcampaign)/i;
 
 export function normalizeSemanticType(value) {
   return String(value || "UNKNOWN")
@@ -22,7 +27,7 @@ export function classifyRouteParameter(name) {
   if (EPHEMERAL_PATTERN.test(key)) return "EPHEMERAL";
   if (PRESENTATION_KEYS.has(key)) return "PRESENTATION";
   if (CONTEXT_KEYS.has(key)) return "CONTEXT";
-  if (FILTER_KEYS.has(key) || /filter|facet|min|max|price|brand|size|color|colour/i.test(key)) return "FILTER";
+  if (FILTER_KEYS.has(key) || FILTER_PATTERN.test(key)) return "FILTER";
   return "IGNORED";
 }
 

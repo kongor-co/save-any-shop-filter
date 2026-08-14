@@ -24,6 +24,42 @@ test("capture keeps semantic route state and drops presentation by default", () 
   assert.equal(criteria[1].bindings[0].encoding, "REPEATED");
 });
 
+test("capture keeps route-backed sorting when presentation is requested", () => {
+  const criteria = captureRouteCriteria(
+    "https://shop.example/search?q=trail&brand=nike&sortBy=price_asc",
+    { includePresentation: true }
+  );
+  assert.deepEqual(criteria.map((item) => item.semanticType), ["Q", "BRAND", "SORTBY"]);
+  assert.equal(criteria[2].role, "PRESENTATION");
+  assert.deepEqual(criteria[2].desiredValue, ["price_asc"]);
+});
+
+test("classifies filter query formats observed across supported retailers", () => {
+  const filters = [
+    "rh",
+    "f_prop_rom",
+    "f_variant_availability",
+    "priceMax",
+    "inStock",
+    "fullBattery",
+    "facets",
+    "refinementList[manufacturer][0]",
+    "preis-in-eur~bis",
+    "bodyType"
+  ];
+  for (const parameter of filters) assert.equal(classifyRouteParameter(parameter), "FILTER", parameter);
+
+  for (const parameter of ["sortBy", "sortKey"]) {
+    assert.equal(classifyRouteParameter(parameter), "PRESENTATION", parameter);
+  }
+  for (const parameter of ["k", "Ntt", "originQuery"]) {
+    assert.equal(classifyRouteParameter(parameter), "CONTEXT", parameter);
+  }
+  for (const parameter of ["queryMeta[queryHash]", "searchFeatures[0][name]", "qid", "rnid", "ds", "dc"]) {
+    assert.equal(classifyRouteParameter(parameter), "EPHEMERAL", parameter);
+  }
+});
+
 test("capture URL strips ephemeral, pagination, and unknown parameters", () => {
   const cleaned = new URL(cleanCaptureUrl("https://shop.example/search?brand=nike&page=3&utm_campaign=x&mystery=1"));
   assert.equal(cleaned.searchParams.get("brand"), "nike");
