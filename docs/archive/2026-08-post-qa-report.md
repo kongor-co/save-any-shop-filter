@@ -2,7 +2,7 @@
 
 Date: 2026-08-14  
 Release candidate: 0.2.0  
-Implementation plan: `docs/POST_QA_IMPLEMENTATION_PLAN.md`
+Implementation plan: `docs/archive/2026-08-post-qa-plan.md`
 
 ## Result
 
