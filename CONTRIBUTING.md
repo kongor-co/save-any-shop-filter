@@ -18,7 +18,7 @@ Keep commits focused. Do not commit generated browser profiles, coverage output,
 
 Requirements:
 
-- Node.js 20 or newer
+- Node.js 22 or newer
 - Chrome or Chromium for manual extension testing
 - Playwright browsers for the packaged browser suite
 

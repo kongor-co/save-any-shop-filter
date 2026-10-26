@@ -29,7 +29,7 @@ FilterVault deliberately does not automate login, checkout, consent choices, CAP
 
 ## Development
 
-Run the checks with the bundled or system Node.js 20+ runtime:
+Run the checks with the bundled or system Node.js 22+ runtime:
 
 ```powershell
 npm test
