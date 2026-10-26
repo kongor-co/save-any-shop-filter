@@ -2,6 +2,8 @@
 
 FilterVault is a local-first Chrome/Chromium Manifest V3 extension that saves the semantic state of shopping filters and restores only what it can deterministically resolve and verify.
 
+This repository is the canonical home of the project. Earlier experiments named `auto-filter-assistant`, `auto-filter-assistant-2`, and `instant-filter-extension` are historical prototypes and are not active development targets.
+
 ## Load the extension
 
 1. Open `chrome://extensions`.
@@ -27,7 +29,7 @@ FilterVault deliberately does not automate login, checkout, consent choices, CAP
 
 ## Development
 
-Run the checks with the bundled or system Node.js 20+ runtime:
+Run the checks with the bundled or system Node.js 22+ runtime:
 
 ```powershell
 npm test
@@ -38,9 +40,13 @@ npm run smoke:browser
 
 No build step and no third-party runtime dependencies are required.
 
+Use `main` as the integration branch. Create a short-lived branch for each change, run the relevant checks, and merge through a pull request. A permanent `develop` branch is not required.
+
 For the optional real-browser regression, install the development dependency and run `npm run smoke:browser`. It starts local mock shops in isolated Playwright Chromium, loads a temporary copy of the packaged extension, and verifies popup Save, replay diagnostics, Idealo capture, details, rename, duplicate, and delete flows.
 
 `npm run test:release` runs the complete release gate: static extension checks, deterministic tests, shared-core coverage thresholds, and the packaged Chromium suite. The individual security and storage/route integration subsets are available as `npm run test:security` and `npm run test:integration`. See [the test strategy](docs/TEST_STRATEGY.md) for the coverage matrix and live-storefront boundary.
+
+Before changing architecture or adding retailer support, read the [architecture guide](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [contribution guide](CONTRIBUTING.md). The [documentation index](docs/README.md) separates current guidance from historical reports.
 
 ## Privacy
 
