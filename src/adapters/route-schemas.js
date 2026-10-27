@@ -134,11 +134,24 @@ const SCHEMAS = [
   },
   {
     id: "home24-de",
-    version: 1,
+    version: 2,
     hosts: ["home24.de", "www.home24.de"],
     parameters: {
       shop: descriptor("FILTER", "SELLER"),
-      order: descriptor("PRESENTATION", "SORT")
+      order: descriptor("PRESENTATION", "SORT", {describeValues:describeHome24Sort,verificationTexts:describeHome24Sort}),
+      average_rating: descriptor("FILTER", "RATING", {
+        domLabels:["Bewertung"],summaryKey:"rating",verificationTexts:(values) => values
+      }),
+      color: descriptor("FILTER", "COLOR", {
+        domLabels:["Farbe"],summaryKey:"color",normalizeValues:splitHome24Choices,
+        describeValues:describeHome24Colors,verificationTexts:describeHome24Colors
+      }),
+      ...Object.fromEntries([["width","Breite"],["height","Höhe"],["depth","Tiefe"]].flatMap(([axis,label]) =>
+        [["min","ab"],["max","bis"]].map(([bound,word]) => [`${axis}.${bound}`,descriptor("FILTER",`${bound.toUpperCase()}_${axis.toUpperCase()}`,{
+          domLabels:["Maße"],summaryKey:axis,
+          describeValues:(values) => values.map((value) => `${label}: ${word} ${value}cm`),
+          verificationTexts:(values) => values.map((value) => `${label}: ${word} ${value}cm`)
+        })])))
     }
   }
 ];
@@ -163,7 +176,12 @@ export function routeCaptureHints(urlLike) {
   const descriptors = [...Object.values(schema?.parameters || {}),...keys.map((key) => schemaParameterDescriptor(schema,key))];
   const hints = descriptors.filter((item) => item?.domLabels?.length).map((item) => ({
     labels:[...item.domLabels],semanticType:item.semanticType,
-    ...(item.controlNames ? {controlNames:[...item.controlNames],parameters:keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType)} : {})
+    ...(item.controlNames ? {controlNames:[...item.controlNames],parameters:keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType)} : {}),
+    ...(item.summaryKey ? {
+      summaryKey:item.summaryKey,
+      parameters:keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType),
+      appliedFilterTexts:item.verificationTexts(keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType).flatMap((key) => url.searchParams.getAll(key)))
+    } : {})
   }));
   return [...new Map(hints.map((hint) => [JSON.stringify(hint),hint])).values()];
 }
@@ -185,6 +203,20 @@ function structuredParameterDescriptor(parameter) {
     : kind === "ratingmenu" ? "RATING"
       : kind === "range" ? `${semantic(field)}_RANGE` : semantic(field);
   return descriptor("FILTER", semanticType, {canonical:`${kind}[${attribute.toLowerCase()}]`,domLabels:[field],controlNames:[attribute,field,attribute.split(".").at(-1)]});
+}
+
+function splitHome24Choices(values) {
+  return [...new Set(values.flatMap((value) => String(value).split("|")).filter(Boolean))];
+}
+
+function describeHome24Colors(values) {
+  const labels = {black:"Schwarz",gray:"Grau",white:"Weiß",brown:"Braun",beige:"Beige",green:"Grün",blue:"Blau",red:"Rot",yellow:"Gelb",orange:"Orange",purple:"Lila",pink:"Rosa",silver:"Silber",gold:"Gold",transparent:"Transparent",multicolor:"Mehrfarbig"};
+  return splitHome24Choices(values).map((value) => labels[value] || value);
+}
+
+function describeHome24Sort(values) {
+  const labels = {POPULARITY:"Beliebtheit",PRICE_ASC:"Niedrigster Preis",PRICE_DESC:"Höchster Preis",DISCOUNT_DESC:"Rabatt",FIRST_SELLABLE_AT_DESC:"Neuheiten",AVERAGE_RATING:"Bewertung"};
+  return values.map((value) => labels[value] || value);
 }
 
 export function schemaPathCriteria(schema, urlLike) {

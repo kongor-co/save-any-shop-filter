@@ -47,6 +47,9 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - active button-dropdown inspection across document-level popups, regenerated IDs, closed menus, and collapsed More filters surfaces;
 - restoration of menu visibility after capture, changing pagination between preview and Save, default relevance menus, and page-category chips;
 - dropdown DOM-only replay, idempotency, ambiguity rejection, and reuse on an unregistered shop;
+- Home24 maximum width, rating, two pipe-delimited colours, and sort capture, Save, reset, and replay;
+- exact applied-chip evidence rejects 140cm for 14cm, five stars for four stars, missing colours, unrelated product text, and duplicated evidence regions;
+- group summaries retain warnings when a selected value is unaccounted for, and a mismatched native sort remains route-only;
 - generic labelled lists, nested accordions, numeric bounds, unchanged defaults, idempotent replay, and duplicate-group rejection.
 
 `replay-lifecycle.test.mjs` exercises the worker's real orchestration code with controlled Chrome boundaries. It covers racing starts, preflight failures, confirmation invalidation after document replacement, serialization order, forged or stale results, executor loss, and navigation deadlines. The packaged browser cases in `scripts/replay-browser-cases.mjs` verify the corresponding document and worker behavior in Chromium.

@@ -54,6 +54,10 @@ New captures use mapping version 5. `NATIVE_RANGE_ENDPOINT` locates an identifia
 
 Shop Apotheke version 2 provides category label normalization and pack-size field metadata. Raw category paths and every indexed pack-size parameter remain in URL bindings. Context detection uses actual search query keys rather than treating filter keys as search queries. Pagination navigation and a current-page chip matching the listing heading do not become active filters. Inactive button dropdowns require an empty backing field and no active selection; unknown active dropdowns and actual autocomplete inputs retain warnings.
 
+Home24 version 2 recognizes dotted dimension bounds and ratings, and separates pipe-delimited colour choices while preserving their physical URL encoding. Descriptor-generated display and verification texts stay in the route registry. Generic applied-chip verification reads only one visible region explicitly labelled as applied or selected filters and matches complete text on individual removal buttons. It never clicks those buttons. Partial strings, product descriptions, missing choices, and duplicate evidence regions cannot confirm the criterion.
+
+Selected group-summary buttons are excluded from active control capture only when descriptor hints account for the selected count and every represented value is confirmed by an applied chip. Otherwise a summary stays unresolved and cannot become a saved Boolean filter. Native sort evidence requires a visible select identified as sorting and its actual selected value matching the saved route value. Existing saved-state and mapping versions are unchanged by these read-only evidence rules.
+
 Route verification may read the visible associated label of a checked native checkbox or radio styled out of view. An unchecked label cannot verify selection. This does not authorize clicks on hidden inputs, and page header/footer and sensitive controls remain excluded. Replay expands closed native accordion ancestors only when needed and resolves controls again before each action.
 
 ### `src/background`
