@@ -43,6 +43,10 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - unchecked hidden inputs cannot verify saved route state, and active custom widgets retain warnings;
 - native paired range capture, Apply, idempotent replay, and rejection of changed structure or unrelated sliders;
 - generic structured URL grouping, sanitation, replay construction, sensitive nested-key exclusion, and older mapping compatibility;
+- Shop Apotheke category and two pack sizes captured without duplicated option checkboxes or result counts;
+- active button-dropdown inspection across document-level popups, regenerated IDs, closed menus, and collapsed More filters surfaces;
+- restoration of menu visibility after capture, changing pagination between preview and Save, default relevance menus, and page-category chips;
+- dropdown DOM-only replay, idempotency, ambiguity rejection, and reuse on an unregistered shop;
 - generic labelled lists, nested accordions, numeric bounds, unchanged defaults, idempotent replay, and duplicate-group rejection.
 
 `replay-lifecycle.test.mjs` exercises the worker's real orchestration code with controlled Chrome boundaries. It covers racing starts, preflight failures, confirmation invalidation after document replacement, serialization order, forged or stale results, executor loss, and navigation deadlines. The packaged browser cases in `scripts/replay-browser-cases.mjs` verify the corresponding document and worker behavior in Chromium.

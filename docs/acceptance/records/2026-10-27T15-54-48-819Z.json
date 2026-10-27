@@ -1,0 +1,106 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-10-27T15:54:48.819Z",
+  "runId": "2026-10-27T15-54-48-819Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "00c210664fb320e99ebd18d4a8d34f79fd63ad078fa03effb284887bbf6f1b81"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.shop-apotheke.com"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "shop-apotheke-category-pack-sizes",
+      "scenario": {
+        "id": "shop-apotheke-category-pack-sizes",
+        "schemaId": "shop-apotheke-de",
+        "resetUrl": "https://www.shop-apotheke.com/blasensteine-nierensteine/",
+        "readySelector": "button[role='combobox'][aria-label='Kategorien']",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "CATEGORY",
+            "desiredValue": [
+              "Ernährung & Abnehmen"
+            ]
+          },
+          {
+            "semanticType": "PACK_SIZE",
+            "desiredValue": [
+              "15 St",
+              "20x1,4 g"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.shop-apotheke.com/blasensteine-nierensteine/?category=shop-apotheke.com%2FErn%C3%A4hrung%20%26%20Abnehmen&refinementList%5Bvariants.packSize%5D%5B0%5D=15%20St&refinementList%5Bvariants.packSize%5D%5B1%5D=20x1%2C4%20g"
+      },
+      "scenarioSha256": "c6593b28c73fe3059f4f3f5b0d4709656639d62ce18009791ed55d6a9a6b280e",
+      "schemaId": "shop-apotheke-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-category-category",
+          "role": "FILTER",
+          "semanticType": "CATEGORY",
+          "desiredValue": [
+            "Ernährung & Abnehmen"
+          ]
+        },
+        {
+          "criterionId": "route-refinementlist-variants-packsize-pack-size",
+          "role": "FILTER",
+          "semanticType": "PACK_SIZE",
+          "desiredValue": [
+            "15 St",
+            "20x1,4 g"
+          ]
+        }
+      ],
+      "resetCriteria": [],
+      "resetChanged": [
+        "route-category-category",
+        "route-refinementlist-variants-packsize-pack-size"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-category-category",
+            "desiredValue": [
+              "Ernährung & Abnehmen"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-refinementlist-variants-packsize-pack-size",
+            "desiredValue": [
+              "15 St",
+              "20x1,4 g"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "PACK_SIZE",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "75acf7c9-45a4-4b73-972b-bb10ac66c602",
+      "savedRoundTrip": true,
+      "startedReplayId": "d96b8b28-3c38-4b8b-8602-7d89271ed836",
+      "finalUrl": "https://www.shop-apotheke.com/blasensteine-nierensteine/?category=shop-apotheke.com%2FErn%C3%A4hrung%20%26%20Abnehmen&refinementList%5Bvariants.packSize%5D%5B0%5D=15%20St&refinementList%5Bvariants.packSize%5D%5B1%5D=20x1%2C4%20g"
+    }
+  ]
+}

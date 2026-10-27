@@ -51,9 +51,9 @@
   },
   {
     "shop": "Shop Apotheke",
-    "url": "https://www.shop-apotheke.com/search.htm?query=vitamin%20d&q=vitamin%20d&category=shop-apotheke.com%2FArzneimittel%20%26%20Gesundheit%2FVitamine%20%26%20Mineralstoffe&sortBy=products_mktplc_prod_DE_de_price_asc",
+    "url": "https://www.shop-apotheke.com/blasensteine-nierensteine/?category=shop-apotheke.com%2FErn%C3%A4hrung%20%26%20Abnehmen\u0026refinementList%5Bvariants.packSize%5D%5B0%5D=15%20St\u0026refinementList%5Bvariants.packSize%5D%5B1%5D=20x1%2C4%20g",
     "schema": "shop-apotheke-de",
-    "expected": { "SEARCH_QUERY": ["vitamin d"], "CATEGORY": ["shop-apotheke.com/Arzneimittel & Gesundheit/Vitamine & Mineralstoffe"], "SORT": ["products_mktplc_prod_DE_de_price_asc"] }
+    "expected": { "CATEGORY": ["Ernährung \u0026 Abnehmen"], "PACK_SIZE": ["15 St", "20x1,4 g"] }
   },
   {
     "shop": "OTTO",

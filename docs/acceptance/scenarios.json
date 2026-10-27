@@ -55,5 +55,16 @@
       {"semanticType":"STROMVERSORGUNGSART","desiredValue":["Akku"]},
       {"semanticType":"RATING","desiredValue":["5"]}
     ]
+  },
+  {
+    "id":"shop-apotheke-category-pack-sizes",
+    "schemaId":"shop-apotheke-de",
+    "resetUrl":"https://www.shop-apotheke.com/blasensteine-nierensteine/",
+    "readySelector":"button[role='combobox'][aria-label='Kategorien']",
+    "resetReadySelector":"h1",
+    "expectedCriteria":[
+      {"semanticType":"CATEGORY","desiredValue":["Ernährung \u0026 Abnehmen"]},
+      {"semanticType":"PACK_SIZE","desiredValue":["15 St","20x1,4 g"]}
+    ]
   }
 ]

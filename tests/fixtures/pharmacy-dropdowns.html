@@ -1,0 +1,49 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Blasensteine</title>
+<style>body{font:16px system-ui}button{margin:4px;padding:8px}li{padding:5px;cursor:pointer}input[inert]{pointer-events:none}ul{border:1px solid #aaa;padding:12px;list-style:none}input[aria-hidden=true]{position:absolute;clip:rect(0,0,0,0);height:1px;width:1px}</style></head>
+<body><main><h1>Blasensteine</h1><nav><button aria-pressed="true">Blasensteine</button><a href="/other-category/">Andere Kategorie</a></nav>
+<div><h5>Suchergebnisse filtern</h5><div id="filters"></div></div>
+<section><a href="/product/1">One</a><a href="/product/2">Two</a><a href="/product/3">Three</a><a href="/product/4">Four</a></section><nav aria-label="Seitennavigation"><a href="?page=1" aria-current="page">Seite 1.</a><a href="?page=2">Seite 2.</a></nav></main><div id="portals"></div>
+<script>
+const category="shop-apotheke.com/Ernährung "+String.fromCharCode(38)+" Abnehmen";
+const categoryLabel=category.split("/").at(-1);
+const menus=[["Sortieren nach","sortBy"],["Kategorien","primaryCategory"],["Darreichungsform","pharmaForm"],["Preis","price"],["Kundenbewertungen","averageRating"],["Marke","brandSearch"],["Menge","variants.packSize"],["Wirkstoffe","activeSubstances"],["Produkteigenschaften","filterAttributes"],["Ersparnis","discountInPercent"],["Versandoptionen","nowProductGroup"],["Hersteller","manufacturer"],["Teilbarkeit","divisibility"]];
+let serial=0;
+let clicks=0;
+let counts=[5,1];
+const selected=()=>new URL(location.href).searchParams;
+const values=(name)=>name==="primaryCategory"?(selected().has("category")?[categoryLabel]:[]):name==="variants.packSize"?[...selected()].filter(([key])=>key.startsWith("refinementList[variants.packSize]")).map(([,value])=>value):name==="sortBy"?["Relevanz"]:[];
+function closeMenus(){for(const button of document.querySelectorAll('[role="combobox"]'))button.setAttribute("aria-expanded","false");document.getElementById("portals").replaceChildren();}
+function refreshBadges(){for(const button of document.querySelectorAll('[role="combobox"]')){const name=button.nextElementSibling.name;const count=name==="sortBy"?0:values(name).length;button.textContent=button.getAttribute("aria-label")+(count?" "+count:"");}}
+function openMenu(button,name){
+  if(button.getAttribute("aria-expanded")==="true"){closeMenus();return;}
+  closeMenus();button.setAttribute("aria-expanded","true");
+  const popup=document.createElement("div");popup.id="_r_popup_"+(++serial);button.setAttribute("aria-controls",popup.id);
+  const list=document.createElement("ul");list.setAttribute("role","listbox");list.setAttribute("aria-label",button.getAttribute("aria-label"));list.setAttribute("aria-multiselectable","true");
+  const options=name==="primaryCategory"?[categoryLabel,"Ernährung"]:name==="variants.packSize"?["15 St","20x1,4 g","100 g"]:name==="sortBy"?["Relevanz"]:["Beliebig"];
+  for(const [index,value] of options.entries()){
+    const item=document.createElement("li");item.id="_r_option_"+(++serial);item.setAttribute("role","option");item.setAttribute("aria-selected",String(values(name).includes(value)));
+    if(name==="variants.packSize"){
+      item.setAttribute("data-attribute",name);const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.setAttribute("inert","");checkbox.setAttribute("readonly","");checkbox.checked=values(name).includes(value);item.append(checkbox);
+    }
+    const span=document.createElement("span");span.textContent=value+(name==="variants.packSize"?" ("+(counts[index]||4)+")":"");item.append(span);
+    item.addEventListener("click",()=>{
+      clicks+=1;const url=new URL(location.href);
+      if(name==="primaryCategory")url.searchParams.set("category",category);
+      if(name==="variants.packSize"){
+        const next=new Set(values(name));if(next.has(value))next.delete(value);else next.add(value);
+        for(const key of [...url.searchParams.keys()])if(key.startsWith("refinementList[variants.packSize]"))url.searchParams.delete(key);
+        [...next].forEach((option,i)=>url.searchParams.set("refinementList[variants.packSize]["+i+"]",option));
+      }
+      history.replaceState({},"",url);refreshBadges();item.setAttribute("aria-selected",String(values(name).includes(value)));const input=item.querySelector("input");if(input)input.checked=values(name).includes(value);
+    });
+    list.append(item);
+  }
+  popup.append(list);document.getElementById("portals").append(popup);
+}
+for(const [index,[label,name]]of menus.entries()){const wrapper=document.createElement("div");if(index>=4){wrapper.hidden=true;wrapper.dataset.extraFilter="true";}const button=document.createElement("button");button.type="button";button.setAttribute("role","combobox");button.setAttribute("aria-label",label);button.setAttribute("aria-expanded","false");button.setAttribute("aria-controls","_r_initial_"+(++serial));button.textContent=label;const field=document.createElement("input");field.name=name;field.value="";field.setAttribute("aria-hidden","true");field.tabIndex=-1;wrapper.append(button,field);document.getElementById("filters").append(wrapper);button.addEventListener("click",()=>openMenu(button,name));}
+const more=document.createElement("button");more.textContent="Mehr Filter";more.addEventListener("click",()=>{const expand=more.textContent==="Mehr Filter";for(const wrapper of document.querySelectorAll("[data-extra-filter]"))wrapper.hidden=!expand;more.textContent=expand?"Weniger Filter":"Mehr Filter";});document.getElementById("filters").after(more);
+refreshBadges();
+window.filterClicks=()=>clicks;
+window.changeCounts=()=>{counts=[27,9];document.querySelector('nav[aria-label="Seitennavigation"]')?.remove();};
+window.closeMenus=closeMenus;
+</script></body></html>
