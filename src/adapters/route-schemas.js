@@ -93,14 +93,23 @@ const SCHEMAS = [
   },
   {
     id: "shop-apotheke-de",
-    version: 1,
+    version: 2,
     hosts: ["shop-apotheke.com", "www.shop-apotheke.com"],
     parameters: {
       query: descriptor("CONTEXT", "SEARCH_QUERY", { canonical: "search" }),
       q: descriptor("CONTEXT", "SEARCH_QUERY", { canonical: "search" }),
-      category: descriptor("FILTER", "CATEGORY"),
+      category: descriptor("FILTER", "CATEGORY", {
+        domLabels:["Kategorien"], controlNames:["primaryCategory"],
+        normalizeValues: (values) => values.map((value) => String(value).split("/").filter(Boolean).at(-1)),
+        describeValues: (values) => values.map((value) => String(value).split("/").filter(Boolean).at(-1)),
+        verificationTexts: (values) => values.map((value) => String(value).split("/").filter(Boolean).at(-1))
+      }),
       sortby: descriptor("PRESENTATION", "SORT")
-    }
+    },
+    dynamicParameters:[{
+      pattern:/^refinementList\[variants\.packSize\](?:\[\d+\])?$/i,
+      descriptor:descriptor("FILTER","PACK_SIZE",{canonical:"refinementlist[variants.packsize]",domLabels:["Menge"],controlNames:["variants.packSize"]})
+    }]
   },
   {
     id: "otto-de",
@@ -148,10 +157,15 @@ export function routeSchemaInfo(urlLike) {
 }
 
 export function routeCaptureHints(urlLike) {
-  const schema = findRouteSchema(urlLike);
-  return Object.values(schema?.parameters || {}).filter((item) => item.domLabels?.length).map((item) => ({
-    labels: [...item.domLabels], semanticType: item.semanticType
+  const url = urlLike instanceof URL ? urlLike : new URL(urlLike);
+  const schema = findRouteSchema(url);
+  const keys = [...url.searchParams.keys()];
+  const descriptors = [...Object.values(schema?.parameters || {}),...keys.map((key) => schemaParameterDescriptor(schema,key))];
+  const hints = descriptors.filter((item) => item?.domLabels?.length).map((item) => ({
+    labels:[...item.domLabels],semanticType:item.semanticType,
+    ...(item.controlNames ? {controlNames:[...item.controlNames],parameters:keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType)} : {})
   }));
+  return [...new Map(hints.map((hint) => [JSON.stringify(hint),hint])).values()];
 }
 
 export function schemaParameterDescriptor(schema, parameter) {
@@ -170,7 +184,7 @@ function structuredParameterDescriptor(parameter) {
   const semanticType = /^(manufacturer|brand|hersteller)$/i.test(field) ? "BRAND"
     : kind === "ratingmenu" ? "RATING"
       : kind === "range" ? `${semantic(field)}_RANGE` : semantic(field);
-  return descriptor("FILTER", semanticType, {canonical:`${kind}[${attribute.toLowerCase()}]`});
+  return descriptor("FILTER", semanticType, {canonical:`${kind}[${attribute.toLowerCase()}]`,domLabels:[field],controlNames:[attribute,field,attribute.split(".").at(-1)]});
 }
 
 export function schemaPathCriteria(schema, urlLike) {

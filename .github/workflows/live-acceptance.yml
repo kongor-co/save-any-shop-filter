@@ -14,6 +14,7 @@ on:
           - decathlon-de
           - mediamarkt-de
           - cyberport-de
+          - shop-apotheke-de
 
 permissions:
   contents: read

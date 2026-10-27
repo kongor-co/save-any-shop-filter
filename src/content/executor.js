@@ -63,6 +63,7 @@
       const startedUrl = location.href;
       const startedSignature = activeStateSignature();
       const snapshot = captureSnapshot(hints);
+      await inspectActiveMenus(snapshot, hints);
       await delay(180 + (attempt * 120));
       if (startedUrl === location.href && startedSignature === activeStateSignature()) return snapshot;
     }
@@ -102,9 +103,9 @@
     if (/\/(login|sign-in|signin|auth)(\/|$)/.test(path) || document.querySelector('input[type="password"]')) return "LOGIN";
     if (/\/(account|profile|settings)(\/|$)/.test(path)) return "ACCOUNT";
 
-    const filterControls = queryAllDeep('input[type="checkbox"], input[type="radio"], select, [role="checkbox"], [role="radio"], [aria-checked], [aria-selected]');
+    const filterControls = queryAllDeep('input[type="checkbox"], input[type="radio"], select, button[role="combobox"][aria-controls], [role="checkbox"], [role="radio"], [aria-checked], [aria-selected]');
     const productLinks = [...document.querySelectorAll('a[href]')].filter((link) => /product|item|sku|dp\//i.test(link.getAttribute("href") || ""));
-    const routeLooksSearch = /search|category|collections?|products?|shop|catalog/i.test(path) || [...new URL(location.href).searchParams.keys()].some((key) => /q|query|search|filter|brand|size|color|price/i.test(key));
+    const routeLooksSearch = /search|category|collections?|products?|shop|catalog/i.test(path) || [...new URL(location.href).searchParams.keys()].some((key) => /^(q|query|search|keyword|k|ntt)$/i.test(key));
     if (filterControls.length >= 2 || productLinks.length >= 4 || routeLooksSearch) return routeLooksSearch ? "SEARCH" : "LISTING";
     if (/\/[^/]+\/[^/]+/.test(path) && document.querySelector('button, [role="button"]')) return "PRODUCT_DETAIL";
     return "OTHER";
@@ -127,6 +128,11 @@
       if (seen.has(element) || !isElementVisible(element) || isSensitiveControl(element)) continue;
       seen.add(element);
       if (outsideFilterSurface(element)) continue;
+      if (decorativeOptionInput(element)) continue;
+      if (currentPageChip(element)) {
+        defaultsIgnored.push({label:controlLabel(element),reason:"The current page is already preserved as listing context."});
+        continue;
+      }
       const defaultReason = defaultControlReason(element, defaultRanges);
       if (defaultReason) {
         defaultsIgnored.push({label: controlLabel(element) || "Default filter", reason: defaultReason});
@@ -142,7 +148,18 @@
     }
 
     for (const element of queryAllDeep('[role="slider"], input[type="range"], [aria-autocomplete], [role="combobox"]')) {      if (!isElementVisible(element) || isSensitiveControl(element)) continue;
+      if (element instanceof HTMLSelectElement) continue;
       if (outsideFilterSurface(element)) continue;
+      if (isDropdownTrigger(element)) {
+        const hint = dropdownHint(element, hints);
+        if (hint?.parameters?.length) continue;
+        if (inactiveDropdown(element)) {
+          defaultsIgnored.push({label:controlLabel(element),reason:"This dropdown has no active selection."});
+        } else {
+          unsupported.push({label:controlLabel(element),reason:"The active dropdown selection has no verified mapping."});
+        }
+        continue;
+      }
       const presentationDefault = defaultPresentationReason(element);
       if (presentationDefault) {
         defaultsIgnored.push({label:controlLabel(element) || "Default sorting",reason:presentationDefault});
@@ -177,17 +194,154 @@
 
   function outsideFilterSurface(element) {
     if (element.closest('[role="search"], footer, [role="contentinfo"]')) return true;
+    const navigation = element.closest('nav[aria-label],[role="navigation"][aria-label],[aria-label="Seitennavigation"],[aria-label="Pagination" i]');
+    if (navigation ? /pagination|seitennavigation|seiten.?navigation|seitenwahl/i.test(navigation.getAttribute("aria-label")) : false) return true;
     const header = element.closest('header, [role="banner"]');
     if (header) return !header.closest('fieldset, details, [role="group"]');
     return false;
   }
 
-  function captureSemanticType(label, hints) {
+  function captureSemanticType(label, hints, group = null) {
     if (Array.isArray(hints)) {
+      const field = group ? dropdownField(group)?.name : null;
+      const fieldHint = field ? hints.find((item) => item.controlNames?.includes(field)) : null;
+      if (fieldHint) return fieldHint.semanticType;
       const hint = hints.find((item) => item.labels?.some((value) => normalizedText(value) === normalizedText(label)));
       if (hint) return hint.semanticType;
     }
     return normalizeSemanticType(label);
+  }
+
+  function decorativeOptionInput(element) {
+    if (!(element instanceof HTMLInputElement)) return false;
+    if (!element.matches('[inert], [readonly]')) return false;
+    return Boolean(element.closest('[role="option"][aria-selected]'));
+  }
+
+  function currentPageChip(element) {
+    if (!element.matches('button[aria-pressed="true"]')) return false;
+    if (element.closest('fieldset,[role="group"],[role="listbox"]')) return false;
+    if (normalizedText(controlLabel(element)) !== normalizedText(document.querySelector("main h1,h1")?.textContent)) return false;
+    const links = [...(element.parentElement?.querySelectorAll('a[href]') || [])];
+    return links.some((link) => {
+      const url = new URL(link.href,location.href);
+      return url.origin === location.origin ? url.pathname !== location.pathname : false;
+    });
+  }
+
+  function isDropdownTrigger(element) {
+    if (!element.matches('button[role="combobox"][aria-controls][aria-expanded][aria-label]')) return false;
+    return [null,"none"].includes(element.getAttribute("aria-autocomplete"));
+  }
+
+  function dropdownField(trigger) {
+    return [...(trigger.parentElement?.querySelectorAll('input[name][aria-hidden="true"]') || [])].find((input) => input.parentElement === trigger.parentElement) || null;
+  }
+
+  function dropdownHint(trigger, hints) {
+    const field = dropdownField(trigger)?.name;
+    return (hints || []).find((hint) => hint.controlNames?.includes(field) || hint.labels?.some((label) => normalizedText(label) === normalizedText(trigger.getAttribute("aria-label"))));
+  }
+
+  function dropdownPopup(trigger) {
+    const root = trigger.getRootNode();
+    const controlled = root.getElementById?.(trigger.getAttribute("aria-controls"));
+    if (!controlled) return null;
+    if (controlled.matches('[role="listbox"]')) return controlled;
+    return unique(queryAllDeep('[role="listbox"]',controlled));
+  }
+
+  function dropdownForPopup(popup) {
+    return unique(queryAllDeep('button[role="combobox"][aria-controls]').filter((trigger) => dropdownPopup(trigger) === popup));
+  }
+
+  function inactiveDropdown(trigger) {
+    const field = dropdownField(trigger);
+    if (!field || field.value) return false;
+    if (normalizedText(trigger.textContent) !== normalizedText(trigger.getAttribute("aria-label"))) return false;
+    const selected = [...(dropdownPopup(trigger)?.querySelectorAll('[aria-selected="true"]') || [])];
+    if (selected.some((option) => !defaultDropdownOptionReason(option))) return false;
+    const name = field.name.toLowerCase();
+    return ![...new URL(location.href).searchParams.keys()].some((key) => key.toLowerCase() === name || key.toLowerCase().includes(`[${name}]`));
+  }
+
+  async function openDropdown(trigger, message) {
+    if (!isDropdownTrigger(trigger) || !isElementVisible(trigger) || isDisabled(trigger) || trigger.closest('[inert]')) return false;
+    if (trigger.getAttribute("aria-expanded") !== "true") trigger.click();
+    const deadline = Date.now()+1500;
+    while (Date.now()<deadline) {
+      if (message) assertNotCancelled(message);
+      const popup = dropdownPopup(trigger);
+      if (popup ? isElementVisible(popup) : false) return true;
+      await delay(50);
+    }
+    return false;
+  }
+
+  async function revealDropdown(label, message) {
+    const locate = () => resolveLocator({type:"COMBOBOX_LABEL",value:label},document,true);
+    const current = locate();
+    if (current ? isElementVisible(current) : false) return current;
+    const reveal = unique(queryAllDeep("button").filter(isElementVisible).filter((button) => /^(mehr filter|more filters|alle filter|all filters)$/i.test(plainText(button.textContent))));
+    if (!reveal || isDisabled(reveal) || reveal.closest('[inert]')) return null;
+    if (message) assertNotCancelled(message);
+    reveal.click();
+    const deadline = Date.now()+1500;
+    while (Date.now()<deadline) {
+      if (message) assertNotCancelled(message);
+      const trigger = locate();
+      if (trigger ? isElementVisible(trigger) : false) return trigger;
+      await delay(50);
+    }
+    return null;
+  }
+
+  async function inspectActiveMenus(snapshot, hints) {
+    let triggers = queryAllDeep('button[role="combobox"]').filter(isDropdownTrigger).filter(isElementVisible);
+    const original = triggers.filter((trigger) => trigger.getAttribute("aria-expanded") === "true");
+    const reveal = unique(queryAllDeep("button").filter(isElementVisible).filter((button) => /^(mehr filter|more filters|alle filter|all filters)$/i.test(plainText(button.textContent))));
+    const inspected = [];
+    try {
+      for (const hint of hints || []) {
+        if (!hint.parameters?.length) continue;
+        if (triggers.some((trigger) => dropdownHint(trigger,[hint]))) continue;
+        for (const label of hint.labels || []) {
+          if (await revealDropdown(label)) break;
+        }
+      }
+      triggers = queryAllDeep('button[role="combobox"]').filter(isDropdownTrigger).filter(isElementVisible);
+      for (const trigger of triggers) {
+        const hint = dropdownHint(trigger,hints);
+        if (!hint?.parameters?.length) continue;
+        const same = triggers.filter((other) => normalizedText(other.getAttribute("aria-label")) === normalizedText(trigger.getAttribute("aria-label")));
+        if (same.length !== 1) {
+          snapshot.unresolved.push({label:controlLabel(trigger),reason:"More than one dropdown has this filter label."});
+          continue;
+        }
+        inspected.push(trigger);
+        if (!await openDropdown(trigger)) {
+          snapshot.unsupported.push({label:controlLabel(trigger),reason:"The active dropdown could not be inspected safely."});
+          continue;
+        }
+        const popup = dropdownPopup(trigger);
+        const candidates = queryAllDeep('[role="option"][aria-selected="true"]',popup).filter(isElementVisible).map((option) => captureControl(option,hints)).filter(Boolean);
+        for (const criterion of groupCandidates(candidates)) {
+          const existing = snapshot.domCriteria.find((item) => item.semanticType === criterion.semanticType);
+          if (!existing) snapshot.domCriteria.push(criterion);
+          else {
+            existing.desiredValue = [...new Set([...existing.desiredValue,...criterion.desiredValue])];
+            existing.observedRepresentation = [...new Set([...existing.observedRepresentation,...criterion.observedRepresentation])];
+            existing.bindings = [...new Map([...existing.bindings,...criterion.bindings].map((binding) => [binding.bindingId,binding])).values()];
+          }
+        }
+      }
+    } finally {
+      for (const trigger of inspected) if (trigger.getAttribute("aria-expanded") === "true") trigger.click();
+      if (reveal?.isConnected) {
+        if (/^(weniger filter|less filters|fewer filters)$/i.test(plainText(reveal.textContent))) reveal.click();
+      }
+      for (const trigger of original) if (trigger.isConnected) await openDropdown(trigger);
+    }
   }
 
   function defaultPresentationReason(element) {
@@ -199,6 +353,8 @@
   }
 
   function defaultControlReason(element, cache) {
+    const dropdownDefault = defaultDropdownOptionReason(element);
+    if (dropdownDefault) return dropdownDefault;
     if (element instanceof HTMLInputElement) {
       if (element.type === "radio") {
         if (element.checked) {
@@ -213,6 +369,24 @@
     if (!group) return null;
     if (!cache.has(group)) cache.set(group, unrestrictedRangeControls(group));
     return cache.get(group).has(element) ? "The complete available range is selected; no range filter is active." : null;
+  }
+
+  function defaultDropdownOptionReason(element) {
+    if (!element.matches('[role="option"][aria-selected="true"]')) return null;
+    const popup = element.closest('[role="listbox"]');
+    const trigger = popup ? dropdownForPopup(popup) : null;
+    const field = trigger ? dropdownField(trigger)?.name : null;
+    if (!field) return null;
+    const keys = [...new URL(location.href).searchParams.keys()];
+    if (/^(sort[-_]?by|sort|sorting|sortierung)$/i.test(field)) {
+      if (keys.some((key) => /^(sort|sort[-_]?by|order|ns)$/i.test(key))) return null;
+      if (/^(relevanz|relevance|recommended|empfohlen|beste ergebnisse)$/i.test(plainText(controlLabel(element)))) return "Default relevance is presentation state.";
+    }
+    if (/^(primaryCategory|category)$/i.test(field)) {
+      if (keys.some((key) => key.toLowerCase() === "category")) return null;
+      if (plainText(controlLabel(element)) === plainText(document.querySelector("main h1,h1")?.textContent)) return "The current listing category is already preserved by its route.";
+    }
+    return null;
   }
 
   function unrestrictedRangeControls(group) {
@@ -304,7 +478,7 @@
     const values = Array.isArray(desired) ? desired : [desired];
     return {
       groupLabel,
-      semanticType: captureSemanticType(groupLabel, hints),
+      semanticType: captureSemanticType(groupLabel, hints, group.element),
       observed: Array.isArray(desired) ? selectedLabels(element) : [optionLabel],
       values,
       binding: {
@@ -313,13 +487,13 @@
         origin: location.origin,
         applicability: { viewport },
         mapping: {
-          mappingVersion: 4,
+          mappingVersion: 5,
           controlType,
           desiredValue: values,
           filterContainer: { locatorChain: containerLocators },
           option: { semanticValue: values, locatorChain: optionLocators },
           interactionPlan: [
-            ...(element.closest("details") ? [{action: "ENSURE_EXPANDED", timeoutMs: 3000}] : []),
+            ...(element.closest("details") || isDropdownTrigger(group.element) ? [{action: "ENSURE_EXPANDED", timeoutMs: 3000}] : []),
             { action: interactionAction, timeoutMs: 3000 },
             ...(element instanceof HTMLInputElement ? (["number", "range"].includes(element.type) ? commitPlan(group.element) : []) : []),
             { action: "VERIFY", timeoutMs: 3000 }
@@ -508,7 +682,7 @@
       assertNotCancelled(message);
       if (!SUCCESS.has(results[index].status)) continue;
       const criterion = message.criteria.find((item) => item.criterionId === results[index].criterionId);
-      const verification = await verifyCriterion(criterion);
+      const verification = await verifyCriterion(criterion, message);
       if (!verification) {
         results[index] = criterionResult(criterion, "VERIFY_FAILED", "The filter changed after it was applied.");
       } else if (verification === "VERIFIED") {
@@ -554,7 +728,14 @@
     const mapping = binding.mapping;
     if (!mapping || binding.origin !== location.origin) return failure("RESOLUTION_INCONCLUSIVE", "The mapping is not authorized for this page.");
     let group = resolveLocatorChain(mapping.filterContainer?.locatorChain || [], document, true);
+    const menuLabel = mapping.filterContainer?.locatorChain?.find((locator) => locator.type === "COMBOBOX_LABEL")?.value;
+    if (menuLabel) {
+      if (!group || !isElementVisible(group)) group = await revealDropdown(menuLabel,message);
+    }
     if (!group) return failure("RESOLUTION_INCONCLUSIVE", "FilterVault cannot determine whether this filter group is currently available.");
+    if (isDropdownTrigger(group)) {
+      if (!await openDropdown(group,message)) return failure("RESOLUTION_INCONCLUSIVE", "The saved dropdown could not be opened safely.");
+    }
     let option = resolveLocatorChain(mapping.option?.locatorChain || [], group, false);
     if (!option) {
       if (appearsVirtualized(group)) return failure("RESOLUTION_INCONCLUSIVE", "The value may be outside the rendered portion of this filter.");
@@ -583,10 +764,23 @@
     return verified ? { ok: true, changed: true } : failure("VERIFY_FAILED", "The interaction occurred, but the desired state could not be verified.");
   }
 
-  async function verifyCriterion(criterion) {
+  async function verifyCriterion(criterion, message) {
     const routeBindings = (criterion.bindings || []).filter((binding) => ["URL_QUERY", "URL_PATH"].includes(binding.type));
     const domBindings = (criterion.bindings || []).filter((binding) => binding.type === "DOM");
-    if (domBindings.length) return domBindings.every(bindingCurrentlySatisfied) ? "VERIFIED" : false;
+    if (domBindings.length) {
+      for (const binding of domBindings) {
+        let group = resolveLocatorChain(binding.mapping?.filterContainer?.locatorChain || [], document, true);
+        const menuLabel = binding.mapping?.filterContainer?.locatorChain?.find((locator) => locator.type === "COMBOBOX_LABEL")?.value;
+        if (menuLabel) {
+          if (!group || !isElementVisible(group)) group = await revealDropdown(menuLabel,message);
+        }
+        if (group ? isDropdownTrigger(group) : false) {
+          if (!await openDropdown(group,message)) return false;
+        }
+        if (!bindingCurrentlySatisfied(binding)) return false;
+      }
+      return "VERIFIED";
+    }
     if (hasVisibleCriterionEvidence(criterion)) return "VERIFIED";
     if (!routeBindings.length || !routeBindings.every(routeBindingMatches)) return false;
     return "ROUTE_ONLY";
@@ -602,6 +796,7 @@
     assertNotCancelled(message);
     const action = step.action;
     if (["ENSURE_EXPANDED", "OPEN_FILTER_GROUP"].includes(action)) {
+      if (isDropdownTrigger(group)) return openDropdown(group,message);
       const accordions = [];
       let ancestor = group;
       while (ancestor) {
@@ -709,6 +904,18 @@
   function resolveLocator(locator, scope, isContainer) {
     const value = String(locator.value || "");
     const all = (selector) => queryAllDeep(selector, scope);
+    if (locator.type === "COMBOBOX_LABEL") {
+      return unique(all('button[role="combobox"][aria-controls][aria-label]').filter(isDropdownTrigger)
+        .filter((trigger) => plainText(trigger.getAttribute("aria-label")) === plainText(value)));
+    }
+    if (locator.type === "DROPDOWN_OPTION") {
+      const popup = isDropdownTrigger(scope) ? dropdownPopup(scope) : null;
+      if (!popup) return null;
+      const options = queryAllDeep('[role="option"]',popup);
+      const exact = options.filter((option) => plainText(labelText(option)) === plainText(value));
+      if (exact.length) return unique(exact);
+      return unique(options.filter((option) => plainText(labelText(option).replace(/\s*\(\s*\d+[\d.,]*\s*\)\s*$/,"")) === plainText(value)));
+    }
     if (locator.type === "NATIVE_RANGE_ENDPOINT") {
       const pair = nativeRangePair(scope);
       if (!pair) return null;
@@ -766,6 +973,7 @@
 
   function buildContainerLocators(element, label) {
     const locators = [];
+    if (isDropdownTrigger(element)) return [{type:"COMBOBOX_LABEL",value:element.getAttribute("aria-label")}];
     if (element.matches('ul[aria-labelledby],ol[aria-labelledby],[role="list"][aria-labelledby],[role="listbox"][aria-labelledby]')) locators.push({type:"LABELLED_LIST", value:label});
     if (element.matches("details")) locators.push({type:"DETAILS_SUMMARY", value:label});
     if (isIdealoAdapter()) locators.push({ type: "IDEALO_FILTER_GROUP", value: label });
@@ -778,6 +986,9 @@
 
   function buildOptionLocators(element, label) {
     const locators = [];
+    if (element.matches('[role="option"]')) {
+      if (isDropdownTrigger(findFilterGroup(element)?.element || document.documentElement)) return [{type:"DROPDOWN_OPTION",value:label}];
+    }
     const endpoint = nativeRangeEndpoint(element);
     if (endpoint) return [{type:"NATIVE_RANGE_ENDPOINT",value:endpoint}];
     if (isIdealoAdapter() && element instanceof HTMLInputElement && ["checkbox", "radio"].includes(element.type)) {
@@ -796,6 +1007,12 @@
   }
 
   function findFilterGroup(element) {
+    const popup = element.closest('[role="listbox"]');
+    if (popup) {
+      const trigger = dropdownForPopup(popup);
+      if (trigger) return {element:trigger,label:trigger.getAttribute("aria-label"),depth:0};
+      if (groupLabel(popup)) return {element:popup,label:groupLabel(popup),depth:0};
+    }
     if (isIdealoAdapter()) {
       let idealoBox = element.parentElement;
       while (idealoBox) {
@@ -853,6 +1070,19 @@
   }
 
   function controlLabel(element) {
+    if (element.matches('[role="option"]')) {
+      const label = labelText(element);
+      const attribute = element.getAttribute("data-attribute");
+      if (attribute) {
+        for (const [key,value] of new URL(location.href).searchParams) {
+          const field = /^refinementList\[([^\]]+)\](?:\[\d+\])?$/i.exec(key)?.[1];
+          if (field !== attribute) continue;
+          const withoutCount = label.replace(/\s*\(\s*\d+[\d.,]*\s*\)\s*$/,"");
+          if ([plainText(label),plainText(withoutCount)].includes(plainText(value))) return value;
+        }
+      }
+      return label;
+    }
     if (isIdealoAdapter()) {
       const label = idealoOptionLabel(element);
       if (label) return optionLabelText(label);
@@ -1173,6 +1403,10 @@
 
   function normalizedText(value) {
     return String(value || "").replace(/\(\s*\d+[\d,.]*\s*\)\s*$/, "").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+  }
+
+  function plainText(value) {
+    return String(value || "").replace(/\s+/g," ").trim().toLocaleLowerCase();
   }
 
   function unique(items) {

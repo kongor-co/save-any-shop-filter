@@ -89,7 +89,7 @@ export function captureRouteCriteria(urlLike, { includePresentation = false } = 
     criterionId: stableId("route", group.canonical, group.semanticType),
     role: group.classification,
     semanticType: group.semanticType,
-    desiredValue: [...new Set(group.values)],
+    desiredValue: [...new Set(group.descriptor?.normalizeValues?.([...new Set(group.values)]) || group.values)],
     observedRepresentation: [...new Set(group.descriptor?.describeValues?.([...new Set(group.values)]) || group.values)],
     dependencies: [],
     atomicGroup: group.atomicGroup || undefined,

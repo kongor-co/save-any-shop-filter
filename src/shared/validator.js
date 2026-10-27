@@ -102,7 +102,9 @@ function validateLocator(locator, mappingVersion) {
     assert(mappingVersion >= 4, "Locator requires mapping version 4");
     assert(["LOWER","UPPER"].includes(locator.value), "Invalid range endpoint");
   }
-  assert(allowed.has(locator.type) || genericGroup || rangeEndpoint, "Unknown locator type");
+  const dropdown = ["COMBOBOX_LABEL","DROPDOWN_OPTION"].includes(locator.type);
+  if (dropdown) assert(mappingVersion >= 5, "Locator requires mapping version 5");
+  assert(allowed.has(locator.type) || genericGroup || rangeEndpoint || dropdown, "Unknown locator type");
 }
 
 function validateBinding(binding, origin) {
@@ -139,7 +141,7 @@ function validateBinding(binding, origin) {
   if (binding.type === "DOM") {
     const mapping = binding.mapping;
     onlyFields(mapping, ["mappingVersion", "controlType", "desiredValue", "filterContainer", "option", "interactionPlan", "verificationRule"], "Invalid mapping fields");
-    assert([1, 2, 3, MAPPING_VERSION].includes(mapping.mappingVersion), "Unsupported mapping version");
+    assert([1, 2, 3, 4, MAPPING_VERSION].includes(mapping.mappingVersion), "Unsupported mapping version");
     assert(valueList(mapping.desiredValue), "Invalid mapping desired value");
     onlyFields(mapping.verificationRule, ["type", "desiredValue"], "Invalid verification rule");
     const ruleType = mapping.controlType === "NATIVE_SELECT" ? "SELECT_VALUE"

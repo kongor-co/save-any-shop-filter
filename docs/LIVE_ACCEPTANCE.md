@@ -19,6 +19,7 @@ npm run test:live -- --shop idealo-de
 npm run test:live -- --shop decathlon-de
 npm run test:live -- --shop mediamarkt-de
 npm run test:live -- --shop cyberport-de
+npm run test:live -- --shop shop-apotheke-de
 ```
 
 If Chromium is installed outside Playwright's default location, set `PLAYWRIGHT_BROWSERS_PATH` to that installed browser directory before running the command. `FILTERVAULT_PLAYWRIGHT_MODULE` can select an existing Playwright module, as in the packaged smoke suite.

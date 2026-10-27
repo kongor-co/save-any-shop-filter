@@ -33,6 +33,8 @@ Cyberport manufacturer, power-supply, and rating filters are captured from struc
 
 Paired native range inputs with identifiable endpoints support capture and verified replay, including a scoped Apply button. Full-range handles in a separate fieldset are recognized as defaults. Explicit default relevance comboboxes are omitted; active custom sliders and genuine autocomplete controls remain reported when no reliable mapping exists.
 
+Shop Apotheke category and pack-size menus use generic button-dropdown support. Active menu inspection uses associated listboxes, including popups rendered elsewhere in the document, and restores the previous menu and filter-panel visibility. Decorative checkboxes and result counts do not duplicate selected options. Both selected pack sizes are saved as one filter with their original URL keys. Pagination and the current listing chip are page context rather than saved filters.
+
 FilterVault deliberately does not automate login, checkout, consent choices, CAPTCHAs, closed Shadow DOM, arbitrary scripts, or controls it cannot identify and verify safely.
 
 ## Development
@@ -48,7 +50,7 @@ npm run smoke:browser
 
 No build step and no third-party runtime dependencies are required.
 
-The [support matrix](docs/SUPPORT.md) separates deterministic route coverage from dated live acceptance. Run `npm run test:live` for the isolated Idealo, Decathlon, MediaMarkt, and Cyberport scenarios. The [live acceptance guide](docs/LIVE_ACCEPTANCE.md) explains recording results, blocked cases, and the manual CI workflow. Live retailer access is separate from the deterministic release gate.
+The [support matrix](docs/SUPPORT.md) separates deterministic route coverage from dated live acceptance. Run `npm run test:live` for the isolated Idealo, Decathlon, MediaMarkt, Cyberport, and Shop Apotheke scenarios. The [live acceptance guide](docs/LIVE_ACCEPTANCE.md) explains recording results, blocked cases, and the manual CI workflow. Live retailer access is separate from the deterministic release gate.
 
 Use `main` as the integration branch. Create a short-lived branch for each change, run the relevant checks, and merge through a pull request. A permanent `develop` branch is not required.
 
