@@ -97,7 +97,12 @@ function validateLocator(locator, mappingVersion) {
   const allowed = new Set(["ID", "NAME_VALUE", "ARIA_LABEL", "LABEL_TEXT", "BUTTON_TEXT", "LINK_TEXT", "SELECT_NAME", "FIELDSET_LEGEND", "GROUP_ARIA_LABEL", "HEADING_TEXT", "IDEALO_FILTER_GROUP", "IDEALO_OPTION"]);
   const genericGroup = ["LABELLED_LIST", "DETAILS_SUMMARY"].includes(locator.type);
   if (genericGroup) assert(mappingVersion >= 3, "Locator requires mapping version 3");
-  assert(allowed.has(locator.type) || genericGroup, "Unknown locator type");
+  const rangeEndpoint = locator.type === "NATIVE_RANGE_ENDPOINT";
+  if (rangeEndpoint) {
+    assert(mappingVersion >= 4, "Locator requires mapping version 4");
+    assert(["LOWER","UPPER"].includes(locator.value), "Invalid range endpoint");
+  }
+  assert(allowed.has(locator.type) || genericGroup || rangeEndpoint, "Unknown locator type");
 }
 
 function validateBinding(binding, origin) {
@@ -134,7 +139,7 @@ function validateBinding(binding, origin) {
   if (binding.type === "DOM") {
     const mapping = binding.mapping;
     onlyFields(mapping, ["mappingVersion", "controlType", "desiredValue", "filterContainer", "option", "interactionPlan", "verificationRule"], "Invalid mapping fields");
-    assert([1, 2, MAPPING_VERSION].includes(mapping.mappingVersion), "Unsupported mapping version");
+    assert([1, 2, 3, MAPPING_VERSION].includes(mapping.mappingVersion), "Unsupported mapping version");
     assert(valueList(mapping.desiredValue), "Invalid mapping desired value");
     onlyFields(mapping.verificationRule, ["type", "desiredValue"], "Invalid verification rule");
     const ruleType = mapping.controlType === "NATIVE_SELECT" ? "SELECT_VALUE"

@@ -57,7 +57,7 @@ test("validated plans accept bounded declarative commit workflows", () => {
 });
 
 test("mapping version 3 supports labelled lists and summary groups without breaking older mappings", () => {
-  for (const version of [1,2,3]) {
+  for (const version of [1,2,3,4]) {
     const state=domState();
     state.criteria[0].bindings[0].mapping.mappingVersion=version;
     assert.equal(validateSavedState(state),state);
@@ -71,6 +71,19 @@ test("mapping version 3 supports labelled lists and summary groups without break
     mapping.mappingVersion=2;
     assert.throws(() => validateSavedState(state),/mapping version 3/);
   }
+});
+
+test("range endpoint locators require mapping version 4 and a known endpoint",()=>{
+  const state=domState();
+  const mapping=state.criteria[0].bindings[0].mapping;
+  mapping.mappingVersion=4;
+  mapping.option.locatorChain=[{type:"NATIVE_RANGE_ENDPOINT",value:"LOWER"}];
+  assert.equal(validateSavedState(state),state);
+  mapping.mappingVersion=3;
+  assert.throws(()=>validateSavedState(state),/mapping version 4/);
+  mapping.mappingVersion=4;
+  mapping.option.locatorChain[0].value="FIRST";
+  assert.throws(()=>validateSavedState(state),/Invalid range endpoint/);
 });
 
 test("import validation rejects changed origins, credentials, and ambiguous identities", () => {

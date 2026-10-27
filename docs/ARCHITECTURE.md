@@ -25,6 +25,8 @@ Contains declarative retailer route schemas. A schema owns host-specific query k
 
 Parameter descriptors may also declare accessible group labels. The worker passes those data-only hints into capture so a native DOM group and its route parameter normalize to the same semantic criterion. MediaMarkt uses this for seller and refurbished state. The generic content engine does not hardcode that retailer's CSS classes or group IDs.
 
+Conventional structured query widgets are parsed independently of the host: refinement lists, hierarchical menus, menus, rating menus, ranges, and numeric menus. The attribute provides semantic identity, array indices are removed only from the canonical grouping key, and physical parameter names remain unchanged. Nested sensitive field names are excluded before capture. Cyberport version 2 supplies the German rating display text; its search and sort aliases remain supported.
+
 ### `src/shared`
 
 Contains environment-independent rules used by capture, storage, and replay:
@@ -44,9 +46,11 @@ Keep this layer free of browser globals so it remains directly testable.
 
 Generic groups include labelled lists, fieldsets, and native details elements with summaries. Capture verifies that its container and option locator chains uniquely resolve the observed controls. Explicit result-count suffixes and hidden count decorations do not become option identity. Search and page header/footer controls are excluded from filter capture.
 
-Full-range defaults are omitted only when a scoped minimum/maximum pair has explicit matching bounds, endpoint labels, and unrestricted values. Independent numeric controls, a single slider, missing bounds, contradictory values, or a changed range are not silently ignored. Replay expands closed native accordion ancestors only when needed and resolves controls again before each action.
+Full-range defaults require explicit matching bounds and unrestricted values. Numeric pairs need minimum/maximum labels. Slider pairs need a shared parent and identifiable handle labels or explicit lower/upper markers. This includes handles in a nested fieldset and degenerate ARIA ranges with one available value. Independent numeric fields and sliders, missing bounds, contradictory values, and changed ranges are not silently ignored. Explicit readonly relevance selectors without active sort parameters are defaults; other comboboxes retain omission warnings.
 
-New captures use mapping version 3, with `LABELLED_LIST` and `DETAILS_SUMMARY` locators. Mapping versions 1 and 2 remain valid with their existing locators; no saved semantic criteria are rewritten. New locator types cannot be disguised as an older mapping version.
+New captures use mapping version 4. `NATIVE_RANGE_ENDPOINT` locates an identifiable ordered native pair within a uniquely resolved group. Capture stores stable endpoint identity rather than a value-dependent accessible label. Numeric input actions can restore native handles and use a scoped, allowlisted Apply action. Every action and final value is verified; changed pair structure fails without guessing. Mapping versions 1, 2, and 3 remain accepted, including version 3 labelled-list and summary locators. Existing saved criteria are preserved.
+
+Route verification may read the visible associated label of a checked native checkbox or radio styled out of view. An unchecked label cannot verify selection. This does not authorize clicks on hidden inputs, and page header/footer and sensitive controls remain excluded. Replay expands closed native accordion ancestors only when needed and resolves controls again before each action.
 
 ### `src/background`
 

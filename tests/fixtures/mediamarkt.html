@@ -9,8 +9,8 @@
         <details open><summary id="price-title">Preis</summary>
           <div><label for=":r5:">Von (€)</label><input id=":r5:" type="number" min="469" max="560" value="469"></div>
           <div><label for=":r6:">Bis (€)</label><input id=":r6:" type="number" min="469" max="560" value="560"></div>
-          <input type="range" min="469" max="560" value="469" aria-label="469 €">
-          <input type="range" min="469" max="560" value="560" aria-label="560 €">
+          <fieldset aria-label="Preis"><input type="range" min="469" max="560" value="469" aria-label="469 €">
+          <input type="range" min="469" max="560" value="560" aria-label="560 €"></fieldset>
         </details>
         <details open><summary>Bewertungen</summary><ul role="list"><li><label><input type="radio" name="rating" value="all" checked>Alle Bewertungen</label></li></ul></details>
         <details open><summary id="mms-facet-multiselect-marketplace">Verkäufer</summary>
@@ -28,8 +28,8 @@
         <details open><summary>Rabatt</summary>
           <label for=":ri:">Von (%)</label><input id=":ri:" type="number" min="0" max="6" value="0">
           <label for=":rj:">Bis (%)</label><input id=":rj:" type="number" min="0" max="6" value="6">
-          <input type="range" min="0" max="6" value="0" aria-label="0 %">
-          <input type="range" min="0" max="6" value="6" aria-label="6 %">
+          <fieldset aria-label="Rabatt"><input type="range" min="0" max="6" value="0" aria-label="0 %">
+          <input type="range" min="0" max="6" value="6" aria-label="6 %"></fieldset>
         </details>
       </aside>
       <section><a href="/product/1">Console one</a><a href="/product/2">Console two</a><a href="/product/3">Console three</a><a href="/product/4">Console four</a></section>

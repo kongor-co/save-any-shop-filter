@@ -30,10 +30,9 @@ export function normalizeSemanticType(value) {
 }
 
 export function classifyRouteParameter(name, urlLike = null) {
-  if (urlLike) {
-    const owned = schemaParameterDescriptor(findRouteSchema(urlLike), name);
-    if (owned) return owned.role;
-  }
+  if (/\[(?:[^\]]*(?:token|session|password|secret|email|phone|address|payment|account|profile|user.?id|auth|tracking)[^\]]*)\]/i.test(String(name))) return "EPHEMERAL";
+  const owned = schemaParameterDescriptor(urlLike ? findRouteSchema(urlLike) : null, name);
+  if (owned) return owned.role;
   const key = String(name).toLowerCase();
   if (PAGINATION_KEYS.has(key)) return "PAGINATION";
   if (EPHEMERAL_PATTERN.test(key)) return "EPHEMERAL";

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>Gaming-Mäuse</title><style>.hidden{display:none}label{display:block;margin:12px} [role=slider]{width:20px;height:20px;background:#ccc}</style></head>
+<body><main><h1>Gaming-Mäuse</h1>
+<aside>
+  <div><button>Hersteller</button><ul><li><label for="manufacturer-ASUS"><input class="hidden" type="checkbox" id="manufacturer-ASUS">ASUS <span>1</span></label></li></ul></div>
+  <div><button>Stromversorgungsart</button><ul><li><label for="power-Akku"><input class="hidden" type="checkbox" id="power-Akku">Akku <span>1</span></label></li></ul></div>
+  <div><button>Bewertungen</button><ul><li><label for="rating-5"><input class="hidden" type="radio" name="ratings" id="rating-5">5 Sterne <span>1</span></label></li><li><label><input class="hidden" type="radio" name="ratings">Alle Bewertungen</label></li></ul></div>
+  <div><button>Preis</button><div>
+    <div role="slider" data-lower="true" aria-valuemin="110" aria-valuemax="110" aria-valuenow="110"></div>
+    <div role="slider" data-upper="true" aria-valuemin="110" aria-valuemax="110" aria-valuenow="110"></div>
+  </div><span>110 € bis 120 €</span></div>
+</aside>
+<input id="sort-by" name="sort-by" role="combobox" readonly aria-autocomplete="none" aria-haspopup="listbox" value="Relevanz">
+<section><a href="/product/1">Mouse one</a><a href="/product/2">Mouse two</a><a href="/product/3">Mouse three</a><a href="/product/4">Mouse four</a></section>
+</main><script>
+const params=new URL(location.href).searchParams;
+document.getElementById("manufacturer-ASUS").checked=params.get("refinementList[manufacturer][0]")==="ASUS";
+document.getElementById("power-Akku").checked=params.get("refinementList[facets.Stromversorgungsart.values][0]")==="Akku";
+document.getElementById("rating-5").checked=params.get("ratingMenu[ratingsBucket]")==="5";
+</script></body></html>

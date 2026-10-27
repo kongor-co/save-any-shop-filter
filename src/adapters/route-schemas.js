@@ -70,10 +70,14 @@ const SCHEMAS = [
   },
   {
     id: "cyberport-de",
-    version: 1,
+    version: 2,
     hosts: ["cyberport.de", "www.cyberport.de"],
     parameters: {
       query: descriptor("CONTEXT", "SEARCH_QUERY", { canonical: "search" }),
+      "ratingmenu[ratingsbucket]": descriptor("FILTER", "RATING", {
+        describeValues: (values) => values.map((value) => `${value} Sterne`),
+        verificationTexts: (values) => values.map((value) => `${value} Sterne`)
+      }),
       sortby: descriptor("PRESENTATION", "SORT")
     }
   },
@@ -151,10 +155,22 @@ export function routeCaptureHints(urlLike) {
 }
 
 export function schemaParameterDescriptor(schema, parameter) {
-  if (!schema) return null;
   const key = String(parameter).toLowerCase();
-  if (schema.parameters[key]) return schema.parameters[key];
-  return schema.dynamicParameters?.find((entry) => entry.pattern.test(parameter))?.descriptor || null;
+  if (schema?.parameters[key]) return schema.parameters[key];
+  return schema?.dynamicParameters?.find((entry) => entry.pattern.test(parameter))?.descriptor || structuredParameterDescriptor(parameter);
+}
+
+function structuredParameterDescriptor(parameter) {
+  const match = String(parameter).match(/^(refinementList|hierarchicalMenu|menu|ratingMenu|range|numericMenu)\[([a-z0-9_.\u00c0-\u024f -]{1,100})\](?:\[(\d{1,3})\])?$/i);
+  if (!match) return null;
+  const [, widget, attribute] = match;
+  if (/token|session|password|secret|email|phone|address|payment|account|profile|user.?id|auth|tracking/i.test(attribute)) return null;
+  const kind = widget.toLowerCase();
+  const field = attribute.replace(/^facets\./i, "").replace(/\.values$/i, "");
+  const semanticType = /^(manufacturer|brand|hersteller)$/i.test(field) ? "BRAND"
+    : kind === "ratingmenu" ? "RATING"
+      : kind === "range" ? `${semantic(field)}_RANGE` : semantic(field);
+  return descriptor("FILTER", semanticType, {canonical:`${kind}[${attribute.toLowerCase()}]`});
 }
 
 export function schemaPathCriteria(schema, urlLike) {
