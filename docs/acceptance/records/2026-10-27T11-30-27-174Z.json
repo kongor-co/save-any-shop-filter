@@ -1,0 +1,106 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-10-27T11:30:27.174Z",
+  "runId": "2026-10-27T11-30-27-174Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "74bccb9bad44a068dc744283af287767ded0c5f8661494b24ad911b09661af80"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.idealo.de",
+    "https://www.decathlon.de"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "idealo-samsung-ram",
+      "scenario": {
+        "id": "idealo-samsung-ram",
+        "schemaId": "idealo-de",
+        "resetUrl": "https://www.idealo.de/preisvergleich/ProductCategory/19116.html",
+        "readySelector": "button[class*=sr-filterTag_]",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "HERSTELLER",
+            "desiredValue": [
+              "Samsung"
+            ]
+          },
+          {
+            "semanticType": "RAM",
+            "desiredValue": [
+              "12 GB",
+              "8 GB"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.idealo.de/preisvergleich/ProductCategory/19116F1820730-8454964-9930992.html?sortKey=minPrice"
+      },
+      "scenarioSha256": "bbf8eedbb45fe7b2ca11682145ca52f9ff9680bcb52982d90cf74db9a864b80e",
+      "schemaId": "idealo-de",
+      "schemaVersion": 2,
+      "status": "BLOCKED",
+      "stage": "NAVIGATE",
+      "reason": "HTTP_403",
+      "capturedCriteria": [],
+      "resetCriteria": [],
+      "resetChanged": [],
+      "omissions": 0,
+      "replay": null,
+      "finalUrl": "https://www.idealo.de/preisvergleich/ProductCategory/19116F1820730-8454964-9930992.html?sortKey=minPrice"
+    },
+    {
+      "scenarioId": "decathlon-shirts-size-price",
+      "scenario": {
+        "id": "decathlon-shirts-size-price",
+        "schemaId": "decathlon-de",
+        "resetUrl": "https://www.decathlon.de/herren/t-shirts-hemden",
+        "readySelector": "main h1",
+        "resetReadySelector": "main h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "CONDITION",
+            "desiredValue": [
+              "Neu"
+            ]
+          },
+          {
+            "semanticType": "SELLER",
+            "desiredValue": [
+              "Decathlon"
+            ]
+          },
+          {
+            "semanticType": "SIZE",
+            "desiredValue": [
+              "L",
+              "M"
+            ]
+          },
+          {
+            "semanticType": "PRICE_RANGE",
+            "desiredValue": [
+              "from_0_to_51"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.decathlon.de/herren/t-shirts-hemden/f-zustand_neu/f-partner_decathlon/f-sg_37-l-19_37-m?price=from_0_to_51&Ns=priceAscending"
+      },
+      "scenarioSha256": "fc4cf7f52b7dedf0e847fa694f0e38430965f95eba55e7de6f0ed10615d7030d",
+      "schemaId": "decathlon-de",
+      "schemaVersion": 2,
+      "status": "BLOCKED",
+      "stage": "NAVIGATE",
+      "reason": "EMPTY_DOCUMENT",
+      "capturedCriteria": [],
+      "resetCriteria": [],
+      "resetChanged": [],
+      "omissions": 0,
+      "replay": null,
+      "finalUrl": "https://www.decathlon.de/herren/t-shirts-hemden/f-zustand_neu/f-partner_decathlon/f-sg_37-l-19_37-m?price=from_0_to_51&Ns=priceAscending&__cf_chl_rt_tk=oaAKJ_Ecjv9YU7EPyGJZPffBYyfqcoMFFp7Yf3zkqiI-1793100628-1.0.1.1-z_rm9E1AGKNOcYZeydDZS.k4RKmvqUymqYF67deVeGE"
+    }
+  ]
+}

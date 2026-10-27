@@ -1,5 +1,6 @@
 .codex-prd/
 .browser-smoke/
+.live-acceptance/
 node_modules/
 *.zip
 coverage/

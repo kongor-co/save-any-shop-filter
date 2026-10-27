@@ -128,6 +128,9 @@ const SCHEMAS = [
   }
 ];
 
+export const ROUTE_SCHEMA_CATALOG = Object.freeze(SCHEMAS.map(({id,version,hosts}) =>
+  Object.freeze({id,version,hosts:Object.freeze([...hosts])})));
+
 export function findRouteSchema(urlLike) {
   const hostname = (urlLike instanceof URL ? urlLike : new URL(urlLike)).hostname.toLowerCase();
   return SCHEMAS.find((schema) => schema.hosts.includes(hostname)) || null;

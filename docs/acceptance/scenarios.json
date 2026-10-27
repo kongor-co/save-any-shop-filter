@@ -1,0 +1,26 @@
+[
+  {
+    "id": "idealo-samsung-ram",
+    "schemaId": "idealo-de",
+    "resetUrl": "https://www.idealo.de/preisvergleich/ProductCategory/19116.html",
+    "readySelector": "button[class*=sr-filterTag_]",
+    "resetReadySelector": "h1",
+    "expectedCriteria": [
+      { "semanticType": "HERSTELLER", "desiredValue": ["Samsung"] },
+      { "semanticType": "RAM", "desiredValue": ["12 GB", "8 GB"] }
+    ]
+  },
+  {
+    "id": "decathlon-shirts-size-price",
+    "schemaId": "decathlon-de",
+    "resetUrl": "https://www.decathlon.de/herren/t-shirts-hemden",
+    "readySelector": "main h1",
+    "resetReadySelector": "main h1",
+    "expectedCriteria": [
+      { "semanticType": "CONDITION", "desiredValue": ["Neu"] },
+      { "semanticType": "SELLER", "desiredValue": ["Decathlon"] },
+      { "semanticType": "SIZE", "desiredValue": ["L", "M"] },
+      { "semanticType": "PRICE_RANGE", "desiredValue": ["from_0_to_51"] }
+    ]
+  }
+]
