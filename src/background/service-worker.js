@@ -11,6 +11,7 @@ import {
   captureRouteCriteria,
   cleanCaptureUrl,
   getRouteSchemaInfo,
+  getRouteCaptureHints,
   mergeCriteria
 } from "../shared/route.js";
 import {
@@ -201,7 +202,7 @@ async function captureTab(tabId) {
   const tab = await chrome.tabs.get(tabId);
   assertSupportedUrl(tab.url);
   const ready = await ensureExecutor(tabId, new URL(tab.url).origin);
-  const response = await chrome.tabs.sendMessage(tabId, { type: MESSAGE.CAPTURE_PAGE }, messageTarget(ready));
+  const response = await chrome.tabs.sendMessage(tabId, { type: MESSAGE.CAPTURE_PAGE, hints: getRouteCaptureHints(tab.url) }, messageTarget(ready));
   if (!response?.ok) throw new Error(response?.error || "CAPTURE_FAILED");
 
   const routeCriteria = captureRouteCriteria(response.snapshot.url, { includePresentation: true });

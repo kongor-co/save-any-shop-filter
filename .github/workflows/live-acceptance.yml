@@ -12,6 +12,7 @@ on:
           - all
           - idealo-de
           - decathlon-de
+          - mediamarkt-de
 
 permissions:
   contents: read

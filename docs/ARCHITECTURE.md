@@ -23,6 +23,8 @@ current tab
 
 Contains declarative retailer route schemas. A schema owns host-specific query keys, path facets, aliases, atomic groups, default values, and volatile values. Host-specific knowledge must not be added to the generic parser.
 
+Parameter descriptors may also declare accessible group labels. The worker passes those data-only hints into capture so a native DOM group and its route parameter normalize to the same semantic criterion. MediaMarkt uses this for seller and refurbished state. The generic content engine does not hardcode that retailer's CSS classes or group IDs.
+
 ### `src/shared`
 
 Contains environment-independent rules used by capture, storage, and replay:
@@ -39,6 +41,12 @@ Keep this layer free of browser globals so it remains directly testable.
 ### `src/content`
 
 `executor.js` reads visible page state, resolves supported controls, executes approved actions, waits for bounded settling, and verifies semantic results. It must not execute saved script text or guess between ambiguous controls.
+
+Generic groups include labelled lists, fieldsets, and native details elements with summaries. Capture verifies that its container and option locator chains uniquely resolve the observed controls. Explicit result-count suffixes and hidden count decorations do not become option identity. Search and page header/footer controls are excluded from filter capture.
+
+Full-range defaults are omitted only when a scoped minimum/maximum pair has explicit matching bounds, endpoint labels, and unrestricted values. Independent numeric controls, a single slider, missing bounds, contradictory values, or a changed range are not silently ignored. Replay expands closed native accordion ancestors only when needed and resolves controls again before each action.
+
+New captures use mapping version 3, with `LABELLED_LIST` and `DETAILS_SUMMARY` locators. Mapping versions 1 and 2 remain valid with their existing locators; no saved semantic criteria are rewritten. New locator types cannot be disguised as an older mapping version.
 
 ### `src/background`
 

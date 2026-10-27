@@ -7,6 +7,7 @@ import {
   MAX_IMPORT_BYTES,
   MAX_IMPORT_STATES,
   MESSAGE,
+  MAPPING_VERSION,
   REPLAY_STATUS,
   SCHEMA_VERSION
 } from "./constants.js";
@@ -88,13 +89,15 @@ function valueList(value) {
   return value.every(validValue);
 }
 
-function validateLocator(locator) {
+function validateLocator(locator, mappingVersion) {
   onlyFields(locator, ["type", "value"], "Invalid locator fields");
   assert(locator && typeof locator === "object", "Invalid locator");
   assert(validString(locator.type, 80), "Invalid locator type");
   assert(validString(String(locator.value), 500), "Invalid locator value");
   const allowed = new Set(["ID", "NAME_VALUE", "ARIA_LABEL", "LABEL_TEXT", "BUTTON_TEXT", "LINK_TEXT", "SELECT_NAME", "FIELDSET_LEGEND", "GROUP_ARIA_LABEL", "HEADING_TEXT", "IDEALO_FILTER_GROUP", "IDEALO_OPTION"]);
-  assert(allowed.has(locator.type), "Unknown locator type");
+  const genericGroup = ["LABELLED_LIST", "DETAILS_SUMMARY"].includes(locator.type);
+  if (genericGroup) assert(mappingVersion >= 3, "Locator requires mapping version 3");
+  assert(allowed.has(locator.type) || genericGroup, "Unknown locator type");
 }
 
 function validateBinding(binding, origin) {
@@ -131,7 +134,7 @@ function validateBinding(binding, origin) {
   if (binding.type === "DOM") {
     const mapping = binding.mapping;
     onlyFields(mapping, ["mappingVersion", "controlType", "desiredValue", "filterContainer", "option", "interactionPlan", "verificationRule"], "Invalid mapping fields");
-    assert([1, 2].includes(mapping.mappingVersion), "Unsupported mapping version");
+    assert([1, 2, MAPPING_VERSION].includes(mapping.mappingVersion), "Unsupported mapping version");
     assert(valueList(mapping.desiredValue), "Invalid mapping desired value");
     onlyFields(mapping.verificationRule, ["type", "desiredValue"], "Invalid verification rule");
     const ruleType = mapping.controlType === "NATIVE_SELECT" ? "SELECT_VALUE"
@@ -148,8 +151,8 @@ function validateBinding(binding, origin) {
     assert(CONTROL_TYPES.has(mapping.controlType), "Unknown control type");
     assert(mapping.filterContainer && Array.isArray(mapping.filterContainer.locatorChain) && mapping.filterContainer.locatorChain.length > 0, "Missing container locator chain");
     assert(mapping.option && Array.isArray(mapping.option.locatorChain) && mapping.option.locatorChain.length > 0, "Missing option locator chain");
-    mapping.filterContainer.locatorChain.forEach(validateLocator);
-    mapping.option.locatorChain.forEach(validateLocator);
+    mapping.filterContainer.locatorChain.forEach((locator) => validateLocator(locator, mapping.mappingVersion));
+    mapping.option.locatorChain.forEach((locator) => validateLocator(locator, mapping.mappingVersion));
     assert(Array.isArray(mapping.interactionPlan), "Invalid interaction plan");
     for (const step of mapping.interactionPlan) {
       onlyFields(step, ["action", "timeoutMs", "locatorChain"], "Invalid interaction step fields");
@@ -162,7 +165,7 @@ function validateBinding(binding, origin) {
       assert(!Object.values(step).some((value) => typeof value === "string" && FORBIDDEN_TEXT.test(value)), "Forbidden executable text");
       if (step.locatorChain !== undefined) {
         assert(Array.isArray(step.locatorChain) && step.locatorChain.length <= 10, "Invalid action locator chain");
-        step.locatorChain.forEach(validateLocator);
+        step.locatorChain.forEach((locator) => validateLocator(locator, mapping.mappingVersion));
       }
     }
   }

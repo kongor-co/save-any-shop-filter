@@ -56,6 +56,23 @@ test("validated plans accept bounded declarative commit workflows", () => {
   assert.equal(validateSavedState(state), state);
 });
 
+test("mapping version 3 supports labelled lists and summary groups without breaking older mappings", () => {
+  for (const version of [1,2,3]) {
+    const state=domState();
+    state.criteria[0].bindings[0].mapping.mappingVersion=version;
+    assert.equal(validateSavedState(state),state);
+  }
+  for (const type of ["LABELLED_LIST","DETAILS_SUMMARY"]) {
+    const state=domState();
+    const mapping=state.criteria[0].bindings[0].mapping;
+    mapping.mappingVersion=3;
+    mapping.filterContainer.locatorChain=[{type,value:"Brand"}];
+    assert.equal(validateSavedState(state),state);
+    mapping.mappingVersion=2;
+    assert.throws(() => validateSavedState(state),/mapping version 3/);
+  }
+});
+
 test("import validation rejects changed origins, credentials, and ambiguous identities", () => {
   for (const key of ["captureUrl", "routeSnapshot"]) {
     for (const url of ["https://other.example/shoes", "https://user:password@shop.example/shoes", "javascript:alert(1)"]) {

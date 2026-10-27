@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Independent catalog</title></head>
+  <body>
+    <header><form role="search"><label for="site-search">Search catalog</label><input id="site-search" role="combobox" aria-autocomplete="list"></form></header>
+    <main><h1>Trail equipment</h1>
+      <details open><summary id="seller-title">Seller</summary>
+        <ul aria-labelledby="seller-title"><li><label><input type="checkbox">Independent shop (17 results)</label></li></ul>
+      </details>
+      <details open><summary>Condition</summary><div><label><input type="checkbox">New (12 products)</label></div></details>
+      <details open><summary>Price</summary>
+        <label for="lower">Minimum price</label><input id="lower" type="number" min="0" max="100" value="0">
+        <label for="upper">Maximum price</label><input id="upper" type="number" min="0" max="100" value="100">
+      </details>
+      <section><a href="/product/1">Pack</a><a href="/product/2">Boots</a><a href="/product/3">Jacket</a><a href="/product/4">Tent</a></section>
+    </main>
+    <script>
+      for (const input of document.querySelectorAll('input[type="checkbox"]')) input.checked=true;
+      let clicks=0;
+      document.addEventListener("change",event=>{if (event.target.type==="checkbox") clicks+=1;});
+      window.filterClicks=()=>clicks;
+    </script>
+  </body>
+</html>

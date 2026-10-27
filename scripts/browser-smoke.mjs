@@ -4,6 +4,7 @@ import { readFile, mkdir, rm, cp, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { runReplayBrowserCases } from "./replay-browser-cases.mjs";
+import { runFacetBrowserCases } from "./facet-browser-cases.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const smokeRoot = resolve(root, ".browser-smoke");
@@ -15,7 +16,7 @@ const extensionDir = resolve(smokeRoot, "extension");
 await mkdir(extensionDir, { recursive: true });
 await cp(resolve(root, "src"), resolve(extensionDir, "src"), { recursive: true });
 const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
-manifest.host_permissions = ["http://127.0.0.1/*"];
+manifest.host_permissions = ["http://127.0.0.1/*", "https://www.mediamarkt.de/*"];
 await writeFile(resolve(extensionDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 const playwrightSpecifier = process.env.FILTERVAULT_PLAYWRIGHT_MODULE || "playwright";
@@ -28,7 +29,13 @@ const decathlonFixture = await readFile(resolve(root, "tests", "fixtures", "deca
 const edgeFixture = await readFile(resolve(root, "tests", "fixtures", "edge-cases.html"));
 const lifecycleFixture = await readFile(resolve(root, "tests", "fixtures", "replay-lifecycle.html"));
 const acceptanceFixture = await readFile(resolve(root,"tests","fixtures","acceptance-shop.html"));
+const catalogFixture = await readFile(resolve(root,"tests","fixtures","catalog-facets.html"));
 const server = createServer((request, response) => {
+  if (request.url?.startsWith("/catalog/")) {
+    response.writeHead(200,{"content-type":"text/html; charset=utf-8"});
+    response.end(catalogFixture);
+    return;
+  }
   if (request.url?.startsWith("/acceptance/")) {
     response.writeHead(200,{"content-type":"text/html; charset=utf-8"});
     response.end(acceptanceFixture);
@@ -313,6 +320,7 @@ try {
   assert.equal(Number(await extension.locator("#library-count").innerText()), beforeImport * 2);
 
   await runReplayBrowserCases({context,extension,call,port,shop,saved,smokeRoot});
+  await runFacetBrowserCases({context,extension,call,port,smokeRoot});
 
   const restrictedPage = await context.newPage();
   await restrictedPage.goto("chrome://version", { waitUntil: "domcontentloaded" });

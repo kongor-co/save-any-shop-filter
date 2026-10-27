@@ -87,6 +87,9 @@ export async function detectBlocker(page, origin) {
     }
     if (!text.trim()) return "EMPTY_DOCUMENT";
     return null;
+  }).catch((error) => {
+    if (/Execution context was destroyed|Cannot find context with specified id/i.test(String(error.message))) return null;
+    throw error;
   });
 }
 
@@ -133,7 +136,8 @@ export async function runAcceptanceScenario({page,call,tabId,scenario,schemaVers
     while (Date.now()<deadline) {
       result.replay = await call("GET_ACTIVE_REPLAY",{tabId});
       if (!result.replay || result.replay.replayId !== started.replayId) throw new Error("REPLAY_ID_CHANGED");
-      const blocked = await blocker(page,origin);
+      const transitional = ["PLANNING","WAITING_NAVIGATION","PREFLIGHT"].includes(result.replay.status);
+      const blocked = transitional ? null : await blocker(page,origin);
       if (blocked) throw new Error(`BLOCKED:${blocked}`);
       if (result.replay.status === "AWAITING_CONFIRMATION") throw new Error("BLOCKED:CONTEXT_REVIEW_REQUIRED");
       if (["COMPLETE","COMPLETE_WITH_WARNINGS","PARTIAL","FAILED","CANCELLED","INTERRUPTED"].includes(result.replay.status)) break;

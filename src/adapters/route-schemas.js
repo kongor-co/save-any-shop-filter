@@ -39,11 +39,13 @@ const SCHEMAS = [
   },
   {
     id: "mediamarkt-de",
-    version: 1,
+    version: 2,
     hosts: ["mediamarkt.de", "www.mediamarkt.de"],
     parameters: {
       query: descriptor("CONTEXT", "SEARCH_QUERY", { canonical: "search" }),
       queryinitial: descriptor("CONTEXT", "SEARCH_QUERY", { canonical: "search" }),
+      marketplace: descriptor("FILTER", "SELLER", { domLabels: ["Verkäufer"] }),
+      refurbished_new_array: descriptor("FILTER", "REFURBISHED", { domLabels: ["Refurbished"] }),
       sort: descriptor("PRESENTATION", "SORT")
     }
   },
@@ -139,6 +141,13 @@ export function findRouteSchema(urlLike) {
 export function routeSchemaInfo(urlLike) {
   const schema = findRouteSchema(urlLike);
   return schema ? { id: schema.id, version: schema.version } : { id: "generic", version: 1 };
+}
+
+export function routeCaptureHints(urlLike) {
+  const schema = findRouteSchema(urlLike);
+  return Object.values(schema?.parameters || {}).filter((item) => item.domLabels?.length).map((item) => ({
+    labels: [...item.domLabels], semanticType: item.semanticType
+  }));
 }
 
 export function schemaParameterDescriptor(schema, parameter) {

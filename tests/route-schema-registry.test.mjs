@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ROUTE_SCHEMA_IDS, findRouteSchema, schemaPathCriteria } from "../src/adapters/route-schemas.js";
-import { captureRouteCriteria, getRouteSchemaInfo, mergeCriteria } from "../src/shared/route.js";
+import { buildReplayUrl, cleanCaptureUrl, captureRouteCriteria, getRouteSchemaInfo, getRouteCaptureHints, mergeCriteria } from "../src/shared/route.js";
 
 test("route schema ids are unique and cover the approved storefront set", () => {
   assert.equal(new Set(ROUTE_SCHEMA_IDS).size, ROUTE_SCHEMA_IDS.length);
@@ -71,4 +71,32 @@ test("Decathlon default sorting is not invented when Ns is absent", () => {
   const url = "https://www.decathlon.de/herren/t-shirts-hemden/f-zustand_neu?price=from_0_to_51";
   const criteria = captureRouteCriteria(url, { includePresentation: true });
   assert.equal(criteria.some((criterion) => criterion.semanticType === "SORT"), false);
+});
+
+test("MediaMarkt seller and refurbished selections survive sanitation and replay", () => {
+  const url=new URL("https://www.mediamarkt.de/de/category/nintendo-switch-2-konsolen-6238.html");
+  url.searchParams.set("marketplace","MediaMarkt");
+  url.searchParams.set("refurbished_new_array","Nein");
+  url.searchParams.set("queryMeta[queryHash]","secret");
+  const criteria=captureRouteCriteria(url);
+  assert.deepEqual(criteria.map((item) => [item.semanticType,item.desiredValue]),[["SELLER",["MediaMarkt"]],["REFURBISHED",["Nein"]]]);
+  const clean=new URL(cleanCaptureUrl(url));
+  assert.equal(clean.searchParams.has("queryMeta[queryHash]"),false);
+  assert.equal(clean.searchParams.get("marketplace"),"MediaMarkt");
+  assert.equal(clean.searchParams.get("refurbished_new_array"),"Nein");
+  assert.equal(buildReplayUrl(clean,criteria),clean.toString());
+  assert.equal(getRouteSchemaInfo(url).version,2);
+  assert.deepEqual(getRouteCaptureHints(url),[{labels:["Verkäufer"],semanticType:"SELLER"},{labels:["Refurbished"],semanticType:"REFURBISHED"}]);
+  url.hostname="unknown.example";
+  assert.equal(captureRouteCriteria(url).length,0,"Retailer parameters must not leak into unknown shops");
+  assert.deepEqual(getRouteCaptureHints(url),[]);
+  assert.deepEqual(getRouteCaptureHints("https://www.amazon.de/s"),[]);
+});
+
+test("MediaMarkt retains its search aliases and sorting contract", () => {
+  const url=new URL("https://www.mediamarkt.de/de/category/laptops-notebooks-362.html");
+  url.searchParams.set("query","laptop");
+  url.searchParams.set("queryInitial","laptop");
+  url.searchParams.set("sort","currentprice asc");
+  assert.deepEqual(captureRouteCriteria(url,{includePresentation:true}).map((item) => [item.semanticType,item.desiredValue]),[["SEARCH_QUERY",["laptop"]],["SORT",["currentprice asc"]]]);
 });

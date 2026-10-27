@@ -18,6 +18,7 @@ These proposals preserve useful ideas from predecessor prototypes. They are not 
 
 ## Historical evidence
 
+- [MediaMarkt and generic facet validation, October 2026](reports/2026-10-27-mediamarkt-facets.md)
 - [Live acceptance infrastructure validation, October 2026](reports/2026-10-27-live-acceptance.md)
 - [Replay stabilization validation, October 2026](reports/2026-10-27-replay-stabilization.md)
 - [Cross-shop QA report, August 2026](reports/2026-08-cross-shop.md)

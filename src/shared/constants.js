@@ -1,5 +1,5 @@
 export const SCHEMA_VERSION = 4;
-export const MAPPING_VERSION = 2;
+export const MAPPING_VERSION = 3;
 export const LIBRARY_INDEX_KEY = "fv:library:index";
 export const STATE_KEY_PREFIX = "fv:state:";
 export const REPLAY_KEY_PREFIX = "fv:replay:";
