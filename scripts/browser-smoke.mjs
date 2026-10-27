@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { readFile, mkdir, rm, cp, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { runReplayBrowserCases } from "./replay-browser-cases.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const smokeRoot = resolve(root, ".browser-smoke");
@@ -31,7 +32,13 @@ const fixture = await readFile(resolve(root, "tests", "fixtures", "shop.html"));
 const idealoFixture = await readFile(resolve(root, "tests", "fixtures", "idealo.html"));
 const decathlonFixture = await readFile(resolve(root, "tests", "fixtures", "decathlon.html"));
 const edgeFixture = await readFile(resolve(root, "tests", "fixtures", "edge-cases.html"));
+const lifecycleFixture = await readFile(resolve(root, "tests", "fixtures", "replay-lifecycle.html"));
 const server = createServer((request, response) => {
+  if (request.url?.startsWith("/lifecycle/")) {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(lifecycleFixture);
+    return;
+  }
   if (request.url?.startsWith("/delayed/search")) {
     setTimeout(() => {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -132,7 +139,7 @@ try {
     replay = await call("GET_ACTIVE_REPLAY", { tabId });
   } while (replay && !["COMPLETE", "COMPLETE_WITH_WARNINGS", "PARTIAL", "FAILED", "CANCELLED", "INTERRUPTED"].includes(replay.status) && Date.now() < deadline);
 
-  assert.equal(replay?.status, "COMPLETE_WITH_WARNINGS", JSON.stringify(replay));
+  assert.equal(replay?.status, "PARTIAL", JSON.stringify(replay));
   assert.equal(replay.results.some((result) => result.status === "ROUTE_ONLY" && result.semanticType === "Q"), true);
   await shop.waitForLoadState("domcontentloaded");
   const restored = await shop.evaluate(() => ({
@@ -352,6 +359,8 @@ try {
   await extension.locator("#import-file").setInputFiles(exportPath);
   await extension.waitForFunction((expected) => Number(document.querySelector("#library-count")?.textContent) === expected, beforeImport * 2);
   assert.equal(Number(await extension.locator("#library-count").innerText()), beforeImport * 2);
+
+  await runReplayBrowserCases({context,extension,call,port,shop,saved,smokeRoot});
 
   const restrictedPage = await context.newPage();
   await restrictedPage.goto("chrome://version", { waitUntil: "domcontentloaded" });

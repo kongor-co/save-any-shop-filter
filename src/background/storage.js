@@ -78,6 +78,17 @@ export async function getActiveReplay(tabId) {
   return replayId ? getReplay(replayId) : null;
 }
 
+export async function listActiveReplays() {
+  const stored = await chrome.storage.session.get(null);
+  const replayIds = Object.entries(stored)
+    .filter(([key]) => key.startsWith(ACTIVE_REPLAY_PREFIX))
+    .map(([, replayId]) => replayId)
+    .filter((replayId) => typeof replayId === "string");
+  return [...new Set(replayIds)]
+    .map((replayId) => stored[`${REPLAY_KEY_PREFIX}${replayId}`])
+    .filter(Boolean);
+}
+
 export async function clearActiveReplay(tabId) {
   await chrome.storage.session.remove(`${ACTIVE_REPLAY_PREFIX}${tabId}`);
 }

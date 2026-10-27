@@ -3,6 +3,8 @@
 
   const MESSAGE = {
     CAPTURE_PAGE: "CAPTURE_PAGE",
+    INSPECT_PAGE_CONTEXT: "INSPECT_PAGE_CONTEXT",
+    GET_REPLAY_EXECUTOR: "GET_REPLAY_EXECUTOR",
     EXECUTE_REPLAY: "EXECUTE_REPLAY",
     CANCEL_REPLAY_EXECUTOR: "CANCEL_REPLAY_EXECUTOR",
     CONTENT_READY: "CONTENT_READY",
@@ -11,6 +13,7 @@
   };
   const SUCCESS = new Set(["APPLIED", "ALREADY_APPLIED", "VERIFIED", "ROUTE_ONLY"]);
   const cancelledReplays = new Set();
+  let execution = null;
 
   if (globalThis.__FILTER_VAULT_EXECUTOR__) {
     notifyReady();
@@ -20,6 +23,17 @@
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
+    if (message.type === MESSAGE.INSPECT_PAGE_CONTEXT) {
+      sendResponse({ ok: true, context: inspectContext() });
+      return false;
+    }
+    if (message.type === MESSAGE.GET_REPLAY_EXECUTOR) {
+      const snapshot = execution?.replayId === message.replayId
+        ? { replayId: execution.replayId, status: execution.status, activeCriterion: execution.activeCriterion, results: execution.results, result: execution.result }
+        : null;
+      sendResponse({ ok: true, snapshot });
+      return false;
+    }
     if (message.type === MESSAGE.CAPTURE_PAGE) {
       Promise.resolve(capturePage()).then((snapshot) => sendResponse({ ok: true, snapshot }))
         .catch((error) => sendResponse({ ok: false, error: safeError(error) }));
@@ -275,7 +289,51 @@
     return criteria;
   }
 
-  async function executeReplay(message) {
+  function inspectContext() {
+    const url = new URL(location.href);
+    const pageType = detectPageType();
+    const surface = pageType === "LISTING" ? "PRODUCT_LIST" : pageType === "SEARCH" ? "SEARCH_RESULTS" : "UNSUPPORTED";
+    const routeClass = url.pathname.replace(/\b\d+\b/g, ":id").replace(/\/+$/, "") || "/";
+    const locale = String(document.documentElement.lang || navigator.language || "und").replaceAll("_", "-").toLocaleLowerCase();
+    const query = ["q", "query", "search", "keyword", "k", "Ntt"].map((key) => url.searchParams.get(key)).find(Boolean)
+      || (/\/suche\/([^/]+)/i.exec(url.pathname)?.[1] ? decodeURIComponent(/\/suche\/([^/]+)/i.exec(url.pathname)[1]).replace(/[-_]+/g, " ") : null);
+    return {
+      origin: url.origin, surface, category: inferContextLabel(), searchQuery: query, routeClass, locale,
+      viewport: innerWidth < 720 ? "compact" : "desktop",
+      adapterVersion: isDecathlonAdapter() ? 2 : 1,
+      compatibilityFingerprint: `${url.origin}|${surface}|${routeClass}|${locale}`
+    };
+  }
+
+  function executeReplay(message) {
+    if (execution?.replayId === message.replayId) return execution.promise;
+    if (execution) {
+      if (!execution.result) return Promise.reject(new Error("REPLAY_ALREADY_ACTIVE"));
+    }
+    execution = { replayId: message.replayId, status: "APPLYING", activeCriterion: null, results: [], result: null };
+    execution.promise = runReplay(message).catch(async (error) => {
+      const cancelled = safeError(error) === "REPLAY_CANCELLED";
+      const results = [...execution.results];
+      for (const criterion of message.criteria || []) {
+        if (results.some((item) => item.criterionId === criterion.criterionId)) continue;
+        results.push(criterionResult(criterion, cancelled ? "NOT_ATTEMPTED" : "VERIFY_FAILED", cancelled ? "Replay cancelled before completion." : safeError(error)));
+      }
+      const result = { replayId: message.replayId, status: cancelled ? "CANCELLED" : "FAILED", results };
+      await finishReplay(result);
+      return result;
+    }).finally(() => cancelledReplays.delete(message.replayId));
+    return execution.promise;
+  }
+
+  async function finishReplay(result) {
+    execution.status = result.status;
+    execution.results = result.results;
+    execution.activeCriterion = null;
+    execution.result = result;
+    await chrome.runtime.sendMessage({ type: MESSAGE.REPLAY_COMPLETE, replayId: result.replayId, result }).catch(() => undefined);
+  }
+
+  async function runReplay(message) {
     if (location.origin !== message.expectedOrigin) throw new Error("ORIGIN_MISMATCH");
     if (!Array.isArray(message.criteria) || typeof message.replayId !== "string") throw new Error("INVALID_REPLAY_PLAN");
     const pageType = detectPageType();
@@ -296,12 +354,13 @@
       await progress(message, criterion, results, "APPLYING");
       const result = await applyCriterion(criterion, message);
       results.push(result);
-      if (!SUCCESS.has(result.status)) failedCriteria.add(criterion.criterionId);
+      if (!SUCCESS.has(result.status) || result.status === "ROUTE_ONLY") failedCriteria.add(criterion.criterionId);
       await progress(message, null, results, "APPLYING");
     }
 
     await progress(message, null, results, "VERIFYING");
     for (let index = 0; index < results.length; index += 1) {
+      assertNotCancelled(message);
       if (!SUCCESS.has(results[index].status)) continue;
       const criterion = message.criteria.find((item) => item.criterionId === results[index].criterionId);
       const verification = await verifyCriterion(criterion);
@@ -314,14 +373,14 @@
       }
     }
 
-    const status = overallStatus(results);
+    const status = overallStatus(results, message.criteria);
     const result = { replayId: message.replayId, status, results };
-    await chrome.runtime.sendMessage({ type: MESSAGE.REPLAY_COMPLETE, replayId: message.replayId, result }).catch(() => undefined);
-    cancelledReplays.delete(message.replayId);
+    await finishReplay(result);
     return result;
   }
 
   async function applyCriterion(criterion, message) {
+    if (criterion.applicabilityUnavailable) return criterionResult(criterion, "UNSUPPORTED_CONTROL", "No binding applies to this layout or locale.");
     const routeBindings = (criterion.bindings || []).filter((binding) => ["URL_QUERY", "URL_PATH"].includes(binding.type));
     const domBindings = (criterion.bindings || []).filter((binding) => binding.type === "DOM");
     const routeSatisfied = routeBindings.length > 0 && routeBindings.every(routeBindingMatches);
@@ -339,36 +398,43 @@
     let changed = false;
     for (const binding of domBindings) {
       assertNotCancelled(message);
-      const applied = await applyDomBinding(binding);
+      const applied = await applyDomBinding(binding, message);
       if (!applied.ok) return criterionResult(criterion, applied.status, applied.message);
       changed ||= applied.changed;
     }
     return criterionResult(criterion, changed ? "APPLIED" : "ALREADY_APPLIED", changed ? "Applied and verified." : "Already selected; no interaction was needed.");
   }
 
-  async function applyDomBinding(binding) {
+  async function applyDomBinding(binding, message) {
     const mapping = binding.mapping;
     if (!mapping || binding.origin !== location.origin) return failure("RESOLUTION_INCONCLUSIVE", "The mapping is not authorized for this page.");
-    const group = resolveLocatorChain(mapping.filterContainer?.locatorChain || [], document, true);
+    let group = resolveLocatorChain(mapping.filterContainer?.locatorChain || [], document, true);
     if (!group) return failure("RESOLUTION_INCONCLUSIVE", "FilterVault cannot determine whether this filter group is currently available.");
-    const option = resolveLocatorChain(mapping.option?.locatorChain || [], group, false);
+    let option = resolveLocatorChain(mapping.option?.locatorChain || [], group, false);
     if (!option) {
       if (appearsVirtualized(group)) return failure("RESOLUTION_INCONCLUSIVE", "The value may be outside the rendered portion of this filter.");
       return failure("VALUE_UNAVAILABLE", "The filter group exists, but the saved value is currently unavailable.");
     }
     if (isDisabled(option)) return failure("VALUE_UNAVAILABLE", "The saved value is visible but currently disabled.");
+    if (!mappingMatchesControl(option, mapping)) return failure("UNSUPPORTED_CONTROL", "The mapped control no longer matches its verified type.");
     if (observeDesired(option, mapping)) return { ok: true, changed: false };
 
     const plan = (mapping.interactionPlan || []).filter((step) => !["VERIFY", "VERIFY_RESULT"].includes(step.action));
     if (!plan.length) return failure("UNSUPPORTED_INTERACTION", "No supported interaction plan is available.");
     let changed = false;
     for (const step of plan) {
-      const outcome = await performAction({ option, group, mapping, step });
+      assertNotCancelled(message);
+      group = resolveLocatorChain(mapping.filterContainer.locatorChain, document, true);
+      if (!group) return failure("RESOLUTION_INCONCLUSIVE", "The filter group changed during replay.");
+      option = resolveLocatorChain(mapping.option.locatorChain, group, false);
+      if (!option) return failure("RESOLUTION_INCONCLUSIVE", "The option changed during replay.");
+      if (!mappingMatchesControl(option, mapping)) return failure("UNSUPPORTED_CONTROL", "The control type changed during replay.");
+      const outcome = await performAction({ option, group, mapping, step, message });
       if (!outcome) return failure("UNSUPPORTED_INTERACTION", `The ${step.action.toLowerCase().replaceAll("_", " ")} step could not be completed safely.`);
       changed ||= !["SCROLL_INTO_VIEW", "WAIT_ROUTE_STABLE", "WAIT_FOR_CONDITION"].includes(step.action);
     }
     const timeout = Math.min(Math.max(...plan.map((step) => step.timeoutMs || 3000)), 8000);
-    const verified = await waitFor(() => observeDesired(option, mapping), timeout);
+    const verified = await waitFor(() => bindingCurrentlySatisfied(binding), timeout, message);
     return verified ? { ok: true, changed: true } : failure("VERIFY_FAILED", "The interaction occurred, but the desired state could not be verified.");
   }
 
@@ -376,8 +442,9 @@
     const routeBindings = (criterion.bindings || []).filter((binding) => ["URL_QUERY", "URL_PATH"].includes(binding.type));
     const domBindings = (criterion.bindings || []).filter((binding) => binding.type === "DOM");
     if (domBindings.length) return domBindings.every(bindingCurrentlySatisfied) ? "VERIFIED" : false;
+    if (hasVisibleCriterionEvidence(criterion)) return "VERIFIED";
     if (!routeBindings.length || !routeBindings.every(routeBindingMatches)) return false;
-    return hasVisibleCriterionEvidence(criterion) ? "VERIFIED" : "ROUTE_ONLY";
+    return "ROUTE_ONLY";
   }
 
   function bindingCurrentlySatisfied(binding) {
@@ -386,7 +453,8 @@
     return Boolean(option && observeDesired(option, binding.mapping));
   }
 
-  async function performAction({ option, group, mapping, step }) {
+  async function performAction({ option, group, mapping, step, message }) {
+    assertNotCancelled(message);
     const action = step.action;
     if (["ENSURE_EXPANDED", "OPEN_FILTER_GROUP"].includes(action)) {
       if (group.getAttribute("aria-expanded") === "false") group.click();
@@ -418,6 +486,10 @@
       return true;
     }
     if (["ACTIVATE_IF_NEEDED", "ACTIVATE_OPTION", "DEACTIVATE_IF_NEEDED"].includes(action)) {
+      const selected = observedBooleanState(option);
+      if (selected === null) return false;
+      const desired = action !== "DEACTIVATE_IF_NEEDED";
+      if (selected === desired) return true;
       option.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
       option.click();
       return true;
@@ -427,16 +499,31 @@
         ? (resolveLocatorChain(step.locatorChain, group, false) || resolveLocatorChain(step.locatorChain, document, false))
         : [...group.querySelectorAll('button,[role="button"],input[type="submit"]')].find((element) => /apply|show results|submit|anzeigen|übernehmen|anwenden/i.test(element.textContent || element.value || ""));
       if (!target || isDisabled(target)) return false;
+      const label = normalizedText(target.textContent || target.value);
+      if (!/^(apply|show (?:\d+ )?results|submit filters|anzeigen|übernehmen|anwenden)(?:\b|$)/i.test(label)) return false;
       target.click();
-      return waitForRouteStable(Math.min(step.timeoutMs || 5000, 8000));
+      return waitForRouteStable(Math.min(step.timeoutMs || 5000, 8000), message);
     }
     if (action === "WAIT_ROUTE_STABLE" || action === "WAIT_FOR_CONDITION") {
-      return waitForRouteStable(Math.min(step.timeoutMs || 3000, 8000));
+      return waitForRouteStable(Math.min(step.timeoutMs || 3000, 8000), message);
     }
     return false;
   }
 
+  function mappingMatchesControl(element, mapping) {
+    if (element instanceof HTMLSelectElement) return mapping.controlType === "NATIVE_SELECT";
+    if (element instanceof HTMLInputElement) {
+      if (["checkbox", "radio"].includes(element.type)) return ["BOOLEAN", "SINGLE_SELECT", "MULTI_SELECT"].includes(mapping.controlType);
+      if (element.type === "number") return mapping.controlType === "NUMERIC_VALUE";
+      if (element.type === "text") return mapping.controlType === "TEXT_VALUE";
+      return false;
+    }
+    if (!["BOOLEAN", "SINGLE_SELECT", "MULTI_SELECT", "BUTTON_OR_CHIP"].includes(mapping.controlType)) return false;
+    return observedBooleanState(element) !== null;
+  }
+
   function observeDesired(element, mapping) {
+    if (!mappingMatchesControl(element, mapping)) return false;
     const desired = (mapping.desiredValue || []).map(String);
     if (element instanceof HTMLInputElement && ["checkbox", "radio"].includes(element.type)) return element.checked;
     if (element instanceof HTMLSelectElement) {
@@ -750,8 +837,9 @@
     element.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
   }
 
-  function waitFor(predicate, timeoutMs) {
-    return new Promise((resolve) => {
+  function waitFor(predicate, timeoutMs, message) {
+    return new Promise((resolve, reject) => {
+      assertNotCancelled(message);
       if (predicate()) return resolve(true);
       const started = Date.now();
       let timer;
@@ -759,6 +847,12 @@
       observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true });
       timer = setInterval(check, 75);
       function check() {
+        try { assertNotCancelled(message); } catch (error) {
+          observer.disconnect();
+          clearInterval(timer);
+          reject(error);
+          return;
+        }
         if (predicate()) return finish(true);
         if (Date.now() - started >= timeoutMs) finish(false);
       }
@@ -774,12 +868,13 @@
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
 
-  async function waitForRouteStable(timeoutMs) {
+  async function waitForRouteStable(timeoutMs, message) {
     const started = Date.now();
     let previous = `${location.href}|${activeStateSignature()}`;
     let stableSince = Date.now();
     while (Date.now() - started < timeoutMs) {
       await delay(100);
+      assertNotCancelled(message);
       const current = `${location.href}|${activeStateSignature()}`;
       if (current !== previous) {
         previous = current;
@@ -792,6 +887,9 @@
   }
 
   async function progress(message, criterion, results, status) {
+    execution.status = status;
+    execution.activeCriterion = criterion?.criterionId || null;
+    execution.results = [...results];
     await chrome.runtime.sendMessage({
       type: MESSAGE.REPLAY_PROGRESS,
       replayId: message.replayId,
@@ -804,6 +902,12 @@
   function assertNotCancelled(message) {
     if (cancelledReplays.has(message.replayId)) throw new Error("REPLAY_CANCELLED");
     if (Date.now() > message.deadlineAt) throw new Error("REPLAY_TIMEOUT");
+    if (message.runtimeContext) {
+      const current = inspectContext();
+      for (const key of ["origin", "surface", "routeClass", "searchQuery", "locale", "category"]) {
+        if (current[key] !== message.runtimeContext[key]) throw new Error("CONTEXT_CHANGED_DURING_REPLAY");
+      }
+    }
   }
 
   function routeBindingMatches(binding) {
@@ -820,11 +924,17 @@
     return actual.length === desired.length && actual.every((value, index) => value === desired[index]);
   }
 
-  function overallStatus(results) {
-    const successful = results.filter((result) => SUCCESS.has(result.status)).length;
-    if (successful === results.length) return results.some((result) => result.status === "ROUTE_ONLY") ? "COMPLETE_WITH_WARNINGS" : "COMPLETE";
-    if (successful === 0) return results.some((result) => result.status === "CANCELLED") ? "CANCELLED" : "FAILED";
-    return "PARTIAL";
+  function overallStatus(results, criteria) {
+    const verified = (result) => ["APPLIED", "ALREADY_APPLIED", "VERIFIED"].includes(result?.status);
+    const required = criteria.filter((item) => item.role !== "PRESENTATION");
+    const byId = new Map(results.map((item) => [item.criterionId, item]));
+    const requiredComplete = required.every((item) => verified(byId.get(item.criterionId)));
+    if (requiredComplete) {
+      if (results.every(verified)) return "COMPLETE";
+      return "COMPLETE_WITH_WARNINGS";
+    }
+    if (results.some((item) => verified(item) || item.status === "ROUTE_ONLY")) return "PARTIAL";
+    return "FAILED";
   }
 
   function criterionResult(criterion, status, message, evidence = null) {

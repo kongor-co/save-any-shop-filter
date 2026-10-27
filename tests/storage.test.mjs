@@ -72,6 +72,8 @@ test("replay checkpoints round-trip through session storage", async () => {
   await storage.putReplay(checkpoint);
   assert.deepEqual(await storage.getReplay("replay-1"), checkpoint);
   assert.deepEqual(await storage.getActiveReplay(42), checkpoint);
+  assert.deepEqual(await storage.listActiveReplays(), [checkpoint]);
   await storage.clearActiveReplay(42);
   assert.equal(await storage.getActiveReplay(42), null);
+  assert.deepEqual(await storage.listActiveReplays(), []);
 });

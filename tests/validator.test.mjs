@@ -110,10 +110,13 @@ test("executable import strings and unknown actions are rejected", () => {
     type: "DOM",
     origin: "https://shop.example",
     mapping: {
+      mappingVersion: 1,
+      desiredValue: ["Nike"],
+      verificationRule: { type: "OPTION_SELECTED", desiredValue: ["Nike"] },
       controlType: "BOOLEAN",
       filterContainer: { locatorChain: [{ type: "GROUP_ARIA_LABEL", value: "Brand" }] },
       option: { locatorChain: [{ type: "ARIA_LABEL", value: "Nike" }] },
-      interactionPlan: [{ action: "RUN_SCRIPT", source: "eval(alert(1))" }]
+      interactionPlan: [{ action: "RUN_SCRIPT" }]
     }
   }];
   assert.throws(() => validateSavedState(state), /Unknown interaction action/);
@@ -145,7 +148,10 @@ test("declarative Idealo path and adapter locators are accepted", () => {
       type: "DOM",
       origin: "https://shop.example",
       mapping: {
-        controlType: "BOOLEAN",
+        mappingVersion: 1,
+      desiredValue: ["Nike"],
+      verificationRule: { type: "OPTION_SELECTED", desiredValue: ["Nike"] },
+      controlType: "BOOLEAN",
         filterContainer: { locatorChain: [{ type: "IDEALO_FILTER_GROUP", value: "Hersteller" }] },
         option: { locatorChain: [{ type: "IDEALO_OPTION", value: "Samsung" }] },
         interactionPlan: [{ action: "ACTIVATE_IF_NEEDED" }, { action: "VERIFY" }]

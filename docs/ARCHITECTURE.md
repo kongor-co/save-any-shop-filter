@@ -32,6 +32,7 @@ Contains environment-independent rules used by capture, storage, and replay:
 - `validator.js` rejects malformed, ambiguous, or executable saved data.
 - `coverage.js` derives honest support and omission summaries.
 - `constants.js` owns persisted versions and shared limits.
+- `replay-policy.js` owns context compatibility, binding applicability, mapping health, and worker recovery decisions.
 
 Keep this layer free of browser globals so it remains directly testable.
 
@@ -42,6 +43,14 @@ Keep this layer free of browser globals so it remains directly testable.
 ### `src/background`
 
 The service worker coordinates injection, navigation, optional origin access, replay checkpoints, and storage. `storage.js` owns migration, normalization, limits, and corruption isolation.
+
+Replay starts are serialized per tab. The worker targets the document ID returned by Chrome script injection and validates content messages against the checkpoint's replay, tab, frame, document, origin, and criterion identities.
+
+Checkpoint version 3 records a single replay deadline and the active document. A restarted worker queries that document's executor and reconnects to its running or completed result instead of replaying its action plan. Missing executors and document replacement produce an interrupted result. Navigation and executor deadlines are checked when the worker awakens or the UI polls; page-side waits enforce the same execution deadline independently.
+
+Context confirmation is tied to the inspected document and a field-order-independent context signature. The page executor also checks material context before each action and during waits. Cancellation leaves the page in its current state and prevents subsequent steps, including pending commit actions.
+
+Import validation constrains both captured and constructed replay URLs to the saved origin and excludes URL credentials. DOM mapping versions, verification rules, locator chains, step fields, timeouts, and total action counts are validated before execution. Existing saved-state schema versions 3 and 4 remain supported; the checkpoint version is independent of saved-state versioning.
 
 ### `src/popup`
 

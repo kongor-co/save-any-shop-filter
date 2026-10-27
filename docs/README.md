@@ -16,6 +16,7 @@ These proposals preserve useful ideas from predecessor prototypes. They are not 
 
 ## Historical evidence
 
+- [Replay stabilization validation, October 2026](reports/2026-10-27-replay-stabilization.md)
 - [Cross-shop QA report, August 2026](reports/2026-08-cross-shop.md)
 - [Release test report, August 2026](reports/2026-08-release.md)
 - [Post-QA implementation plan](archive/2026-08-post-qa-plan.md)

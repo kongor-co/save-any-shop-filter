@@ -51,6 +51,7 @@ function bindEvents() {
   $("#import-trigger").addEventListener("click", () => $("#import-file").click());
   $("#import-file").addEventListener("change", importFile);
   $("#cancel-replay").addEventListener("click", cancelReplay);
+  $("#confirm-replay-context").addEventListener("click", confirmReplayContext);
   $("#replay-done").addEventListener("click", async () => { await loadLibrary(); switchView("library"); });
   $("#close-details").addEventListener("click", () => elements.detailsDialog.close());
   $("#close-actions").addEventListener("click", () => elements.actionsDialog.close());
@@ -301,15 +302,33 @@ async function pollReplay() {
 }
 
 function renderReplay(replay) {
+  const awaiting = replay.status === "AWAITING_CONFIRMATION";
+  $("#confirm-replay-context").hidden = !awaiting;
+  const message = replay.error ? humanError(replay.error)
+    : awaiting ? `${(replay.contextCompatibility?.reasons || []).join(" ")} Review the page before continuing.`
+    : (replay.results || []).some((item) => item.status === "ROUTE_ONLY") ? "Some criteria are retained in the URL but remain unverified on the page." : "";
+  $("#replay-message").textContent = message;
+  $("#replay-message").hidden = !message;
   const saved = state.library.find((item) => item.id === replay.savedStateId);
   const byId = new Map((saved?.criteria || []).map((item) => [item.criterionId, item]));
   const results = replay.results || [];
   $("#replay-results").replaceChildren(...results.map((result) => criterionNode(byId.get(result.criterionId) || result, result)));
   const terminal = isTerminal(replay.status);
   $("#replay-spinner").hidden = terminal;
+  if (awaiting) $("#replay-spinner").hidden = true;
   $("#cancel-replay").hidden = terminal;
   $("#replay-done").hidden = !terminal;
   if (terminal) $("#replay-title").textContent = replayTitle(replay);
+  else if (awaiting) $("#replay-title").textContent = "Review changed page context";
+}
+
+async function confirmReplayContext() {
+  $("#confirm-replay-context").disabled = true;
+  try {
+    const replay = await send(MESSAGE.CONFIRM_REPLAY_CONTEXT, { replayId: state.replay.replayId });
+    showReplay(replay);
+  } catch (error) { toast(humanError(error), true); }
+  finally { $("#confirm-replay-context").disabled = false; }
 }
 
 async function cancelReplay() {
@@ -424,10 +443,13 @@ function humanSemantic(value) {
 }
 
 function statusLabel(status) {
+  if (status === "ROUTE_ONLY") return "URL retained, unverified";
+  if (status === "NOT_ATTEMPTED") return "Not attempted";
   return ({ ALREADY_APPLIED: "Already set", APPLIED: "Applied", VERIFIED: "Verified", VALUE_UNAVAILABLE: "Unavailable", FILTER_UNAVAILABLE: "Unavailable", MAPPING_BROKEN: "Mapping broken", RESOLUTION_INCONCLUSIVE: "Inconclusive", UNSUPPORTED_CONTROL: "Unsupported", UNSUPPORTED_INTERACTION: "Unsupported", VERIFY_FAILED: "Not verified", DEPENDENCY_FAILED: "Skipped", CANCELLED: "Cancelled" })[status] || status;
 }
 
 function resultSeverity(status) {
+  if (["ROUTE_ONLY", "NOT_ATTEMPTED", "CANCELLED"].includes(status)) return "warning";
   if (["ALREADY_APPLIED", "APPLIED", "VERIFIED"].includes(status)) return "success";
   if (["VALUE_UNAVAILABLE", "FILTER_UNAVAILABLE", "RESOLUTION_INCONCLUSIVE", "UNSUPPORTED_CONTROL", "UNSUPPORTED_INTERACTION", "DEPENDENCY_FAILED"].includes(status)) return "warning";
   return "failure";
@@ -438,6 +460,7 @@ function replayTitle(replay) {
   const total = (replay.results || []).length;
   if (replay.status === "COMPLETE") return `All ${total} criteria restored`;
   if (replay.status === "CANCELLED") return "Replay cancelled";
+  if (replay.status === "INTERRUPTED") return "Replay interrupted";
   if (replay.status === "FAILED") return "Filters could not be restored";
   return `${succeeded} of ${total} criteria restored`;
 }

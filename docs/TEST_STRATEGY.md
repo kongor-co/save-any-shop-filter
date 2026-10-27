@@ -29,7 +29,17 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - deliberately unstable pages and bounded capture failure;
 - checkout rejection;
 - replay navigation, DOM restoration, route-only warnings, and cancellation races;
-- popup Save, Details, Rename, Duplicate, Delete confirmation, keyboard dialog focus, Export, and Import.
+- popup Save, Details, Rename, Duplicate, Delete confirmation, keyboard dialog focus, Export, and Import;
+- changed-category confirmation through the popup, with no filter mutation before approval;
+- incompatible search rejection and imported URL origin rejection;
+- cancellation during a multi-step wait, proving that the later commit never occurs;
+- explicit service-worker termination during replay and reconnection to exactly one commit;
+- user search changes during an active wait, preventing the remaining commit;
+- rejection of changed control types and purchase controls supplied as commit targets.
+
+`replay-lifecycle.test.mjs` exercises the worker's real orchestration code with controlled Chrome boundaries. It covers racing starts, preflight failures, confirmation invalidation after document replacement, serialization order, forged or stale results, executor loss, and navigation deadlines. The packaged browser cases in `scripts/replay-browser-cases.mjs` verify the corresponding document and worker behavior in Chromium.
+
+Required criteria with only route evidence produce `PARTIAL`. `COMPLETE_WITH_WARNINGS` is reserved for warnings on presentation criteria after required criteria are verified. Route-only evidence degrades mapping health; unavailable inventory alone preserves its previous health.
 
 ## Coverage gate
 

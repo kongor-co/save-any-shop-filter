@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-Version 0.2 provides hostname-aware route handling for twelve German storefronts, deterministic local storage, conservative capture, criterion-level replay results, and a packaged Chromium regression suite.
+Version 0.3 provides hostname-aware route handling for twelve German storefronts, deterministic local storage, conservative capture, criterion-level replay results, context review, bounded import plans, and document-bound worker recovery. Packaged Chromium regressions cover cancellation within a plan and real service-worker termination. Retailer verification still requires separate live acceptance.
 
 The canonical repository also runs deterministic, coverage, security, and packaged browser gates in GitHub Actions.
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateSavedState } from "../src/shared/validator.js";
+import { validateSavedState, validateImportPayload, validateUiMessage } from "../src/shared/validator.js";
 
 function domState() {
   return {
@@ -54,6 +54,103 @@ function domState() {
 test("validated plans accept bounded declarative commit workflows", () => {
   const state = domState();
   assert.equal(validateSavedState(state), state);
+});
+
+test("import validation rejects changed origins, credentials, and ambiguous identities", () => {
+  for (const key of ["captureUrl", "routeSnapshot"]) {
+    for (const url of ["https://other.example/shoes", "https://user:password@shop.example/shoes", "javascript:alert(1)"]) {
+      const state = domState();
+      state.metadata[key] = url;
+      assert.throws(() => validateImportPayload({schemaVersion:4, states:[state]}));
+    }
+  }
+  const duplicate = domState();
+  duplicate.criteria.push(structuredClone(duplicate.criteria[0]));
+  assert.throws(() => validateSavedState(duplicate), /Duplicate criterion/);
+});
+
+test("untrusted mappings require supported versions, bounded plans and observable verification", () => {
+  const changes = [
+    (m) => { m.mappingVersion = 999; },
+    (m) => { m.mappingVersion = undefined; },
+    (m) => { m.verificationRule = null; },
+    (m) => { m.verificationRule.type = "UNKNOWN"; },
+    (m) => { m.verificationRule.desiredValue = ["Adidas"]; },
+    (m) => { m.desiredValue = []; },
+    (m) => { m.desiredValue = [{}]; },
+    (m) => { m.desiredValue = [null]; },
+    (m) => { m.desiredValue = [Number.NaN]; },
+    (m) => { m.option.locatorChain = Array.from({length:11}, () => ({type:"ID",value:"brand"})); },
+    (m) => { m.interactionPlan = Array.from({length:33}, () => ({action:"ACTIVATE_IF_NEEDED"})); },
+    (m) => { m.interactionPlan[0].timeoutMs = 0; },
+    (m) => { m.interactionPlan[0].timeoutMs = 8001; },
+    (m) => { m.interactionPlan[0].timeoutMs = "3000"; },
+    (m) => { m.interactionPlan[0].code = "click()"; },
+    (m) => { m.option.locatorChain[0].script = "click()"; },
+    (m) => { m.code = "click()"; }
+  ];
+  for (const change of changes) {
+    const state = domState();
+    change(state.criteria[0].bindings[0].mapping);
+    assert.throws(() => validateSavedState(state));
+  }
+  const excessive = domState();
+  excessive.criteria[0].bindings = Array.from({length:20}, () => structuredClone(excessive.criteria[0].bindings[0]));
+  for (const binding of excessive.criteria[0].bindings) binding.mapping.interactionPlan = Array.from({length:32}, () => ({action:"VERIFY"}));
+  assert.throws(() => validateSavedState(excessive), /Too many interaction steps/);
+  const valid = domState();
+  const binding = valid.criteria[0].bindings[0];
+  binding.applicability = {locale:"en", viewport:"desktop", surface:"PRODUCT_LIST", routeClass:"/shoes", adapterVersion:2};
+  assert.equal(validateSavedState(valid), valid);
+  for (const bad of [{adapterVersion:0}, {adapterVersion:"2"}, {locale:""}, {unknown:"yes"}]) {
+    binding.applicability = bad;
+    assert.throws(() => validateSavedState(valid));
+  }
+  for (const [controlType, type] of [["NATIVE_SELECT", "SELECT_VALUE"], ["NUMERIC_VALUE", "INPUT_VALUE"], ["TEXT_VALUE", "INPUT_VALUE"]]) {
+    const state = domState();
+    Object.assign(state.criteria[0].bindings[0].mapping, {controlType, verificationRule:{type,desiredValue:["Nike"]}});
+    assert.equal(validateSavedState(state), state);
+  }
+  for (const value of [true, 42]) {
+    const state = domState();
+    state.criteria[0].desiredValue = [value];
+    assert.equal(validateSavedState(state), state);
+  }
+});
+
+test("message schemas separate UI authority from document progress", () => {
+  const messages = [
+    {type:"GET_CAPTURE_PREVIEW",tabId:1}, {type:"SAVE_CAPTURE",tabId:1,preview:{}},
+    {type:"LIST_STATES"}, {type:"RENAME_STATE",stateId:"s",name:"Name"},
+    {type:"DUPLICATE_STATE",stateId:"s"}, {type:"DELETE_STATE",stateId:"s"},
+    {type:"EXPORT_LIBRARY"}, {type:"EXPORT_LIBRARY",stateIds:["s"]},
+    {type:"IMPORT_LIBRARY",payload:"{}"}, {type:"IMPORT_LIBRARY",payload:{}},
+    {type:"START_REPLAY",stateId:"s",tabId:1}, {type:"CONFIRM_REPLAY_CONTEXT",replayId:"r"},
+    {type:"CANCEL_REPLAY",replayId:"r"}, {type:"GET_ACTIVE_REPLAY",tabId:1}
+  ];
+  for (const message of messages) {
+    assert.equal(validateUiMessage(message), message);
+    assert.throws(() => validateUiMessage(message, "content"));
+    assert.throws(() => validateUiMessage({...message, unknown:true}));
+  }
+  assert.throws(() => validateUiMessage({type:"START_REPLAY",stateId:"s",tabId:-1}));
+  assert.throws(() => validateUiMessage({type:"EXPORT_LIBRARY",stateIds:[1]}));
+  assert.throws(() => validateUiMessage({type:"SAVE_CAPTURE",tabId:1,preview:null}));
+  assert.throws(() => validateUiMessage({type:"UNKNOWN"}));
+  assert.throws(() => validateUiMessage(null));
+  const result = {criterionId:"brand",status:"VERIFIED",semanticType:"BRAND",desiredValue:["Nike"],message:"Confirmed",evidence:"DOM_CONTROL"};
+  const progress = {type:"REPLAY_PROGRESS",replayId:"r",status:"APPLYING",activeCriterion:"brand",results:[result]};
+  assert.equal(validateUiMessage(progress, "content"), progress);
+  validateUiMessage({...progress,status:"VERIFYING",activeCriterion:null}, "content");
+  const complete = {type:"REPLAY_COMPLETE",replayId:"r",result:{replayId:"r",status:"COMPLETE",results:[result]}};
+  assert.equal(validateUiMessage(complete, "content"), complete);
+  validateUiMessage({type:"CONTENT_READY",href:"https://shop.example/"}, "content");
+  for (const patch of [{status:"COMPLETE"}, {replayId:42}, {results:null}, {results:[{...result,status:"INVALID"}]}, {results:[{...result,code:"x"}]}, {results:[{...result,desiredValue:"Nike"}]}, {activeCriterion:42}]) {
+    assert.throws(() => validateUiMessage({...progress,...patch}, "content"));
+  }
+  for (const patch of [{status:"APPLYING"}, {results:null}, {code:"x"}, {replayId:null}]) {
+    assert.throws(() => validateUiMessage({...complete,result:{...complete.result,...patch}}, "content"));
+  }
 });
 
 test("action locator chains reject unknown locator types", () => {

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Replay lifecycle shop</title></head>
+  <body>
+    <h1>Shoes</h1>
+    <fieldset><legend>Brand</legend>
+      <label><input id="brand-nike" type="checkbox">Nike</label>
+      <button id="apply" type="button">Apply</button>
+    </fieldset>
+    <fieldset><legend>Activity</legend>
+      <label><input id="activity" type="checkbox">Updating listing</label>
+    </fieldset>
+    <a href="/product/1">Product one</a><a href="/product/2">Product two</a>
+    <a href="/product/3">Product three</a><a href="/product/4">Product four</a>
+    <button id="purchase" type="button">Buy now</button>
+    <script>
+      window.commits = 0;
+      window.purchases = 0;
+      document.querySelector("#purchase").addEventListener("click", () => { window.purchases += 1; });
+      document.querySelector("#apply").addEventListener("click", () => { window.commits += 1; });
+      const timer = setInterval(() => {
+        const control = document.querySelector("#activity");
+        control.checked = !control.checked;
+      }, 60);
+      window.stopUpdates = () => { clearInterval(timer); document.querySelector("#activity").checked = false; };
+    </script>
+  </body>
+</html>

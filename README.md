@@ -19,9 +19,11 @@ FilterVault targets Chrome 106 or newer. It uses only `activeTab`, `scripting`, 
 - Open **Library** to search, inspect, replay, rename, duplicate, delete, import, or export configurations.
 - Replay restores the saved route/context first, then applies supported DOM criteria idempotently and verifies the final state.
 - The capture coverage report distinguishes meaningful saved settings, search/page context, unsupported controls, unresolved active controls, and ignored defaults before Save is enabled.
-- Replay distinguishes storefront-verified criteria from route-only criteria. Route-only completion is reported with a warning rather than as fully verified.
+- Replay distinguishes storefront-verified criteria from route-only criteria. A required criterion retained only in the URL produces a partial result. Warnings on optional presentation criteria cannot turn unverified required filters into a completed replay.
+- When the page context has changed, replay pauses for review. Confirmation applies to the inspected document and context; another change requires another review.
+- Worker suspension reconnects to the existing page executor. Cancellation stops subsequent actions, and document replacement interrupts replay.
 
-Version 0.2 includes hostname-aware route schemas for Amazon.de, Kleinanzeigen, Idealo, rebuy, MediaMarkt, Decathlon, Cyberport, Zalando Germany, Shop Apotheke, OTTO, Autohero, and Home24. The schemas recognize merchant-specific query parameters, aliases, atomic sort pairs, and supported path facets without treating ambiguous short parameters as global filters.
+Version 0.3 includes hostname-aware route schemas for Amazon.de, Kleinanzeigen, Idealo, rebuy, MediaMarkt, Decathlon, Cyberport, Zalando Germany, Shop Apotheke, OTTO, Autohero, and Home24. The schemas recognize merchant-specific query parameters, aliases, atomic sort pairs, and supported path facets without treating ambiguous short parameters as global filters. Route support does not establish live verification for every retailer.
 
 Idealo Germany additionally has a verified DOM adapter for route-backed filter tags and selected checkbox filters, including multi-select groups. Default price-slider bounds are ignored; active dual-handle sliders remain explicitly unsupported until a stable retailer mapping exists.
 
