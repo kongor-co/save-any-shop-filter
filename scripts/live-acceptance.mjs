@@ -15,7 +15,7 @@ for (let index=0; index<args.length; index+=1) {
 }
 const inputs = await loadAcceptanceInputs(root);
 const scenarios = inputs.scenarios.filter((item) => shop === "all" || item.schemaId === shop);
-if (!scenarios.length) throw new Error("Choose all, idealo-de, decathlon-de, or mediamarkt-de with --shop");
+if (!scenarios.length) throw new Error("Choose all, idealo-de, decathlon-de, mediamarkt-de, or cyberport-de with --shop");
 const checkedAt = new Date().toISOString();
 const runId = checkedAt.replace(/[:.]/g,"-");
 const output = resolve(root,".live-acceptance",runId);

@@ -1,0 +1,61 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-10-27T14:59:51.540Z",
+  "runId": "2026-10-27T14-59-51-540Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "d80fabe0c9fec89c18650dc5ca062431743d727e8d3171d961797ecc4be9a772"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.cyberport.de"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "cyberport-mice-brand-power-rating",
+      "scenario": {
+        "id": "cyberport-mice-brand-power-rating",
+        "schemaId": "cyberport-de",
+        "resetUrl": "https://www.cyberport.de/gaming/gaming-maeuse.html",
+        "readySelector": "label[for='manufacturer-ASUS']",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "BRAND",
+            "desiredValue": [
+              "ASUS"
+            ]
+          },
+          {
+            "semanticType": "STROMVERSORGUNGSART",
+            "desiredValue": [
+              "Akku"
+            ]
+          },
+          {
+            "semanticType": "RATING",
+            "desiredValue": [
+              "5"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.cyberport.de/gaming/gaming-maeuse.html?refinementList%5Bmanufacturer%5D%5B0%5D=ASUS&refinementList%5Bfacets.Stromversorgungsart.values%5D%5B0%5D=Akku&ratingMenu%5BratingsBucket%5D=5"
+      },
+      "scenarioSha256": "66bfdb13fc6b96865faeefa5a7bcb90b4e1422d7d174b73740c1cc11c761f646",
+      "schemaId": "cyberport-de",
+      "schemaVersion": 2,
+      "status": "BLOCKED",
+      "stage": "NAVIGATE",
+      "reason": "HTTP_403",
+      "capturedCriteria": [],
+      "resetCriteria": [],
+      "resetChanged": [],
+      "omissions": 0,
+      "replay": null,
+      "httpStatus": 403,
+      "finalUrl": "https://www.cyberport.de/gaming/gaming-maeuse.html?refinementList%5Bmanufacturer%5D%5B0%5D=ASUS&refinementList%5Bfacets.Stromversorgungsart.values%5D%5B0%5D=Akku&ratingMenu%5BratingsBucket%5D=5"
+    }
+  ]
+}

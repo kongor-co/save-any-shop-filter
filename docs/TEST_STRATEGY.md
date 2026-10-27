@@ -38,6 +38,11 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - rejection of changed control types and purchase controls supplied as commit targets;
 - the acceptance runner's complete capture, persisted Save, reset proof, replay, and cleanup against a local shop;
 - MediaMarkt seller and refurbished capture, popup Save, route restoration, DOM verification, and count changes;
+- MediaMarkt native handles in nested fieldsets, matching the live default-range layout;
+- Cyberport manufacturer, power-supply, and rating capture, Save, reset, and replay through visible checked-input labels;
+- unchecked hidden inputs cannot verify saved route state, and active custom widgets retain warnings;
+- native paired range capture, Apply, idempotent replay, and rejection of changed structure or unrelated sliders;
+- generic structured URL grouping, sanitation, replay construction, sensitive nested-key exclusion, and older mapping compatibility;
 - generic labelled lists, nested accordions, numeric bounds, unchanged defaults, idempotent replay, and duplicate-group rejection.
 
 `replay-lifecycle.test.mjs` exercises the worker's real orchestration code with controlled Chrome boundaries. It covers racing starts, preflight failures, confirmation invalidation after document replacement, serialization order, forged or stale results, executor loss, and navigation deadlines. The packaged browser cases in `scripts/replay-browser-cases.mjs` verify the corresponding document and worker behavior in Chromium.

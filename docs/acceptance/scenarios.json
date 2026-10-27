@@ -43,5 +43,17 @@
         ]
       }
     ]
+  },
+  {
+    "id": "cyberport-mice-brand-power-rating",
+    "schemaId": "cyberport-de",
+    "resetUrl": "https://www.cyberport.de/gaming/gaming-maeuse.html",
+    "readySelector": "label[for='manufacturer-ASUS']",
+    "resetReadySelector": "h1",
+    "expectedCriteria": [
+      {"semanticType":"BRAND","desiredValue":["ASUS"]},
+      {"semanticType":"STROMVERSORGUNGSART","desiredValue":["Akku"]},
+      {"semanticType":"RATING","desiredValue":["5"]}
+    ]
   }
 ]

@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { runReplayBrowserCases } from "./replay-browser-cases.mjs";
 import { runFacetBrowserCases } from "./facet-browser-cases.mjs";
+import { runStructuredBrowserCases } from "./structured-browser-cases.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const smokeRoot = resolve(root, ".browser-smoke");
@@ -16,7 +17,7 @@ const extensionDir = resolve(smokeRoot, "extension");
 await mkdir(extensionDir, { recursive: true });
 await cp(resolve(root, "src"), resolve(extensionDir, "src"), { recursive: true });
 const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
-manifest.host_permissions = ["http://127.0.0.1/*", "https://www.mediamarkt.de/*"];
+manifest.host_permissions = ["http://127.0.0.1/*", "https://www.mediamarkt.de/*", "https://www.cyberport.de/*"];
 await writeFile(resolve(extensionDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 const playwrightSpecifier = process.env.FILTERVAULT_PLAYWRIGHT_MODULE || "playwright";
@@ -321,6 +322,7 @@ try {
 
   await runReplayBrowserCases({context,extension,call,port,shop,saved,smokeRoot});
   await runFacetBrowserCases({context,extension,call,port,smokeRoot});
+  await runStructuredBrowserCases({context,extension,call,port,smokeRoot});
 
   const restrictedPage = await context.newPage();
   await restrictedPage.goto("chrome://version", { waitUntil: "domcontentloaded" });

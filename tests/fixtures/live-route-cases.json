@@ -39,9 +39,9 @@
   },
   {
     "shop": "Cyberport",
-    "url": "https://www.cyberport.de/tools/search-results.html?query=laptop&sortBy=PRD-2B1T_de_price_asc",
+    "url": "https://www.cyberport.de/gaming/gaming-maeuse.html?refinementList%5Bmanufacturer%5D%5B0%5D=ASUS\u0026refinementList%5Bfacets.Stromversorgungsart.values%5D%5B0%5D=Akku\u0026ratingMenu%5BratingsBucket%5D=5",
     "schema": "cyberport-de",
-    "expected": { "SEARCH_QUERY": ["laptop"], "SORT": ["PRD-2B1T_de_price_asc"] }
+    "expected": { "BRAND": ["ASUS"], "STROMVERSORGUNGSART": ["Akku"], "RATING": ["5"] }
   },
   {
     "shop": "Zalando",

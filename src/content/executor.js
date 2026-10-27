@@ -143,6 +143,11 @@
 
     for (const element of queryAllDeep('[role="slider"], input[type="range"], [aria-autocomplete], [role="combobox"]')) {      if (!isElementVisible(element) || isSensitiveControl(element)) continue;
       if (outsideFilterSurface(element)) continue;
+      const presentationDefault = defaultPresentationReason(element);
+      if (presentationDefault) {
+        defaultsIgnored.push({label:controlLabel(element) || "Default sorting",reason:presentationDefault});
+        continue;
+      }
       const defaultReason = defaultControlReason(element, defaultRanges);
       if (defaultReason) {
         defaultsIgnored.push({label: controlLabel(element) || "Default range", reason: defaultReason});
@@ -150,6 +155,13 @@
       }
       if (!isElementVisible(element) || isSensitiveControl(element)) continue;
       if (isIdealoAdapter() && element.matches('[role="slider"], input[type="range"]') && !hasIdealoPriceFilter()) continue;
+      if (nativeRangeEndpoint(element)) {
+        const candidate = captureControl(element, hints);
+        if (candidate) {
+          supported.push(candidate);
+          continue;
+        }
+      }
       unsupported.push({
         label: controlLabel(element) || "Advanced filter control",
         reason: element.matches('[role="slider"], input[type="range"]') ? "Dual/range sliders require a verified adapter." : "Autocomplete controls require a verified adapter."
@@ -178,6 +190,14 @@
     return normalizeSemanticType(label);
   }
 
+  function defaultPresentationReason(element) {
+    if (!element.matches('[role="combobox"][aria-autocomplete="none"][readonly]')) return null;
+    if (!/^(sort[-_]?by|sort|sorting|sortierung)$/i.test(element.getAttribute("name") || element.id)) return null;
+    if (!/^(relevanz|relevance|recommended|beste ergebnisse|empfohlen)$/i.test(element.value || "")) return null;
+    if ([...new URL(location.href).searchParams.keys()].some((key) => /^(sort|sort[-_]?by|sorting|sortierung|order|ns)$/i.test(key))) return null;
+    return "The default relevance order does not restrict results.";
+  }
+
   function defaultControlReason(element, cache) {
     if (element instanceof HTMLInputElement) {
       if (element.type === "radio") {
@@ -189,7 +209,7 @@
       }
     }
     if (!element.matches('input[type="number"], input[type="range"], [role="slider"]')) return null;
-    const group = findFilterGroup(element)?.element;
+    const group = findFilterGroup(element)?.element || (element.matches('[role="slider"]') ? element.parentElement : null);
     if (!group) return null;
     if (!cache.has(group)) cache.set(group, unrestrictedRangeControls(group));
     return cache.get(group).has(element) ? "The complete available range is selected; no range filter is active." : null;
@@ -197,7 +217,7 @@
 
   function unrestrictedRangeControls(group) {
     const controls = queryAllDeep('input[type="number"], input[type="range"], [role="slider"]', group)
-      .filter((element) => findFilterGroup(element)?.element === group);
+      .filter((element) => (findFilterGroup(element)?.element || element.parentElement) === group);
     const numbers = controls.filter((element) => element.matches('input[type="number"]'));
     const sliders = controls.filter((element) => !numbers.includes(element));
     const pair = (items) => {
@@ -220,9 +240,12 @@
     if (sliders.length ? !sliderPair : false) return new Set();
     if (numbers.length ? !numberPair : false) return new Set();
     if (!sliderPair ? !numberPair : false) return new Set();
+    if (sliders.length ? !rangeHandleIdentity(sliders) : false) return new Set();
     const labels = (numbers.length ? numbers : sliders).map(controlLabel);
-    if (!labels.some((label) => /^(?:von|from|min(?:imum)?|lower)\b/i.test(label))) return new Set();
-    if (!labels.some((label) => /^(?:bis|to|max(?:imum)?|upper)\b/i.test(label))) return new Set();
+    if (numbers.length) {
+      if (!labels.some((label) => /^(?:von|from|min(?:imum)?|lower)\b/i.test(label))) return new Set();
+      if (!labels.some((label) => /^(?:bis|to|max(?:imum)?|upper)\b/i.test(label))) return new Set();
+    }
     if (sliderPair ? numberPair !== null : false) {
       if (sliderPair.min !== numberPair.min || sliderPair.max !== numberPair.max) return new Set();
     }
@@ -233,7 +256,8 @@
     const group = findFilterGroup(element);
     const groupLabel = group ? group.label : "";
     if (!group || !groupLabel) return null;
-    const optionLabel = controlLabel(element);
+    const endpoint = nativeRangeEndpoint(element);
+    const optionLabel = endpoint ? `${endpoint === "LOWER" ? "Lower" : "Upper"} bound` : controlLabel(element);
     if (!optionLabel) return null;
 
     let controlType;
@@ -255,7 +279,7 @@
       desired = selected.map((option) => option.value);
       interactionAction = "SELECT_NATIVE_OPTION";
       verificationType = "SELECT_VALUE";
-    } else if (element instanceof HTMLInputElement && element.type === "number") {
+    } else if (element instanceof HTMLInputElement && ["number", "range"].includes(element.type)) {
       if (isIdealoAdapter() && !hasIdealoPriceFilter()) return null;
       if (!element.value) return null;
       controlType = "NUMERIC_VALUE";
@@ -289,7 +313,7 @@
         origin: location.origin,
         applicability: { viewport },
         mapping: {
-          mappingVersion: 3,
+          mappingVersion: 4,
           controlType,
           desiredValue: values,
           filterContainer: { locatorChain: containerLocators },
@@ -297,12 +321,51 @@
           interactionPlan: [
             ...(element.closest("details") ? [{action: "ENSURE_EXPANDED", timeoutMs: 3000}] : []),
             { action: interactionAction, timeoutMs: 3000 },
+            ...(element instanceof HTMLInputElement ? (["number", "range"].includes(element.type) ? commitPlan(group.element) : []) : []),
             { action: "VERIFY", timeoutMs: 3000 }
           ],
           verificationRule: { type: verificationType, desiredValue: values }
         }
       }
     };
+  }
+
+  function nativeRangePair(group) {
+    const inputs = queryAllDeep('input[type="range"]', group).filter((input) => findFilterGroup(input)?.element === group);
+    if (inputs.length !== 2) return null;
+    if (!rangeHandleIdentity(inputs)) return null;
+    const states = inputs.map((input) => [input.getAttribute("min"),input.getAttribute("max"),input.value]);
+    if (states.flat().some((value) => value === null || value === "" || !Number.isFinite(Number(value)))) return null;
+    const [lower,upper] = states.map((state) => state.map(Number));
+    if (lower[0] !== upper[0] || lower[1] !== upper[1] || lower[0] >= lower[1]) return null;
+    if (lower[2] > upper[2]) return null;
+    return inputs;
+  }
+
+  function rangeHandleIdentity(handles) {
+    if (handles.length !== 2) return false;
+    if (handles[0].parentElement !== handles[1].parentElement) return false;
+    const labels = handles.map(controlLabel);
+    const numericLabel = (label) => /^-?\d+(?:[.,]\d+)?\s*(?:€|%|eur|euros?|usd|\$|gbp|£|kg|cm|mm)?$/i.test(label);
+    if (labels.every(numericLabel)) return true;
+    if (/^(?:von|from|min(?:imum)?|lower)\b/i.test(labels[0])) {
+      if (/^(?:bis|to|max(?:imum)?|upper)\b/i.test(labels[1])) return true;
+    }
+    return handles[0].getAttribute("data-lower") === "true" ? handles[1].getAttribute("data-upper") === "true" : false;
+  }
+
+  function nativeRangeEndpoint(element) {
+    if (!element.matches('input[type="range"]')) return null;
+    const group = findFilterGroup(element)?.element;
+    if (!group) return null;
+    const pair = nativeRangePair(group);
+    return pair ? (pair[0] === element ? "LOWER" : "UPPER") : null;
+  }
+
+  function commitPlan(group) {
+    const buttons = [...group.querySelectorAll('button,input[type="submit"]')].filter((button) =>
+      /^(apply|show (?:\d+ )?results|submit filters|anzeigen|übernehmen|anwenden)$/i.test(normalizedText(button.textContent || button.value)));
+    return buttons.length === 1 ? [{action:"COMMIT",timeoutMs:5000}] : [];
   }
 
   function groupCandidates(candidates) {
@@ -598,7 +661,8 @@
       const target = step.locatorChain?.length
         ? (resolveLocatorChain(step.locatorChain, group, false) || resolveLocatorChain(step.locatorChain, document, false))
         : [...group.querySelectorAll('button,[role="button"],input[type="submit"]')].find((element) => /apply|show results|submit|anzeigen|übernehmen|anwenden/i.test(element.textContent || element.value || ""));
-      if (!target || isDisabled(target)) return false;
+      if (!target) return false;
+      if (isDisabled(target)) return observeDesired(option, mapping);
       const label = normalizedText(target.textContent || target.value);
       if (!/^(apply|show (?:\d+ )?results|submit filters|anzeigen|übernehmen|anwenden)(?:\b|$)/i.test(label)) return false;
       target.click();
@@ -614,7 +678,7 @@
     if (element instanceof HTMLSelectElement) return mapping.controlType === "NATIVE_SELECT";
     if (element instanceof HTMLInputElement) {
       if (["checkbox", "radio"].includes(element.type)) return ["BOOLEAN", "SINGLE_SELECT", "MULTI_SELECT"].includes(mapping.controlType);
-      if (element.type === "number") return mapping.controlType === "NUMERIC_VALUE";
+      if (["number", "range"].includes(element.type)) return mapping.controlType === "NUMERIC_VALUE";
       if (element.type === "text") return mapping.controlType === "TEXT_VALUE";
       return false;
     }
@@ -645,6 +709,11 @@
   function resolveLocator(locator, scope, isContainer) {
     const value = String(locator.value || "");
     const all = (selector) => queryAllDeep(selector, scope);
+    if (locator.type === "NATIVE_RANGE_ENDPOINT") {
+      const pair = nativeRangePair(scope);
+      if (!pair) return null;
+      return value === "LOWER" ? pair[0] : value === "UPPER" ? pair[1] : null;
+    }
     if (locator.type === "LABELLED_LIST") {
       return unique(all('ul[aria-labelledby],ol[aria-labelledby],[role="list"][aria-labelledby],[role="listbox"][aria-labelledby]')
         .filter((element) => normalizedText(groupLabel(element)) === normalizedText(value)));
@@ -709,6 +778,8 @@
 
   function buildOptionLocators(element, label) {
     const locators = [];
+    const endpoint = nativeRangeEndpoint(element);
+    if (endpoint) return [{type:"NATIVE_RANGE_ENDPOINT",value:endpoint}];
     if (isIdealoAdapter() && element instanceof HTMLInputElement && ["checkbox", "radio"].includes(element.type)) {
       locators.push({ type: "IDEALO_OPTION", value: label });
     }
@@ -808,7 +879,7 @@
 
   function activeStateSignature() {
     const values = [];
-    for (const element of queryAllDeep('input:checked, input[type="number"], select, [aria-checked="true"], [aria-selected="true"], [aria-pressed="true"]')) {
+    for (const element of queryAllDeep('input:checked, input[type="number"], input[type="range"], select, [aria-checked="true"], [aria-selected="true"], [aria-pressed="true"]')) {
       const value = element instanceof HTMLSelectElement
         ? [...element.selectedOptions].map((option) => option.value).join("|")
         : element.value || element.getAttribute("value") || element.textContent || "";
@@ -887,7 +958,15 @@
   function activeEvidenceText() {
     const parts = [];
     for (const element of queryAllDeep('input:checked, select, [aria-checked="true"], [aria-selected="true"], [aria-pressed="true"], [class*="filterTag"], [class*="filter-tag"], [class*="active-filter"]')) {
-      if (!isElementVisible(element)) continue;
+      if (!isElementVisible(element)) {
+        if (!(element instanceof HTMLInputElement)) continue;
+        if (!["checkbox", "radio"].includes(element.type)) continue;
+        if (isSensitiveControl(element) || outsideFilterSurface(element)) continue;
+        const labels = [...(element.labels || [])].filter(isElementVisible);
+        if (!labels.length) continue;
+        parts.push(...labels.map(labelText));
+        continue;
+      }
       if (element instanceof HTMLSelectElement && isDefaultSelect(element)) continue;
       parts.push(controlLabel(element), element.textContent, element.getAttribute("aria-label"));
       if (element instanceof HTMLSelectElement) parts.push(...selectedLabels(element));

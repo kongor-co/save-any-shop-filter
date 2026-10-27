@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Native range catalog</title></head>
+<body><main><h1>Native range catalog</h1><fieldset><legend>Price</legend>
+<input type="range" min="0" max="100" value="20" aria-label="20 euros">
+<input type="range" min="0" max="100" value="80" aria-label="80 euros">
+<button type="button">Apply</button><output>20:80</output>
+</fieldset><section><a href="/product/1">One</a><a href="/product/2">Two</a><a href="/product/3">Three</a><a href="/product/4">Four</a></section></main>
+<script>
+let commits=0;
+document.querySelector("button").addEventListener("click",()=>{
+  commits+=1;
+  document.querySelector("output").value=[...document.querySelectorAll('input[type="range"]')].map(input=>input.value).join(":");
+});
+window.commits=()=>commits;
+</script></body></html>

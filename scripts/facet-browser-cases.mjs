@@ -75,7 +75,7 @@ export async function runFacetBrowserCases({context,extension,call,port,smokeRoo
 
   await media.locator('input[type="number"]').evaluateAll((inputs) => {inputs[0].closest("details").open=true;inputs[0].value="480";inputs[1].value="550";});
   const activeRange=await call("GET_CAPTURE_PREVIEW",{tabId});
-  assert.equal(activeRange.unsupported.length,2,"Changed ranges must not be hidden as defaults");
+  assert.equal(activeRange.unsupported.length,0,"Native paired ranges have replayable mappings");
   assert.equal(activeRange.criteria.some((item) => item.desiredValue.includes("480")),true);
 
   const catalog=await context.newPage();
