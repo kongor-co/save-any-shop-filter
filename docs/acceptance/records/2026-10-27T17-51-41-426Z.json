@@ -1,0 +1,68 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-10-27T17:51:41.426Z",
+  "runId": "2026-10-27T17-51-41-426Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "f1dab6c392d5094edfa7022ce6bbd61dce762e3e3b39f18279c45dc5d4eaa15b"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.home24.de"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "home24-width-rating-colors",
+      "scenario": {
+        "id": "home24-width-rating-colors",
+        "schemaId": "home24-de",
+        "resetUrl": "https://www.home24.de/aussenstrahler/",
+        "readySelector": "[aria-label='Angewendete Filter']",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "SORT",
+            "desiredValue": [
+              "POPULARITY"
+            ]
+          },
+          {
+            "semanticType": "MAX_WIDTH",
+            "desiredValue": [
+              "14"
+            ]
+          },
+          {
+            "semanticType": "RATING",
+            "desiredValue": [
+              "★★★★ und mehr"
+            ]
+          },
+          {
+            "semanticType": "COLOR",
+            "desiredValue": [
+              "black",
+              "gray"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.home24.de/aussenstrahler/?order=POPULARITY&width.max=14&average_rating=%E2%98%85%E2%98%85%E2%98%85%E2%98%85+und+mehr&color=black%7Cgray"
+      },
+      "scenarioSha256": "fc668319544c1c1ded8e4a332ba0eebd9dcfb564ef3f858f12d865e127a69714",
+      "schemaId": "home24-de",
+      "schemaVersion": 2,
+      "status": "BLOCKED",
+      "stage": "NAVIGATE",
+      "reason": "HTTP_403",
+      "capturedCriteria": [],
+      "resetCriteria": [],
+      "resetChanged": [],
+      "omissions": 0,
+      "replay": null,
+      "httpStatus": 403,
+      "finalUrl": "https://www.home24.de/aussenstrahler/?order=POPULARITY&width.max=14&average_rating=%E2%98%85%E2%98%85%E2%98%85%E2%98%85+und+mehr&color=black%7Cgray"
+    }
+  ]
+}

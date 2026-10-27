@@ -70,8 +70,8 @@
   },
   {
     "shop": "Home24",
-    "url": "https://www.home24.de/sofa-couch/?shop=home24+SE&order=PRICE_ASC",
+    "url": "https://www.home24.de/aussenstrahler/?order=POPULARITY\u0026width.max=14\u0026average_rating=%E2%98%85%E2%98%85%E2%98%85%E2%98%85+und+mehr\u0026color=black%7Cgray",
     "schema": "home24-de",
-    "expected": { "SELLER": ["home24 SE"], "SORT": ["PRICE_ASC"] }
+    "expected": { "SORT": ["POPULARITY"], "MAX_WIDTH": ["14"], "RATING": ["★★★★ und mehr"], "COLOR": ["black", "gray"] }
   }
 ]

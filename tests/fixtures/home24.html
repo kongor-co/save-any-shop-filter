@@ -1,0 +1,22 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Außenstrahler</title></head>
+<body><header><form role="search"><input role="combobox" aria-autocomplete="list" name="query" aria-label="Wonach suchst du?"></form></header>
+<main><h1>Außenstrahler</h1><section aria-label="Filter"><button type="button" aria-pressed="false" aria-label="Filtern nach: Verkäufer">Verkäufer</button><button type="button" aria-pressed="false" aria-label="Filtern nach: Lieferzeit">Lieferzeit</button><button type="button" id="dimensions" aria-pressed="false" aria-label="Filtern nach: Maße">Maße</button><button type="button" id="rating" aria-pressed="false" aria-label="Filtern nach: Bewertung">Bewertung</button><button type="button" id="colors" aria-pressed="false" aria-label="Filtern nach: Farbe">Farbe</button></section>
+<label>Sortieren:<select aria-label="Sortieroptionen" name="borderless-select"><option value="POPULARITY" selected>Beliebtheit</option><option value="PRICE_ASC">Niedrigster Preis</option><option value="PRICE_DESC">Höchster Preis</option></select></label>
+<section role="region" aria-label="Angewendete Filter" id="applied"></section>
+<section><a href="/produkt/light-one">Außenleuchte</a><a href="/produkt/light-two">Außenstrahler</a></section></main>
+<script>
+let clicks=0;
+const params=new URL(location.href).searchParams;
+const chip=(text,label,key,value)=>{
+  const button=document.createElement("button");button.type="button";button.textContent=text;button.setAttribute("aria-label",`Filter „${label}“ löschen`);button.dataset.key=key;button.dataset.value=value;
+  button.addEventListener("click",()=>{clicks+=1;button.remove();});document.querySelector("#applied").append(button);
+};
+const summary=(id,label,count)=>{const button=document.getElementById(id);if(!count)return;button.textContent=`${label} (${count})`;button.setAttribute("aria-pressed","true");button.setAttribute("aria-label",`Filtern nach: ${label} ${count} ausgewählt`);button.addEventListener("click",()=>{clicks+=1;});};
+if(params.has("width.max")){chip(`Breite: bis ${params.get("width.max")}cm`,"Breite Breite","width.max",params.get("width.max"));summary("dimensions","Maße",1);}
+if(params.has("average_rating")){chip(params.get("average_rating"),`Bewertung ${params.get("average_rating")}`,"average_rating",params.get("average_rating"));summary("rating","Bewertung",1);}
+const colors=(params.get("color")||"").split("|").filter(Boolean);const labels={black:"Schwarz",gray:"Grau"};
+for(const color of colors)chip(labels[color]||color,`Farbe ${labels[color]||color}`,"color",color);
+summary("colors","Farbe",colors.length);
+document.querySelector("select").value=params.get("order")||"POPULARITY";
+window.filterClicks=()=>clicks;
+</script></body></html>

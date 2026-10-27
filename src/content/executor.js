@@ -103,8 +103,8 @@
     if (/\/(login|sign-in|signin|auth)(\/|$)/.test(path) || document.querySelector('input[type="password"]')) return "LOGIN";
     if (/\/(account|profile|settings)(\/|$)/.test(path)) return "ACCOUNT";
 
-    const filterControls = queryAllDeep('input[type="checkbox"], input[type="radio"], select, button[role="combobox"][aria-controls], [role="checkbox"], [role="radio"], [aria-checked], [aria-selected]');
-    const productLinks = [...document.querySelectorAll('a[href]')].filter((link) => /product|item|sku|dp\//i.test(link.getAttribute("href") || ""));
+    const filterControls = queryAllDeep('input[type="checkbox"], input[type="radio"], select, button[role="combobox"][aria-controls], button[aria-pressed][aria-label^="Filtern nach:"], button[aria-pressed][aria-label^="Filter by:"], [role="checkbox"], [role="radio"], [aria-checked], [aria-selected]');
+    const productLinks = [...document.querySelectorAll('a[href]')].filter((link) => /product|produkt|item|sku|dp\//i.test(link.getAttribute("href") || ""));
     const routeLooksSearch = /search|category|collections?|products?|shop|catalog/i.test(path) || [...new URL(location.href).searchParams.keys()].some((key) => /^(q|query|search|keyword|k|ntt)$/i.test(key));
     if (filterControls.length >= 2 || productLinks.length >= 4 || routeLooksSearch) return routeLooksSearch ? "SEARCH" : "LISTING";
     if (/\/[^/]+\/[^/]+/.test(path) && document.querySelector('button, [role="button"]')) return "PRODUCT_DETAIL";
@@ -129,6 +129,15 @@
       seen.add(element);
       if (outsideFilterSurface(element)) continue;
       if (decorativeOptionInput(element)) continue;
+      if (representedFilterSummary(element,hints)) continue;
+      if (element.matches('button[aria-pressed="true"]')) {
+        if (/^(filtern nach:|filter by:)/i.test(element.getAttribute("aria-label") || "")) {
+          if (/\(\d+\)$/.test(plainText(labelText(element)))) {
+            unresolved.push({label:controlLabel(element),reason:"This filter group summary could not be matched to all selected values."});
+            continue;
+          }
+        }
+      }
       if (currentPageChip(element)) {
         defaultsIgnored.push({label:controlLabel(element),reason:"The current page is already preserved as listing context."});
         continue;
@@ -303,6 +312,7 @@
     const inspected = [];
     try {
       for (const hint of hints || []) {
+        if (hint.appliedFilterTexts) continue;
         if (!hint.parameters?.length) continue;
         if (triggers.some((trigger) => dropdownHint(trigger,[hint]))) continue;
         for (const label of hint.labels || []) {
@@ -312,6 +322,7 @@
       triggers = queryAllDeep('button[role="combobox"]').filter(isDropdownTrigger).filter(isElementVisible);
       for (const trigger of triggers) {
         const hint = dropdownHint(trigger,hints);
+        if (hint?.appliedFilterTexts) continue;
         if (!hint?.parameters?.length) continue;
         const same = triggers.filter((other) => normalizedText(other.getAttribute("aria-label")) === normalizedText(trigger.getAttribute("aria-label")));
         if (same.length !== 1) {
@@ -1120,12 +1131,61 @@
 
   function hasVisibleCriterionEvidence(criterion) {
     if (isDecathlonAdapter()) return hasDecathlonVisibleCriterionEvidence(criterion);
+    const chipEvidence = appliedFilterEvidence(criterion);
+    if (chipEvidence !== null) return chipEvidence;
+    if (nativeSortEvidence(criterion)) return true;
     const evidence = activeEvidenceText();
     const candidates = [
       ...(criterion.observedRepresentation || []),
       ...(criterion.bindings || []).flatMap((binding) => binding.verificationTexts || [])
     ].map(normalizedText).filter((value) => value.length >= 2 && !/^\d+$/.test(value));
     return candidates.length > 0 && candidates.every((value) => evidence.includes(value));
+  }
+
+  function appliedFilterRegions() {
+    return queryAllDeep('section[aria-label],[role="region"][aria-label]')
+      .filter(isElementVisible).filter((element) => /^(angewendete filter|ausgewählte filter|aktive filter|applied filters|active filters|selected filters)$/i.test(plainText(element.getAttribute("aria-label"))));
+  }
+
+  function appliedFilterTexts(region) {
+    return queryAllDeep('button[aria-label]',region).filter(isElementVisible)
+      .filter((button) => /^(?:filter\s+.+\s+(?:löschen|entfernen)|remove filter\b|remove .+ filter\b)/i.test(button.getAttribute("aria-label")))
+      .map((button) => plainText(labelText(button))).filter(Boolean);
+  }
+
+  function appliedFilterEvidence(criterion) {
+    if (criterion.role !== "FILTER") return null;
+    const bindings = (criterion.bindings || []).filter((binding) => binding.semanticEvidence === true);
+    const expected = bindings.flatMap((binding) => binding.verificationTexts || []).map(plainText).filter(Boolean);
+    if (!expected.length) return null;
+    const regions = appliedFilterRegions();
+    if (!regions.length) return null;
+    if (regions.length !== 1) return false;
+    const actual = new Set(appliedFilterTexts(regions[0]));
+    return expected.every((text) => actual.has(text));
+  }
+
+  function representedFilterSummary(element, hints) {
+    if (!element.matches('button[aria-pressed="true"]')) return false;
+    const summary = plainText(labelText(element)).match(/^(.+?)\s*\((\d+)\)$/);
+    if (!summary) return false;
+    const represented = (hints || []).filter((hint) => hint.summaryKey ? hint.labels?.some((label) => plainText(label) === summary[1]) : false)
+      .filter((hint) => hint.parameters?.length);
+    if (!represented.length) return false;
+    const representedCounts = [new Set(represented.map((hint) => hint.summaryKey)).size,represented.flatMap((hint) => hint.appliedFilterTexts || []).length];
+    if (!representedCounts.includes(Number(summary[2]))) return false;
+    const regions = appliedFilterRegions();
+    if (regions.length !== 1) return false;
+    const actual = new Set(appliedFilterTexts(regions[0]));
+    return represented.every((hint) => hint.appliedFilterTexts?.length ? hint.appliedFilterTexts.every((text) => actual.has(plainText(text))) : false);
+  }
+
+  function nativeSortEvidence(criterion) {
+    if (criterion.role !== "PRESENTATION" || criterion.semanticType !== "SORT") return false;
+    const values = (criterion.bindings || []).filter((binding) => binding.type === "URL_QUERY").flatMap((binding) => binding.values || []);
+    if (!values.length) return false;
+    const selects = queryAllDeep("select").filter(isElementVisible).filter((select) => /sort|sortier/i.test(`${select.name} ${select.id} ${select.getAttribute("aria-label") || ""}`));
+    return values.every((value) => selects.some((select) => select.value === String(value)));
   }
 
   function hasDecathlonVisibleCriterionEvidence(criterion) {
@@ -1197,9 +1257,12 @@
         parts.push(...labels.map(labelText));
         continue;
       }
-      if (element instanceof HTMLSelectElement && isDefaultSelect(element)) continue;
+      if (element instanceof HTMLSelectElement) {
+        if (isDefaultSelect(element)) continue;
+        parts.push(controlLabel(element),...selectedLabels(element));
+        continue;
+      }
       parts.push(controlLabel(element), element.textContent, element.getAttribute("aria-label"));
-      if (element instanceof HTMLSelectElement) parts.push(...selectedLabels(element));
     }
     return normalizedText(parts.filter(Boolean).join(" | "));
   }

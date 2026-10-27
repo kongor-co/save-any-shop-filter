@@ -66,5 +66,18 @@
       {"semanticType":"CATEGORY","desiredValue":["Ernährung \u0026 Abnehmen"]},
       {"semanticType":"PACK_SIZE","desiredValue":["15 St","20x1,4 g"]}
     ]
+  },
+  {
+    "id":"home24-width-rating-colors",
+    "schemaId":"home24-de",
+    "resetUrl":"https://www.home24.de/aussenstrahler/",
+    "readySelector":"[aria-label='Angewendete Filter']",
+    "resetReadySelector":"h1",
+    "expectedCriteria":[
+      {"semanticType":"SORT","desiredValue":["POPULARITY"]},
+      {"semanticType":"MAX_WIDTH","desiredValue":["14"]},
+      {"semanticType":"RATING","desiredValue":["★★★★ und mehr"]},
+      {"semanticType":"COLOR","desiredValue":["black","gray"]}
+    ]
   }
 ]

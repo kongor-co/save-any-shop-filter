@@ -15,6 +15,7 @@ on:
           - mediamarkt-de
           - cyberport-de
           - shop-apotheke-de
+          - home24-de
 
 permissions:
   contents: read
