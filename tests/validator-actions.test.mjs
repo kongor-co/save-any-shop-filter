@@ -97,6 +97,19 @@ test("portal dropdown locators require mapping version 5",()=>{
   assert.throws(()=>validateSavedState(state),/mapping version 5/);
 });
 
+test("query control evidence is bounded read-only data and older bindings remain valid",()=>{
+  const make=()=>{const state=domState();state.criteria[0].bindings=[{bindingId:"query",type:"URL_QUERY",parameter:"farbe",values:["grau,lila"],controlEvidence:{name:"farbe",values:["grau","lila"],labels:["grau","lila"]}}];return state;};
+  assert.ok(validateSavedState(make()));
+  const legacy=make();delete legacy.criteria[0].bindings[0].controlEvidence;assert.ok(validateSavedState(legacy));
+  for(const change of [
+    (item)=>{item.selector="input";},(item)=>{item.values=[];},(item)=>{item.labels=["grau"];},
+    (item)=>{item.name="<script>";},(item)=>{item.rangeEndpoint="MIN";},(item)=>{item.rangeValue="24";},
+    (item)=>{item.rangeEndpoint="MAX";item.rangeValue="24";},
+    (item)=>{item.values=["_,24"];item.labels=["H: bis 24 cm"];item.rangeEndpoint="MAX";item.rangeValue="Infinity";}
+  ]){const state=make();change(state.criteria[0].bindings[0].controlEvidence);assert.throws(()=>validateSavedState(state));}
+  const range=make();range.criteria[0].bindings[0].controlEvidence={name:"hoehe-in-cm",values:["_,24"],labels:["H: bis 24 cm"],rangeEndpoint:"MAX",rangeValue:"24"};assert.ok(validateSavedState(range));
+});
+
 test("import validation rejects changed origins, credentials, and ambiguous identities", () => {
   for (const key of ["captureUrl", "routeSnapshot"]) {
     for (const url of ["https://other.example/shoes", "https://user:password@shop.example/shoes", "javascript:alert(1)"]) {

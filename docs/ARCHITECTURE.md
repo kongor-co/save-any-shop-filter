@@ -58,6 +58,14 @@ Home24 version 2 recognizes dotted dimension bounds and ratings, and separates p
 
 Selected group-summary buttons are excluded from active control capture only when descriptor hints account for the selected count and every represented value is confirmed by an applied chip. Otherwise a summary stays unresolved and cannot become a saved Boolean filter. Native sort evidence requires a visible select identified as sorting and its actual selected value matching the saved route value. Existing saved-state and mapping versions are unchanged by these read-only evidence rules.
 
+OTTO version 2 descriptors compile optional query `controlEvidence`: an input name, exact input values, matching removal-chip labels, and optional maximum-range metadata. The validator bounds these read-only fields and rejects selectors, executable text, invalid endpoints, and inconsistent arrays. They authorize no new actions. Evidence requires matching original checked inputs and exactly one visible custom-component chip for each value. Missing originals, unchecked duplicates, missing chips, and conflicting values cannot verify the criterion.
+
+Capture uses this evidence to omit duplicated native representations instead of creating ambiguous DOM mappings. Known interval fields are resolved through composed ancestors across open shadow roots. Active interval handles and numeric fields must agree with both the saved maximum and the proven checked state. Inactive named intervals need complete explicit bounds and empty numeric fields. Unrelated sliders and draft changes remain reported. A disabled current-category checkbox with a headline slot matching the page heading is page context. Saved-state and mapping versions remain unchanged, and prior bindings without control evidence remain valid.
+
+A selected removal chip without a recognized route representation remains unresolved. It cannot fall through to generic Boolean capture and become a replay action that removes the selected value.
+
+Route serialization preserves literal delimiters only for descriptor-declared OTTO keys and values. It leaves free-text query values encoded and preserves origin, credentials for rejection by the existing validator, and the sanitation policy. Other storefronts keep their existing serialization behavior.
+
 Route verification may read the visible associated label of a checked native checkbox or radio styled out of view. An unchecked label cannot verify selection. This does not authorize clicks on hidden inputs, and page header/footer and sensitive controls remain excluded. Replay expands closed native accordion ancestors only when needed and resolves controls again before each action.
 
 ### `src/background`

@@ -57,9 +57,9 @@
   },
   {
     "shop": "OTTO",
-    "url": "https://www.otto.de/suche/laptop/?arbeitsspeicher=16-gb&kategorien~sind=laptops&sortiertnach=preis-aufsteigend",
+    "url": "https://www.otto.de/haushalt/kuechengeraete/reiskocher/?farbe=grau,lila\u0026hoehe-in-cm~bis=24\u0026tiefe-in-cm~bis=25\u0026verkaeufer=otto",
     "schema": "otto-de",
-    "expected": { "RAM": ["16-gb"], "CATEGORY": ["laptops"], "SORT": ["preis-aufsteigend"] }
+    "expected": { "COLOR": ["grau", "lila"], "MAX_HEIGHT": ["24"], "MAX_DEPTH": ["25"], "SELLER": ["otto"] }
   },
   {
     "shop": "Autohero",

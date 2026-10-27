@@ -118,6 +118,12 @@
     const defaultsIgnored = [];
     const seen = new Set();
     const defaultRanges = new WeakMap();
+    const nativeStates = queryAllDeep('input[type="checkbox"],input[type="radio"]');
+    const controlProofs = new Map();
+    const proves = (hint) => {
+      if (!controlProofs.has(hint)) controlProofs.set(hint,controlEvidenceSatisfied(hint.controlEvidence,nativeStates));
+      return controlProofs.get(hint);
+    };
     const selectors = [
       'input[type="checkbox"]', 'input[type="radio"]', "select",
       'input[type="number"]', '[role="checkbox"]', '[role="radio"]', '[role="switch"]',
@@ -129,6 +135,20 @@
       seen.add(element);
       if (outsideFilterSurface(element)) continue;
       if (decorativeOptionInput(element)) continue;
+      if (element instanceof HTMLInputElement) {
+        if (["checkbox","radio"].includes(element.type)) {
+          const hint = (hints || []).find((item) => item.controlEvidence?.name === element.name ? item.parameters?.length : false);
+          if (hint) {
+            if (element.checked ? !hint.controlEvidence.values.includes(element.value) : false) unresolved.push({label:controlLabel(element) || element.name,reason:"This checked value is not represented by the saved route."});
+            continue;
+          }
+          if (removalChipButton(element)) {
+            if (element.checked) unresolved.push({label:controlLabel(element) || element.name,reason:"A removal chip requires a verified route representation and is not a replay action target."});
+            continue;
+          }
+        }
+      }
+      if (representedIntervalControl(element,hints,proves)) continue;
       if (representedFilterSummary(element,hints)) continue;
       if (element.matches('button[aria-pressed="true"]')) {
         if (/^(filtern nach:|filter by:)/i.test(element.getAttribute("aria-label") || "")) {
@@ -159,6 +179,11 @@
     for (const element of queryAllDeep('[role="slider"], input[type="range"], [aria-autocomplete], [role="combobox"]')) {      if (!isElementVisible(element) || isSensitiveControl(element)) continue;
       if (element instanceof HTMLSelectElement) continue;
       if (outsideFilterSurface(element)) continue;
+      const representedInterval = representedIntervalControl(element,hints,proves);
+      if (representedInterval) {
+        if (representedInterval === "DEFAULT") defaultsIgnored.push({label:controlLabel(element) || "Default range",reason:"The complete available range is selected; no range filter is active."});
+        continue;
+      }
       if (isDropdownTrigger(element)) {
         const hint = dropdownHint(element, hints);
         if (hint?.parameters?.length) continue;
@@ -192,6 +217,10 @@
         label: controlLabel(element) || "Advanced filter control",
         reason: element.matches('[role="slider"], input[type="range"]') ? "Dual/range sliders require a verified adapter." : "Autocomplete controls require a verified adapter."
       });
+    }
+    for (const hint of hints || []) {
+      if (!hint.controlEvidence || !hint.parameters?.length) continue;
+      if (!proves(hint)) unresolved.push({label:hint.labels[0],reason:"The route values could not be confirmed by checked controls and their visible removal chips."});
     }
     return {
       supported,
@@ -227,7 +256,71 @@
     return Boolean(element.closest('[role="option"][aria-selected]'));
   }
 
+  function removalChipButton(input) {
+    const host = input.parentElement;
+    if (!host?.tagName.includes("-")) return null;
+    if (host.getAttribute("icon-right") !== "close") return null;
+    return unique([...host.querySelectorAll(':scope > button[slot="content"]')].filter(isElementVisible));
+  }
+
+  function controlEvidenceSatisfied(evidence, inputs) {
+    if (!evidence || !evidence.values?.length) return false;
+    if (evidence.values.length !== evidence.labels?.length) return false;
+    return evidence.values.every((value,index) => {
+      const matches = inputs.filter((input) => input.name === evidence.name ? input.value === value : false);
+      const originals = matches.filter((input) => !removalChipButton(input));
+      if (!originals.length || originals.some((input) => !input.checked)) return false;
+      const mirrors = matches.filter((input) => {
+        const button = removalChipButton(input);
+        return button ? input.checked && plainText(labelText(button)) === plainText(evidence.labels[index]) : false;
+      });
+      return mirrors.length === 1;
+    });
+  }
+
+  function namedFieldset(element) {
+    let current = element;
+    while (current) {
+      if (current.matches?.('fieldset[name]')) return current;
+      current = current.parentElement || current.getRootNode?.().host;
+    }
+    return null;
+  }
+
+  function representedIntervalControl(element, hints, proves) {
+    if (!element.matches('input[type="number"],input[type="range"]')) return null;
+    const fieldset = namedFieldset(element);
+    if (!fieldset) return null;
+    const hint = (hints || []).find((item) => item.controlEvidence?.name === fieldset.getAttribute("name") ? item.controlEvidence.rangeEndpoint === "MAX" : false);
+    if (!hint) return null;
+    const handles = queryAllDeep('input[type="range"]',fieldset);
+    if (handles.length !== 2 || handles[0].parentElement !== handles[1].parentElement) return null;
+    const states = handles.map((handle) => [handle.getAttribute("min"),handle.getAttribute("max"),handle.value]);
+    if (states.flat().some((value) => value === null || value === "" || !Number.isFinite(Number(value)))) return null;
+    const [lower,upper] = states.map((state) => state.map(Number));
+    if (lower[0] !== upper[0] || lower[1] !== upper[1] || lower[0] > lower[1]) return null;
+    if (lower[2] !== lower[0]) return null;
+    const numbers = queryAllDeep('input[type="number"]',fieldset).filter((input) => input.value !== "");
+    if (!hint.parameters?.length) {
+      if ([...new URL(location.href).searchParams.keys()].some((key) => key === hint.controlEvidence.name || key.startsWith(`${hint.controlEvidence.name}~`))) return null;
+      return upper[2] === upper[1] ? (numbers.length ? null : "DEFAULT") : null;
+    }
+    if (!proves(hint) || upper[2] !== Number(hint.controlEvidence.rangeValue)) return null;
+    for (const input of numbers) {
+      const label = controlLabel(input) || input.getRootNode().host?.textContent || "";
+      if (!/^(bis|to|max(?:imum)?|upper)\b/i.test(label.trim())) return null;
+      if (Number(input.value) !== Number(hint.controlEvidence.rangeValue)) return null;
+    }
+    return "REPRESENTED";
+  }
+
   function currentPageChip(element) {
+    if (element instanceof HTMLInputElement) {
+      if (element.type === "checkbox" ? element.checked && element.disabled : false) {
+        const heading = element.parentElement?.querySelector('[slot="headline"]');
+        if (heading ? plainText(heading.textContent) === plainText(document.querySelector("main h1,h1")?.textContent) : false) return true;
+      }
+    }
     if (!element.matches('button[aria-pressed="true"]')) return false;
     if (element.closest('fieldset,[role="group"],[role="listbox"]')) return false;
     if (normalizedText(controlLabel(element)) !== normalizedText(document.querySelector("main h1,h1")?.textContent)) return false;
@@ -312,6 +405,7 @@
     const inspected = [];
     try {
       for (const hint of hints || []) {
+        if (hint.controlEvidence) continue;
         if (hint.appliedFilterTexts) continue;
         if (!hint.parameters?.length) continue;
         if (triggers.some((trigger) => dropdownHint(trigger,[hint]))) continue;
@@ -322,6 +416,7 @@
       triggers = queryAllDeep('button[role="combobox"]').filter(isDropdownTrigger).filter(isElementVisible);
       for (const trigger of triggers) {
         const hint = dropdownHint(trigger,hints);
+        if (hint?.controlEvidence) continue;
         if (hint?.appliedFilterTexts) continue;
         if (!hint?.parameters?.length) continue;
         const same = triggers.filter((other) => normalizedText(other.getAttribute("aria-label")) === normalizedText(trigger.getAttribute("aria-label")));
@@ -1131,6 +1226,11 @@
 
   function hasVisibleCriterionEvidence(criterion) {
     if (isDecathlonAdapter()) return hasDecathlonVisibleCriterionEvidence(criterion);
+    const controlEvidence = (criterion.bindings || []).filter((binding) => binding.controlEvidence);
+    if (controlEvidence.length) {
+      const inputs = queryAllDeep('input[type="checkbox"],input[type="radio"]');
+      return controlEvidence.every((binding) => controlEvidenceSatisfied(binding.controlEvidence,inputs));
+    }
     const chipEvidence = appliedFilterEvidence(criterion);
     if (chipEvidence !== null) return chipEvidence;
     if (nativeSortEvidence(criterion)) return true;

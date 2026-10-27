@@ -1,0 +1,68 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-10-27T20:53:40.511Z",
+  "runId": "2026-10-27T20-53-40-511Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "6077e2fc49834a049d58aa22435590908a553b761bb53b3f8b4e1500d34f35bb"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.otto.de"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "otto-rice-cookers-colors-dimensions-seller",
+      "scenario": {
+        "id": "otto-rice-cookers-colors-dimensions-seller",
+        "schemaId": "otto-de",
+        "resetUrl": "https://www.otto.de/haushalt/kuechengeraete/reiskocher/",
+        "readySelector": "#facet_basecolor",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "COLOR",
+            "desiredValue": [
+              "grau",
+              "lila"
+            ]
+          },
+          {
+            "semanticType": "MAX_HEIGHT",
+            "desiredValue": [
+              "24"
+            ]
+          },
+          {
+            "semanticType": "MAX_DEPTH",
+            "desiredValue": [
+              "25"
+            ]
+          },
+          {
+            "semanticType": "SELLER",
+            "desiredValue": [
+              "otto"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.otto.de/haushalt/kuechengeraete/reiskocher/?farbe=grau,lila&hoehe-in-cm~bis=24&tiefe-in-cm~bis=25&verkaeufer=otto"
+      },
+      "scenarioSha256": "035dc8f96016b1457ee834efd60ab4c741eaea99702428a02a28201e48668f11",
+      "schemaId": "otto-de",
+      "schemaVersion": 2,
+      "status": "BLOCKED",
+      "stage": "NAVIGATE",
+      "reason": "EMPTY_DOCUMENT",
+      "capturedCriteria": [],
+      "resetCriteria": [],
+      "resetChanged": [],
+      "omissions": 0,
+      "replay": null,
+      "httpStatus": 400,
+      "finalUrl": "https://www.otto.de/haushalt/kuechengeraete/reiskocher/?farbe=grau,lila&hoehe-in-cm~bis=24&tiefe-in-cm~bis=25&verkaeufer=otto"
+    }
+  ]
+}

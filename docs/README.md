@@ -18,6 +18,7 @@ These proposals preserve useful ideas from predecessor prototypes. They are not 
 
 ## Historical evidence
 
+- [OTTO filter validation, October 2026](reports/2026-10-27-otto-filter-validation.md)
 - [Home24 filter validation, October 2026](reports/2026-10-27-home24-filter-validation.md)
 - [Shop Apotheke dropdown validation, October 2026](reports/2026-10-27-shop-apotheke-dropdown-validation.md)
 - [Cyberport and range-control validation, October 2026](reports/2026-10-27-cyberport-range-validation.md)

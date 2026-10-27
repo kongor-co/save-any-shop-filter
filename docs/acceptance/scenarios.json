@@ -79,5 +79,18 @@
       {"semanticType":"RATING","desiredValue":["★★★★ und mehr"]},
       {"semanticType":"COLOR","desiredValue":["black","gray"]}
     ]
+  },
+  {
+    "id":"otto-rice-cookers-colors-dimensions-seller",
+    "schemaId":"otto-de",
+    "resetUrl":"https://www.otto.de/haushalt/kuechengeraete/reiskocher/",
+    "readySelector":"#facet_basecolor",
+    "resetReadySelector":"h1",
+    "expectedCriteria":[
+      {"semanticType":"COLOR","desiredValue":["grau","lila"]},
+      {"semanticType":"MAX_HEIGHT","desiredValue":["24"]},
+      {"semanticType":"MAX_DEPTH","desiredValue":["25"]},
+      {"semanticType":"SELLER","desiredValue":["otto"]}
+    ]
   }
 ]

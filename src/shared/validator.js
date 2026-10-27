@@ -120,6 +120,23 @@ function validateBinding(binding, origin) {
   assert(BINDING_TYPES.has(binding.type), "Unknown binding type");
   if (binding.origin) assert(binding.origin === origin, "Binding origin mismatch");
   if (binding.semanticEvidence !== undefined) assert(typeof binding.semanticEvidence === "boolean", "Invalid semantic evidence flag");
+  if (binding.controlEvidence !== undefined) {
+    assert(binding.type === "URL_QUERY", "Control evidence requires a query binding");
+    const evidence = binding.controlEvidence;
+    onlyFields(evidence,["name","values","labels","rangeEndpoint","rangeValue"],"Invalid control evidence fields");
+    assert(validString(evidence.name,200),"Invalid control evidence name");
+    for (const key of ["values","labels"]) {
+      assert(Array.isArray(evidence[key]) ? evidence[key].length > 0 : false,"Invalid control evidence values");
+      assert(evidence[key].length <= 100,"Too many control evidence values");
+      for (const value of evidence[key]) assert(validString(value,500),"Invalid control evidence value");
+    }
+    assert(evidence.values.length === evidence.labels.length,"Control evidence labels differ from values");
+    if (evidence.rangeEndpoint !== undefined) {
+      assert(evidence.rangeEndpoint === "MAX","Invalid control evidence endpoint");
+      assert(evidence.values.length === 1,"Range evidence requires one value");
+      assert(validString(evidence.rangeValue,100) ? Number.isFinite(Number(evidence.rangeValue)) : false,"Invalid control evidence range value");
+    } else assert(evidence.rangeValue === undefined,"Range value requires an endpoint");
+  }
   if (binding.type === "URL_QUERY") {
     assert(validString(binding.parameter, 200), "Invalid query parameter");
     assert(Array.isArray(binding.values) && binding.values.length <= 100, "Invalid query values");
