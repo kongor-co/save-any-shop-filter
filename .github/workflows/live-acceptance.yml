@@ -16,6 +16,7 @@ on:
           - cyberport-de
           - shop-apotheke-de
           - home24-de
+          - otto-de
 
 permissions:
   contents: read

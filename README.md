@@ -37,6 +37,8 @@ Shop Apotheke category and pack-size menus use generic button-dropdown support. 
 
 Home24 width bounds, ratings, and separate colour choices have explicit route semantics. Applied-filter chips provide exact, scoped verification, and selected group launchers are treated as summaries only when their represented values are confirmed. Missing values and conflicting chips retain warnings. Native sort selections can confirm the saved sort even when the selected option is the default.
 
+OTTO colour choices, seller, and maximum centimetre dimensions use explicit route semantics. Repeated custom-component inputs and removal chips are read as evidence rather than stored as one combined clickable filter. Confirmation requires both the original checked control and exactly one matching visible removal chip. Known interval mirrors, including numeric fields in open shadow roots, are omitted only when they agree with the saved route; inactive intervals require proven full bounds. Literal comma and tilde syntax is retained for OTTO's declared parameters.
+
 FilterVault deliberately does not automate login, checkout, consent choices, CAPTCHAs, closed Shadow DOM, arbitrary scripts, or controls it cannot identify and verify safely.
 
 ## Development
@@ -52,7 +54,7 @@ npm run smoke:browser
 
 No build step and no third-party runtime dependencies are required.
 
-The [support matrix](docs/SUPPORT.md) separates deterministic route coverage from dated live acceptance. Run `npm run test:live` for the isolated Idealo, Decathlon, MediaMarkt, Cyberport, Shop Apotheke, and Home24 scenarios. The [live acceptance guide](docs/LIVE_ACCEPTANCE.md) explains recording results, blocked cases, and the manual CI workflow. Live retailer access is separate from the deterministic release gate.
+The [support matrix](docs/SUPPORT.md) separates deterministic route coverage from dated live acceptance. Run `npm run test:live` for the isolated Idealo, Decathlon, MediaMarkt, Cyberport, Shop Apotheke, Home24, and OTTO scenarios. The [live acceptance guide](docs/LIVE_ACCEPTANCE.md) explains recording results, blocked cases, and the manual CI workflow. Live retailer access is separate from the deterministic release gate.
 
 Use `main` as the integration branch. Create a short-lived branch for each change, run the relevant checks, and merge through a pull request. A permanent `develop` branch is not required.
 

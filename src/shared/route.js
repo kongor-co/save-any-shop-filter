@@ -3,6 +3,8 @@ import {
   routeSchemaInfo,
   routeCaptureHints,
   schemaParameterDescriptor,
+  parameterControlEvidence,
+  serializeRouteUrl,
   schemaPathCriteria
 } from "../adapters/route-schemas.js";
 
@@ -101,6 +103,7 @@ export function captureRouteCriteria(urlLike, { includePresentation = false } = 
       values: [...new Set(values)],
       verificationTexts: [...new Set(group.descriptor?.verificationTexts?.([...new Set(values)]) || values)],
       semanticEvidence: Boolean(group.descriptor?.verificationTexts),
+      ...(group.descriptor?.inputName ? {controlEvidence:parameterControlEvidence(group.descriptor,[...new Set(values)])} : {}),
       applicability: {}
     }))
   }));
@@ -135,7 +138,7 @@ export function cleanCaptureUrl(urlLike, { includePresentation = false } = {}) {
     }
   }
   url.hash = "";
-  return url.toString();
+  return serializeRouteUrl(url);
 }
 
 export function buildReplayUrl(captureUrl, criteria) {
@@ -157,7 +160,7 @@ export function buildReplayUrl(captureUrl, criteria) {
     if (["PAGINATION", "EPHEMERAL", "IGNORED"].includes(kind)) url.searchParams.delete(key);
   }
   url.hash = "";
-  return url.toString();
+  return serializeRouteUrl(url);
 }
 
 export function routeBindingMatches(urlLike, binding) {

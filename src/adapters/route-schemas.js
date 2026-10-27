@@ -113,12 +113,26 @@ const SCHEMAS = [
   },
   {
     id: "otto-de",
-    version: 1,
+    version: 2,
     hosts: ["otto.de", "www.otto.de"],
     parameters: {
       arbeitsspeicher: descriptor("FILTER", "RAM"),
-      "kategorien~sind": descriptor("FILTER", "CATEGORY"),
-      sortiertnach: descriptor("PRESENTATION", "SORT")
+      "kategorien~sind": descriptor("FILTER", "CATEGORY", {literalKeyCharacters:"~"}),
+      sortiertnach: descriptor("PRESENTATION", "SORT"),
+      farbe: descriptor("FILTER","COLOR",{
+        domLabels:["Farbe"],controlNames:["farbe"],inputName:"farbe",inputValues:splitOttoChoices,
+        normalizeValues:splitOttoChoices,describeValues:splitOttoChoices,verificationTexts:splitOttoChoices,literalValueCharacters:","
+      }),
+      verkaeufer: descriptor("FILTER","SELLER",{
+        domLabels:["Verkäufer"],controlNames:["verkaeufer"],inputName:"verkaeufer",inputValues:splitOttoChoices,
+        normalizeValues:splitOttoChoices,describeValues:describeOttoSellers,verificationTexts:describeOttoSellers
+      }),
+      ...Object.fromEntries([["hoehe","H","HEIGHT"],["tiefe","T","DEPTH"],["breite","B","WIDTH"]].map(([axis,short,type]) => [`${axis}-in-cm~bis`,descriptor("FILTER",`MAX_${type}`,{
+        domLabels:[`${axis} in cm`],controlNames:[`${axis}-in-cm`],inputName:`${axis}-in-cm`,
+        inputValues:(values) => values.map((value) => `_,${value}`),rangeEndpoint:"MAX",literalKeyCharacters:"~",
+        describeValues:(values) => values.map((value) => `${short}: bis ${value} cm`),
+        verificationTexts:(values) => values.map((value) => `${short}: bis ${value} cm`)
+      })]))
     }
   },
   {
@@ -177,6 +191,7 @@ export function routeCaptureHints(urlLike) {
   const hints = descriptors.filter((item) => item?.domLabels?.length).map((item) => ({
     labels:[...item.domLabels],semanticType:item.semanticType,
     ...(item.controlNames ? {controlNames:[...item.controlNames],parameters:keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType)} : {}),
+    ...(item.inputName ? {controlEvidence:parameterControlEvidence(item,keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType).flatMap((key) => url.searchParams.getAll(key)))} : {}),
     ...(item.summaryKey ? {
       summaryKey:item.summaryKey,
       parameters:keys.filter((key) => schemaParameterDescriptor(schema,key)?.semanticType === item.semanticType),
@@ -184,6 +199,33 @@ export function routeCaptureHints(urlLike) {
     } : {})
   }));
   return [...new Map(hints.map((hint) => [JSON.stringify(hint),hint])).values()];
+}
+
+export function parameterControlEvidence(item, values) {
+  if (!item?.inputName) return null;
+  return {name:item.inputName,values:item.inputValues(values),labels:item.verificationTexts(values),
+    ...(item.rangeEndpoint ? {rangeEndpoint:item.rangeEndpoint,...(values.length === 1 ? {rangeValue:String(values[0])} : {})} : {})};
+}
+
+export function serializeRouteUrl(urlLike) {
+  const url = new URL(urlLike);
+  const schema = findRouteSchema(url);
+  if (!Object.values(schema?.parameters || {}).some((item) => item.literalKeyCharacters || item.literalValueCharacters)) return url.toString();
+  const parts = [...url.searchParams].map(([name,value]) => {
+    const item = schemaParameterDescriptor(schema,name);
+    const [key,encodedValue] = new URLSearchParams([[name,value]]).toString().split("=");
+    return `${item?.literalKeyCharacters === "~" ? key.replaceAll("%7E","~") : key}=${item?.literalValueCharacters === "," ? encodedValue.replaceAll("%2C",",") : encodedValue}`;
+  });
+  url.search = parts.join(String.fromCharCode(38));
+  return url.toString();
+}
+
+function splitOttoChoices(values) {
+  return [...new Set(values.flatMap((value) => String(value).split(",")).filter(Boolean))];
+}
+
+function describeOttoSellers(values) {
+  return splitOttoChoices(values).map((value) => `Verkäufer: ${value.toLowerCase() === "otto" ? "OTTO" : value}`);
 }
 
 export function schemaParameterDescriptor(schema, parameter) {

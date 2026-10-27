@@ -24,7 +24,7 @@ function record() {
 test("acceptance scenarios derive retailer routes from the existing contracts", async () => {
   const inputs = await loadAcceptanceInputs(root);
   assert.equal(inputs.catalog.length,12);
-  assert.deepEqual(inputs.scenarios.map((item) => item.schemaId),["idealo-de","decathlon-de","mediamarkt-de","cyberport-de","shop-apotheke-de","home24-de"]);
+  assert.deepEqual(inputs.scenarios.map((item) => item.schemaId),["idealo-de","decathlon-de","mediamarkt-de","cyberport-de","shop-apotheke-de","home24-de","otto-de"]);
   for (const item of inputs.scenarios) {
     assert.equal(new URL(item.filteredUrl).origin,new URL(item.resetUrl).origin);
     assert.ok(item.expectedCriteria.length>0);

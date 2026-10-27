@@ -50,6 +50,9 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - Home24 maximum width, rating, two pipe-delimited colours, and sort capture, Save, reset, and replay;
 - exact applied-chip evidence rejects 140cm for 14cm, five stars for four stars, missing colours, unrelated product text, and duplicated evidence regions;
 - group summaries retain warnings when a selected value is unaccounted for, and a mismatched native sort remains route-only;
+- OTTO comma-delimited colours, maximum height and depth, seller, literal query syntax, Save, reset, replay, and idempotency;
+- composite removal chips do not become action targets, and custom numeric mirrors in open shadow roots do not duplicate route filters;
+- original and removal-chip state must agree; a 240 input cannot verify saved 24, missing chips remain unverified, and extra checked values or unrelated sliders remain omissions;
 - generic labelled lists, nested accordions, numeric bounds, unchanged defaults, idempotent replay, and duplicate-group rejection.
 
 `replay-lifecycle.test.mjs` exercises the worker's real orchestration code with controlled Chrome boundaries. It covers racing starts, preflight failures, confirmation invalidation after document replacement, serialization order, forged or stale results, executor loss, and navigation deadlines. The packaged browser cases in `scripts/replay-browser-cases.mjs` verify the corresponding document and worker behavior in Chromium.

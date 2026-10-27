@@ -1,0 +1,24 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Reiskocher</title><style>input[type=range]{display:block}fieldset{margin:8px}demo-chip{display:inline-block;margin:5px}demo-field{display:inline-block}</style></head>
+<body><header><form role="search"><input name="query" role="searchbox"></form></header><main><h1>Reiskocher</h1><demo-card><input type="checkbox" disabled checked><span slot="headline">Reiskocher</span></demo-card><div id="filters"></div><section><h2>Gewählte und beliebte Filter</h2><button>Auswahl aufheben</button><ul id="chosen"></ul></section><section><a href="/p/rice-one">Reiskocher</a><a href="/p/rice-two">Reiskocher</a><a href="/p/rice-three">Reiskocher</a><a href="/p/rice-four">Reiskocher</a></section></main>
+<script>
+customElements.define("demo-chip",class extends HTMLElement{connectedCallback(){if(!this.shadowRoot)this.attachShadow({mode:"open"}).innerHTML='<slot></slot><slot name="content"></slot>';}});
+customElements.define("demo-field",class extends HTMLElement{connectedCallback(){if(this.shadowRoot)return;const root=this.attachShadow({mode:"open"});root.innerHTML='<label id="field-label"><slot></slot></label><input type="number" id="input" aria-labelledby="field-label">';root.querySelector("input").value=this.getAttribute("value")||"";}});
+let clicks=0;
+const params=new URL(location.href).searchParams;
+const selectedColors=(params.get("farbe")||"").split(",").filter(Boolean);
+const selectedSeller=params.get("verkaeufer");
+const filters=document.querySelector("#filters");
+const native=(group,name,value,selected,id)=>{const input=document.createElement("input");input.type="checkbox";input.name=name;input.value=value;input.checked=selected;input.id=id;input.setAttribute("aria-label",value);input.addEventListener("click",()=>{clicks+=1;});group.append(input);return input;};
+const chip=(name,value,label)=>{const item=document.createElement("li");const host=document.createElement("demo-chip");host.setAttribute("icon-right","close");native(host,name,value,true,"mirror-"+name+"-"+value);const button=document.createElement("button");button.slot="content";button.textContent=label;button.addEventListener("click",()=>{clicks+=1;host.remove();});host.append(button);item.append(host);document.getElementById("chosen").append(item);};
+const colorGroup=document.createElement("fieldset");colorGroup.name="farbe";colorGroup.id="facet_basecolor";filters.append(colorGroup);
+for(const value of ["grau","lila","weiss"]){native(colorGroup,"farbe",value,selectedColors.includes(value),"color-"+value);if(selectedColors.includes(value))chip("farbe",value,value);}
+const sellers=document.createElement("fieldset");sellers.name="verkaeufer";sellers.id="facet_retailer";filters.append(sellers);native(sellers,"verkaeufer","otto",selectedSeller==="otto","seller-otto");native(sellers,"verkaeufer","otto",selectedSeller==="otto","seller-switch");if(selectedSeller==="otto")chip("verkaeufer","otto","Verkäufer: OTTO");
+for(const [name,title,short,min,max]of [["hoehe-in-cm","Höhe in cm","H",23,44],["tiefe-in-cm","Tiefe in cm","T",24,51],["breite-in-cm","Breite in cm","B",22,59]]){
+  const limit=params.get(name+"~bis");const group=document.createElement("fieldset");group.name=name;group.id="range-"+name;group.innerHTML='<legend>'+title+'</legend>';
+  const hidden=document.createElement("label");hidden.hidden=true;const state=document.createElement("input");state.type="radio";state.name=name;state.value=limit?"_,"+limit:"";state.checked=Boolean(limit);state.id="primary-"+name;hidden.append(state);group.append(hidden);
+  for(const [label,value]of [["Von (cm)",""],["Bis (cm)",limit||""]]){const field=document.createElement("demo-field");field.textContent=label;field.setAttribute("value",value);group.append(field);}
+  const pair=document.createElement("div");for(const value of [String(min),limit||String(max)]){const input=document.createElement("input");input.type="range";input.min=String(min);input.max=limit||String(max);input.value=value;pair.append(input);}group.append(pair);filters.append(group);
+  if(limit)chip(name,"_,"+limit,short+": bis "+limit+" cm");
+}
+window.filterClicks=()=>clicks;
+</script></body></html>
