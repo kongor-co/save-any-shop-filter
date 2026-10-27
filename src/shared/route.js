@@ -1,6 +1,7 @@
 import {
   findRouteSchema,
   routeSchemaInfo,
+  routeCaptureHints,
   schemaParameterDescriptor,
   schemaPathCriteria
 } from "../adapters/route-schemas.js";
@@ -44,6 +45,10 @@ export function classifyRouteParameter(name, urlLike = null) {
 
 export function getRouteSchemaInfo(urlLike) {
   return routeSchemaInfo(urlLike);
+}
+
+export function getRouteCaptureHints(urlLike) {
+  return routeCaptureHints(urlLike);
 }
 
 function stableId(prefix, ...parts) {

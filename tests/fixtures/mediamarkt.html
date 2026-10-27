@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+  <head><meta charset="utf-8"><title>Nintendo Switch 2 Konsolen</title></head>
+  <body>
+    <header><form role="search"><label for="query">Was suchst Du?</label><input id="query" type="search" name="query" role="combobox" aria-autocomplete="list"></form></header>
+    <main>
+      <h1>Nintendo Switch 2 Konsolen</h1>
+      <aside aria-label="Produktfilter">
+        <details open><summary id="price-title">Preis</summary>
+          <div><label for=":r5:">Von (€)</label><input id=":r5:" type="number" min="469" max="560" value="469"></div>
+          <div><label for=":r6:">Bis (€)</label><input id=":r6:" type="number" min="469" max="560" value="560"></div>
+          <input type="range" min="469" max="560" value="469" aria-label="469 €">
+          <input type="range" min="469" max="560" value="560" aria-label="560 €">
+        </details>
+        <details open><summary>Bewertungen</summary><ul role="list"><li><label><input type="radio" name="rating" value="all" checked>Alle Bewertungen</label></li></ul></details>
+        <details open><summary id="mms-facet-multiselect-marketplace">Verkäufer</summary>
+          <ul role="list" aria-labelledby="mms-facet-multiselect-marketplace">
+            <li><div><div><label><input type="checkbox" id="MediaMarkt-marketplace" name="MediaMarkt">MediaMarkt <span class="result-count">(10 Ergebnisse)</span></label></div></div></li>
+            <li><label><input type="checkbox" id="Other-marketplace" name="Other">Other (5 Ergebnisse)</label></li>
+          </ul>
+        </details>
+        <details open><summary id="mms-facet-multiselect-refurbished_new_array">Refurbished</summary>
+          <ul role="list" aria-labelledby="mms-facet-multiselect-refurbished_new_array">
+            <li><div><div><label><input type="checkbox" id="Nein-refurbished_new_array" name="Nein">Nein <span class="result-count">(10 Ergebnisse)</span></label></div></div></li>
+            <li><label><input type="checkbox" id="Ja-refurbished_new_array" name="Ja">Ja (2 Ergebnisse)</label></li>
+          </ul>
+        </details>
+        <details open><summary>Rabatt</summary>
+          <label for=":ri:">Von (%)</label><input id=":ri:" type="number" min="0" max="6" value="0">
+          <label for=":rj:">Bis (%)</label><input id=":rj:" type="number" min="0" max="6" value="6">
+          <input type="range" min="0" max="6" value="0" aria-label="0 %">
+          <input type="range" min="0" max="6" value="6" aria-label="6 %">
+        </details>
+      </aside>
+      <section><a href="/product/1">Console one</a><a href="/product/2">Console two</a><a href="/product/3">Console three</a><a href="/product/4">Console four</a></section>
+    </main>
+    <script>
+      const params=new URL(location.href).searchParams;
+      let clicks=0;
+      for (const [id,key,value] of [["MediaMarkt-marketplace","marketplace","MediaMarkt"],["Nein-refurbished_new_array","refurbished_new_array","Nein"]]) {
+        const input=document.getElementById(id);
+        input.checked=params.get(key)===value;
+        input.addEventListener("change",()=>{
+          clicks+=1;
+          const url=new URL(location.href);
+          if (input.checked) url.searchParams.set(key,value); else url.searchParams.delete(key);
+          history.replaceState({},"",url);
+          for (const count of document.querySelectorAll(".result-count")) count.textContent="(9 Ergebnisse)";
+        });
+      }
+      window.filterClicks=()=>clicks;
+    </script>
+  </body>
+</html>

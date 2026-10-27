@@ -35,7 +35,7 @@
       return false;
     }
     if (message.type === MESSAGE.CAPTURE_PAGE) {
-      Promise.resolve(capturePage()).then((snapshot) => sendResponse({ ok: true, snapshot }))
+      Promise.resolve(capturePage(message.hints)).then((snapshot) => sendResponse({ ok: true, snapshot }))
         .catch((error) => sendResponse({ ok: false, error: safeError(error) }));
       return true;
     }
@@ -58,18 +58,18 @@
     chrome.runtime.sendMessage({ type: MESSAGE.CONTENT_READY, href: location.href }).catch(() => undefined);
   }
 
-  async function capturePage() {
+  async function capturePage(hints = []) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const startedUrl = location.href;
       const startedSignature = activeStateSignature();
-      const snapshot = captureSnapshot();
+      const snapshot = captureSnapshot(hints);
       await delay(180 + (attempt * 120));
       if (startedUrl === location.href && startedSignature === activeStateSignature()) return snapshot;
     }
     throw new Error("CAPTURE_UNSTABLE");
   }
 
-  function captureSnapshot() {
+  function captureSnapshot(hints) {
     const pageType = detectPageType();
     if (["CHECKOUT", "LOGIN", "ACCOUNT", "PRODUCT_DETAIL", "OTHER"].includes(pageType)) {
       throw new Error(`UNSUPPORTED_PAGE_TYPE:${pageType}`);
@@ -77,7 +77,7 @@
 
     const candidates = isDecathlonAdapter()
       ? { supported: [], unsupported: [], unresolved: [], defaultsIgnored: [] }
-      : collectSupportedControls();
+      : collectSupportedControls(hints);
     let domCriteria = groupCandidates(candidates.supported);
     if (isIdealoAdapter()) domCriteria = enrichIdealoCriteria(domCriteria);
     const adapterId = isIdealoAdapter() ? "idealo-de" : isDecathlonAdapter() ? "decathlon-de" : "generic";
@@ -110,12 +110,13 @@
     return "OTHER";
   }
 
-  function collectSupportedControls() {
+  function collectSupportedControls(hints) {
     const supported = [];
     const unsupported = [];
     const unresolved = [];
     const defaultsIgnored = [];
     const seen = new Set();
+    const defaultRanges = new WeakMap();
     const selectors = [
       'input[type="checkbox"]', 'input[type="radio"]', "select",
       'input[type="number"]', '[role="checkbox"]', '[role="radio"]', '[role="switch"]',
@@ -125,16 +126,28 @@
     for (const element of queryAllDeep(selectors)) {
       if (seen.has(element) || !isElementVisible(element) || isSensitiveControl(element)) continue;
       seen.add(element);
+      if (outsideFilterSurface(element)) continue;
+      const defaultReason = defaultControlReason(element, defaultRanges);
+      if (defaultReason) {
+        defaultsIgnored.push({label: controlLabel(element) || "Default filter", reason: defaultReason});
+        continue;
+      }
       if (element instanceof HTMLSelectElement && isDefaultSelect(element)) {
         defaultsIgnored.push({ label: controlLabel(element) || "Default selection", reason: "Default selection is not active filter state." });
         continue;
       }
-      const candidate = captureControl(element);
+      const candidate = captureControl(element, hints);
       if (candidate) supported.push(candidate);
       else if (appearsActive(element)) unresolved.push({ label: controlLabel(element) || "Unresolved active control", reason: "The active control could not be mapped unambiguously." });
     }
 
-    for (const element of queryAllDeep('[role="slider"], input[type="range"], [aria-autocomplete], [role="combobox"]')) {
+    for (const element of queryAllDeep('[role="slider"], input[type="range"], [aria-autocomplete], [role="combobox"]')) {      if (!isElementVisible(element) || isSensitiveControl(element)) continue;
+      if (outsideFilterSurface(element)) continue;
+      const defaultReason = defaultControlReason(element, defaultRanges);
+      if (defaultReason) {
+        defaultsIgnored.push({label: controlLabel(element) || "Default range", reason: defaultReason});
+        continue;
+      }
       if (!isElementVisible(element) || isSensitiveControl(element)) continue;
       if (isIdealoAdapter() && element.matches('[role="slider"], input[type="range"]') && !hasIdealoPriceFilter()) continue;
       unsupported.push({
@@ -150,7 +163,73 @@
     };
   }
 
-  function captureControl(element) {
+  function outsideFilterSurface(element) {
+    if (element.closest('[role="search"], footer, [role="contentinfo"]')) return true;
+    const header = element.closest('header, [role="banner"]');
+    if (header) return !header.closest('fieldset, details, [role="group"]');
+    return false;
+  }
+
+  function captureSemanticType(label, hints) {
+    if (Array.isArray(hints)) {
+      const hint = hints.find((item) => item.labels?.some((value) => normalizedText(value) === normalizedText(label)));
+      if (hint) return hint.semanticType;
+    }
+    return normalizeSemanticType(label);
+  }
+
+  function defaultControlReason(element, cache) {
+    if (element instanceof HTMLInputElement) {
+      if (element.type === "radio") {
+        if (element.checked) {
+          const catchAllValue = ["all", "any", "*"].includes(element.value.toLowerCase());
+          const catchAllLabel = /^(all ratings|all reviews|all results|alle bewertungen|alle ergebnisse|any rating|beliebig|keine einschränkung)$/i.test(controlLabel(element));
+          if (catchAllValue ? catchAllLabel : false) return "The catch-all selection does not restrict results.";
+        }
+      }
+    }
+    if (!element.matches('input[type="number"], input[type="range"], [role="slider"]')) return null;
+    const group = findFilterGroup(element)?.element;
+    if (!group) return null;
+    if (!cache.has(group)) cache.set(group, unrestrictedRangeControls(group));
+    return cache.get(group).has(element) ? "The complete available range is selected; no range filter is active." : null;
+  }
+
+  function unrestrictedRangeControls(group) {
+    const controls = queryAllDeep('input[type="number"], input[type="range"], [role="slider"]', group)
+      .filter((element) => findFilterGroup(element)?.element === group);
+    const numbers = controls.filter((element) => element.matches('input[type="number"]'));
+    const sliders = controls.filter((element) => !numbers.includes(element));
+    const pair = (items) => {
+      if (items.length !== 2) return null;
+      const states = items.map((element) => {
+        const min = element.getAttribute("min") ?? element.getAttribute("aria-valuemin");
+        const max = element.getAttribute("max") ?? element.getAttribute("aria-valuemax");
+        const value = element.value ?? element.getAttribute("aria-valuenow");
+        if ([min, max, value].some((item) => item === null || item === "")) return null;
+        return {min:Number(min), max:Number(max), value:Number(value)};
+      });
+      if (states.some((state) => !state || Object.values(state).some((value) => !Number.isFinite(value)))) return null;
+      const [a, b] = states;
+      if (a.min !== b.min || a.max !== b.max || a.min > a.max) return null;
+      if (!(a.value === a.min ? b.value === a.max : b.value === a.min ? a.value === a.max : false)) return null;
+      return a;
+    };
+    const sliderPair = pair(sliders);
+    const numberPair = pair(numbers);
+    if (sliders.length ? !sliderPair : false) return new Set();
+    if (numbers.length ? !numberPair : false) return new Set();
+    if (!sliderPair ? !numberPair : false) return new Set();
+    const labels = (numbers.length ? numbers : sliders).map(controlLabel);
+    if (!labels.some((label) => /^(?:von|from|min(?:imum)?|lower)\b/i.test(label))) return new Set();
+    if (!labels.some((label) => /^(?:bis|to|max(?:imum)?|upper)\b/i.test(label))) return new Set();
+    if (sliderPair ? numberPair !== null : false) {
+      if (sliderPair.min !== numberPair.min || sliderPair.max !== numberPair.max) return new Set();
+    }
+    return new Set(controls);
+  }
+
+  function captureControl(element, hints = []) {
     const group = findFilterGroup(element);
     const groupLabel = group ? group.label : "";
     if (!group || !groupLabel) return null;
@@ -195,11 +274,13 @@
     const containerLocators = buildContainerLocators(group.element, groupLabel);
     const optionLocators = buildOptionLocators(element, optionLabel);
     if (!containerLocators.length || !optionLocators.length) return null;
+    if (resolveLocatorChain(containerLocators, document, true) !== group.element) return null;
+    if (resolveLocatorChain(optionLocators, group.element, false) !== element) return null;
     const viewport = innerWidth < 720 ? "compact" : "desktop";
     const values = Array.isArray(desired) ? desired : [desired];
     return {
       groupLabel,
-      semanticType: normalizeSemanticType(groupLabel),
+      semanticType: captureSemanticType(groupLabel, hints),
       observed: Array.isArray(desired) ? selectedLabels(element) : [optionLabel],
       values,
       binding: {
@@ -208,12 +289,13 @@
         origin: location.origin,
         applicability: { viewport },
         mapping: {
-          mappingVersion: 1,
+          mappingVersion: 3,
           controlType,
           desiredValue: values,
           filterContainer: { locatorChain: containerLocators },
           option: { semanticValue: values, locatorChain: optionLocators },
           interactionPlan: [
+            ...(element.closest("details") ? [{action: "ENSURE_EXPANDED", timeoutMs: 3000}] : []),
             { action: interactionAction, timeoutMs: 3000 },
             { action: "VERIFY", timeoutMs: 3000 }
           ],
@@ -457,11 +539,29 @@
     assertNotCancelled(message);
     const action = step.action;
     if (["ENSURE_EXPANDED", "OPEN_FILTER_GROUP"].includes(action)) {
-      if (group.getAttribute("aria-expanded") === "false") group.click();
-      const trigger = group.querySelector('[aria-expanded="false"], summary');
-      if (trigger) trigger.click();
+      const accordions = [];
+      let ancestor = group;
+      while (ancestor) {
+        if (ancestor.matches("details")) accordions.unshift(ancestor);
+        ancestor = ancestor.parentElement;
+      }
+      for (const details of accordions) {
+        assertNotCancelled(message);
+        if (details.open) continue;
+        const summary = details.querySelector(":scope > summary");
+        if (!summary) return false;
+        summary.click();
+        if (!await waitFor(() => details.open, Math.min(step.timeoutMs || 3000, 8000), message)) return false;
+      }
+      if (accordions.length) return true;
+      const trigger = group.getAttribute("aria-expanded") === "false" ? group : group.querySelector('[aria-expanded="false"]');
+      if (trigger) {
+        trigger.click();
+        return waitFor(() => trigger.getAttribute("aria-expanded") === "true", Math.min(step.timeoutMs || 3000, 8000), message);
+      }
       return true;
     }
+    if (!isElementVisible(option) || isDisabled(option)) return false;
     if (action === "SCROLL_INTO_VIEW" || action === "SCROLL_CONTAINER") {
       option.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
       return true;
@@ -545,6 +645,13 @@
   function resolveLocator(locator, scope, isContainer) {
     const value = String(locator.value || "");
     const all = (selector) => queryAllDeep(selector, scope);
+    if (locator.type === "LABELLED_LIST") {
+      return unique(all('ul[aria-labelledby],ol[aria-labelledby],[role="list"][aria-labelledby],[role="listbox"][aria-labelledby]')
+        .filter((element) => normalizedText(groupLabel(element)) === normalizedText(value)));
+    }
+    if (locator.type === "DETAILS_SUMMARY") {
+      return unique(all("details").filter((element) => normalizedText(groupLabel(element)) === normalizedText(value)));
+    }
     if (locator.type === "ID") return unique(all(`[id="${escapeAttribute(value)}"]`));
     if (locator.type === "ARIA_LABEL" || locator.type === "GROUP_ARIA_LABEL") {
       return unique(all(`[aria-label="${escapeAttribute(value)}"]`));
@@ -576,7 +683,7 @@
     }
     if (locator.type === "LABEL_TEXT") {
       const controls = all('input,select,button,[role="checkbox"],[role="radio"],[role="switch"],[aria-selected],[aria-pressed]');
-      return unique(controls.filter((element) => normalizedText(controlLabel(element)) === normalizedText(value)));
+      return unique(controls.filter((element) => normalizedText(controlLabel(element)) === normalizedText(optionLabelText(value))));
     }
     if (locator.type === "BUTTON_TEXT") {
       return unique(all('button,[role="button"],input[type="submit"]')
@@ -590,6 +697,8 @@
 
   function buildContainerLocators(element, label) {
     const locators = [];
+    if (element.matches('ul[aria-labelledby],ol[aria-labelledby],[role="list"][aria-labelledby],[role="listbox"][aria-labelledby]')) locators.push({type:"LABELLED_LIST", value:label});
+    if (element.matches("details")) locators.push({type:"DETAILS_SUMMARY", value:label});
     if (isIdealoAdapter()) locators.push({ type: "IDEALO_FILTER_GROUP", value: label });
     if (stableDomId(element.id)) locators.push({ type: "ID", value: element.id });
     if (element.getAttribute("aria-label")) locators.push({ type: "GROUP_ARIA_LABEL", value: element.getAttribute("aria-label") });
@@ -630,8 +739,8 @@
     const candidates = [];
     let current = element.parentElement;
     let depth = 0;
-    while (current && depth < 7) {
-      if (current.matches('fieldset,[role="group"],section,aside,nav,form,div')) {
+    while (current&& depth < 16) {
+      if (current.matches('fieldset,details,ul[aria-labelledby],ol[aria-labelledby],[role="list"][aria-labelledby],[role="listbox"][aria-labelledby],[role="group"],section,aside,nav,form,div')) {
         const label = groupLabel(current);
         if (label) candidates.push({ element: current, label, depth });
       }
@@ -641,42 +750,55 @@
     return candidates.sort((a, b) => a.depth - b.depth)[0] || null;
   }
 
+  function labelText(element) {
+    if (!element) return "";
+    const copy = element.cloneNode(true);
+    for (const hidden of copy.querySelectorAll('[aria-hidden="true"], [data-result-count]')) hidden.remove();
+    return optionLabelText(copy.textContent);
+  }
+
+  function optionLabelText(value) {
+    return conciseLabel(String(value || "").replace(/\s*\(\s*\d+[\d.,]*\s+(?:ergebnisse?|results?|produkte?|products?|artikel|items?|treffer)\s*\)\s*$/i, ""));
+  }
+
+  function referencedLabel(element) {
+    const ids = element.getAttribute("aria-labelledby");
+    if (!ids) return "";
+    const root = element.getRootNode();
+    return conciseLabel(ids.split(/\s+/).map((id) => labelText(root.getElementById?.(id))).join(" "));
+  }
+
   function groupLabel(element) {
     if (element instanceof HTMLFieldSetElement) {
-      const legend = element.querySelector(":scope > legend");
-      if (legend && conciseLabel(legend.textContent)) return conciseLabel(legend.textContent);
+      const label = labelText(element.querySelector(":scope > legend"));
+      if (label) return label;
     }
-    const aria = element.getAttribute("aria-label");
-    if (conciseLabel(aria)) return conciseLabel(aria);
-    const labelledBy = element.getAttribute("aria-labelledby");
-    if (labelledBy) {
-      const text = labelledBy.split(/\s+/).map((id) => document.getElementById(id)?.textContent || "").join(" ");
-      if (conciseLabel(text)) return conciseLabel(text);
-    }
-    const heading = element.querySelector(":scope > h1,:scope > h2,:scope > h3,:scope > h4,:scope > h5,:scope > h6,:scope > [role=heading]");
-    return conciseLabel(heading?.textContent);
+    const aria = conciseLabel(element.getAttribute("aria-label"));
+    if (aria) return aria;
+    const referenced = referencedLabel(element);
+    if (referenced) return referenced;
+    if (element.matches("details")) return labelText(element.querySelector(":scope > summary"));
+    return labelText(element.querySelector(":scope > h1,:scope > h2,:scope > h3,:scope > h4,:scope > h5,:scope > h6,:scope > [role=heading]"));
   }
 
   function controlLabel(element) {
     if (isIdealoAdapter()) {
       const label = idealoOptionLabel(element);
-      if (label) return label;
+      if (label) return optionLabelText(label);
     }
-    const aria = element.getAttribute("aria-label");
-    if (conciseLabel(aria)) return conciseLabel(aria);
-    const labelledBy = element.getAttribute("aria-labelledby");
-    if (labelledBy) {
-      const text = labelledBy.split(/\s+/).map((id) => document.getElementById(id)?.textContent || "").join(" ");
-      if (conciseLabel(text)) return conciseLabel(text);
-    }
+    const aria = optionLabelText(element.getAttribute("aria-label"));
+    if (aria) return aria;
+    const referenced = referencedLabel(element);
+    if (referenced) return referenced;
     if (element.id) {
-      const label = queryAllDeep("label").find((item) => item.htmlFor === element.id);
-      if (label && conciseLabel(label.textContent)) return conciseLabel(label.textContent);
+      const root = element.getRootNode();
+      const label = [...root.querySelectorAll("label")].find((item) => item.htmlFor === element.id);
+      if (labelText(label)) return labelText(label);
     }
     const wrappingLabel = element.closest("label");
-    if (wrappingLabel && conciseLabel(wrappingLabel.textContent)) return conciseLabel(wrappingLabel.textContent);
+    if (labelText(wrappingLabel)) return labelText(wrappingLabel);
     if (element instanceof HTMLSelectElement) return conciseLabel(element.name || element.id);
-    return conciseLabel(element.textContent || element.getAttribute("value") || element.getAttribute("name"));
+    return optionLabelText(element.textContent || element.getAttribute("value") || element.getAttribute("name"));
   }
 
   function inferContextLabel() {

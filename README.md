@@ -27,6 +27,8 @@ Version 0.3 includes hostname-aware route schemas for Amazon.de, Kleinanzeigen, 
 
 Idealo Germany additionally has a verified DOM adapter for route-backed filter tags and selected checkbox filters, including multi-select groups. Default price-slider bounds are ignored; active dual-handle sliders remain explicitly unsupported until a stable retailer mapping exists.
 
+MediaMarkt seller and refurbished selections are captured from both their URL parameters and native checkbox groups. Generic capture also supports labelled option lists and native accordion groups on other shops, removes explicit result counts from option labels, and ignores proven full-range defaults and catch-all ratings. Native accordions are opened only when replay needs to change a control. Active custom sliders remain explicitly unsupported.
+
 FilterVault deliberately does not automate login, checkout, consent choices, CAPTCHAs, closed Shadow DOM, arbitrary scripts, dual-handle sliders, or controls it cannot identify and verify safely.
 
 ## Development
@@ -42,7 +44,7 @@ npm run smoke:browser
 
 No build step and no third-party runtime dependencies are required.
 
-The [support matrix](docs/SUPPORT.md) separates deterministic route coverage from dated live acceptance. Run `npm run test:live` for the isolated Idealo and Decathlon scenarios. The [live acceptance guide](docs/LIVE_ACCEPTANCE.md) explains recording results, blocked cases, and the manual CI workflow. Live retailer access is separate from the deterministic release gate.
+The [support matrix](docs/SUPPORT.md) separates deterministic route coverage from dated live acceptance. Run `npm run test:live` for the isolated Idealo, Decathlon, and MediaMarkt scenarios. The [live acceptance guide](docs/LIVE_ACCEPTANCE.md) explains recording results, blocked cases, and the manual CI workflow. Live retailer access is separate from the deterministic release gate.
 
 Use `main` as the integration branch. Create a short-lived branch for each change, run the relevant checks, and merge through a pull request. A permanent `develop` branch is not required.
 

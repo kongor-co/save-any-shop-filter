@@ -1,0 +1,82 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-10-27T12:55:16.974Z",
+  "runId": "2026-10-27T12-55-16-974Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "2d2b1f0016db2299c8aca75867feef864f61b04e8a129cda2578bc0a3445aabf"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.mediamarkt.de"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "mediamarkt-seller-refurbished",
+      "scenario": {
+        "id": "mediamarkt-seller-refurbished",
+        "schemaId": "mediamarkt-de",
+        "resetUrl": "https://www.mediamarkt.de/de/category/nintendo-switch-2-konsolen-6238.html",
+        "readySelector": "#mms-facet-multiselect-marketplace",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "SELLER",
+            "desiredValue": [
+              "MediaMarkt"
+            ]
+          },
+          {
+            "semanticType": "REFURBISHED",
+            "desiredValue": [
+              "Nein"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.mediamarkt.de/de/category/nintendo-switch-2-konsolen-6238.html?marketplace=MediaMarkt&refurbished_new_array=Nein"
+      },
+      "scenarioSha256": "698d09ea1c3178e616310ad021c311dd169603d5e184d8c4adf5320a3732a7b7",
+      "schemaId": "mediamarkt-de",
+      "schemaVersion": 2,
+      "status": "FAIL",
+      "stage": "REPLAY",
+      "reason": "page.evaluate: Execution context was destroyed, most likely because of a navigation",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-marketplace-seller",
+          "role": "FILTER",
+          "semanticType": "SELLER",
+          "desiredValue": [
+            "MediaMarkt"
+          ]
+        },
+        {
+          "criterionId": "route-refurbished-new-array-refurbished",
+          "role": "FILTER",
+          "semanticType": "REFURBISHED",
+          "desiredValue": [
+            "Nein"
+          ]
+        }
+      ],
+      "resetCriteria": [],
+      "resetChanged": [
+        "route-marketplace-seller",
+        "route-refurbished-new-array-refurbished"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "WAITING_NAVIGATION",
+        "error": null,
+        "results": []
+      },
+      "httpStatus": 200,
+      "savedStateId": "e6f64102-69bf-418c-90cb-6d9ca58ad0f2",
+      "savedRoundTrip": true,
+      "startedReplayId": "f2a67e1f-d04a-45ea-ba0c-dd6cd6e20bd6",
+      "finalUrl": "https://www.mediamarkt.de/de/category/nintendo-switch-2-konsolen-6238.html?marketplace=MediaMarkt&refurbished_new_array=Nein"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { join, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
-import { checkCapture, resetDifferences, assessReplay, runAcceptanceScenario, acceptanceExitCode, scenarioDigest, runtimeIdentity } from "../scripts/lib/live-acceptance.mjs";
+import { checkCapture, resetDifferences, assessReplay, runAcceptanceScenario, acceptanceExitCode, scenarioDigest, runtimeIdentity, detectBlocker } from "../scripts/lib/live-acceptance.mjs";
 import { loadAcceptanceInputs, validateAcceptanceRecord, renderSupportMatrix } from "../scripts/lib/support-evidence.mjs";
 
 const root = resolve(import.meta.dirname,"..");
@@ -24,7 +24,7 @@ function record() {
 test("acceptance scenarios derive retailer routes from the existing contracts", async () => {
   const inputs = await loadAcceptanceInputs(root);
   assert.equal(inputs.catalog.length,12);
-  assert.deepEqual(inputs.scenarios.map((item) => item.schemaId),["idealo-de","decathlon-de"]);
+  assert.deepEqual(inputs.scenarios.map((item) => item.schemaId),["idealo-de","decathlon-de","mediamarkt-de"]);
   for (const item of inputs.scenarios) {
     assert.equal(new URL(item.filteredUrl).origin,new URL(item.resetUrl).origin);
     assert.ok(item.expectedCriteria.length>0);
@@ -118,6 +118,7 @@ test("support matrix distinguishes current, blocked, missing, and stale evidence
 function simulatedRun(options = {}) {
   let url="https://shop.example/";
   let captures=0;
+  let polls=0;
   const calls=[];
   const page={
     url:() => url,
@@ -135,6 +136,8 @@ function simulatedRun(options = {}) {
     if (type === "LIST_STATES") return options.failedSave ? [] : [{id:"saved",criteria:structuredClone(criteria)}];
     if (type === "START_REPLAY") return {replayId:"replay"};
     if (type === "GET_ACTIVE_REPLAY") {
+      polls+=1;
+      if (options.transitionalNavigation ? polls === 1 : false) return {...replay(),status:"WAITING_NAVIGATION",results:[]};
       if (options.pollFailure) throw new Error("POLL_FAILED");
       if (options.foreignReplay) return {...replay(),replayId:"foreign",status:"APPLYING"};
       return options.awaiting ? {...replay(),status:"AWAITING_CONFIRMATION"} : options.blockAfterReplay ? {...replay(),status:"APPLYING"} : replay();
@@ -146,6 +149,7 @@ function simulatedRun(options = {}) {
   const blocker=async () => {
     blockerCalls+=1;
     if (options.blocked) return "BOT_CHALLENGE";
+    if (options.transitionalNavigation ? polls === 1 : false) return "EMPTY_DOCUMENT";
     if (options.hydrating ? blockerCalls === 1 : false) return "EMPTY_DOCUMENT";
     if (options.blockAfterReplay ? blockerCalls>4 : false) return "CONSENT_REQUIRED";
     return null;
@@ -202,6 +206,20 @@ test("polling failures cancel only the replay created by this acceptance run", a
     assert.equal((await attempt.run()).status,"FAIL");
     assert.deepEqual(attempt.calls.find((item) => item.type === "CANCEL_REPLAY").payload,{replayId:"replay"});
   }
+});
+
+test("read-only blocker checks tolerate document replacement without swallowing other failures", async () => {
+  const page={url:()=>"https://shop.example/search",evaluate:async()=>{throw new Error("Execution context was destroyed, most likely because of a navigation");}};
+  assert.equal(await detectBlocker(page,"https://shop.example"),null);
+  assert.equal(await detectBlocker(page,"https://other.example"),"UNEXPECTED_ORIGIN");
+  page.evaluate=async()=>{throw new Error("Unexpected detector failure");};
+  await assert.rejects(()=>detectBlocker(page,"https://shop.example"),/Unexpected detector failure/);
+});
+
+test("expected navigation does not become an empty-page failure or repeat a replay command", async () => {
+  const attempt=simulatedRun({transitionalNavigation:true});
+  assert.equal((await attempt.run()).status,"PASS");
+  assert.equal(attempt.calls.filter((item)=>item.type === "START_REPLAY").length,1);
 });
 
 test("runtime fingerprints survive checkout line endings and detect behavior changes", async () => {

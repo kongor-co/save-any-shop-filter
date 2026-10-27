@@ -45,7 +45,7 @@ async function javascriptFiles(directory) {
 
 for (const file of await javascriptFiles(resolve(root, "src"))) {
   try {
-    const source = await readFile(file, "utf8");
+    const source = new TextDecoder("utf-8", {fatal:true}).decode(await readFile(file));
     const parseable = source
       .replace(/import[\s\S]*?from\s+["'][^"']+["'];/g, "")
       .replace(/^export\s+/gm, "");

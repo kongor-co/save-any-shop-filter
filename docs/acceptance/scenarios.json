@@ -22,5 +22,26 @@
       { "semanticType": "SIZE", "desiredValue": ["L", "M"] },
       { "semanticType": "PRICE_RANGE", "desiredValue": ["from_0_to_51"] }
     ]
+  },
+  {
+    "id": "mediamarkt-seller-refurbished",
+    "schemaId": "mediamarkt-de",
+    "resetUrl": "https://www.mediamarkt.de/de/category/nintendo-switch-2-konsolen-6238.html",
+    "readySelector": "#mms-facet-multiselect-marketplace",
+    "resetReadySelector": "h1",
+    "expectedCriteria": [
+      {
+        "semanticType": "SELLER",
+        "desiredValue": [
+          "MediaMarkt"
+        ]
+      },
+      {
+        "semanticType": "REFURBISHED",
+        "desiredValue": [
+          "Nein"
+        ]
+      }
+    ]
   }
 ]

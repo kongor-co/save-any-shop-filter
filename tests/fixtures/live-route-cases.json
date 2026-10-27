@@ -26,9 +26,9 @@
   },
   {
     "shop": "MediaMarkt",
-    "url": "https://www.mediamarkt.de/de/category/laptops-notebooks-362.html?query=laptop&queryInitial=laptop&sort=currentprice+asc&queryMeta[queryHash]=secret",
+    "url": "https://www.mediamarkt.de/de/category/nintendo-switch-2-konsolen-6238.html?marketplace=MediaMarkt&refurbished_new_array=Nein&queryMeta%5BqueryHash%5D=secret",
     "schema": "mediamarkt-de",
-    "expected": { "SEARCH_QUERY": ["laptop"], "SORT": ["currentprice asc"] },
+    "expected": { "SELLER": ["MediaMarkt"], "REFURBISHED": ["Nein"] },
     "removed": ["queryMeta[queryHash]"]
   },
   {
