@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { runAcceptanceScenario } from "./lib/live-acceptance.mjs";
 
 const terminal = new Set(["COMPLETE", "COMPLETE_WITH_WARNINGS", "PARTIAL", "FAILED", "CANCELLED", "INTERRUPTED"]);
 
@@ -148,5 +149,19 @@ export async function runReplayBrowserCases({ context, extension, call, port, sh
   await call("START_REPLAY",{stateId:unsafeCommit.id,tabId});
   assert.equal((await waitReplay(tabId)).results[0].status,"UNSUPPORTED_INTERACTION");
   assert.equal(await page.evaluate(() => window.purchases),0,"Commit must not activate a purchase control");
-  console.log("Replay browser regressions passed: context confirmation, origin rejection, cancellation, worker termination, and user navigation.");
+  const acceptance = await context.newPage();
+  const filtered = new URL("/acceptance/search",origin);
+  filtered.searchParams.set("brand","nike");
+  filtered.searchParams.set("size","42");
+  await acceptance.goto(filtered.toString());
+  const acceptanceTabId = await tabIdFor(acceptance);
+  const acceptanceResult = await runAcceptanceScenario({
+    page:acceptance,call,tabId:acceptanceTabId,schemaVersion:1,
+    scenario:{id:"fixture-round-trip",schemaId:"generic",filteredUrl:filtered.toString(),resetUrl:`${origin}/acceptance/search`,readySelector:"h1",expectedCriteria:[{semanticType:"BRAND",desiredValue:["nike"]},{semanticType:"SIZE",desiredValue:["42"]}]}
+  });
+  assert.equal(acceptanceResult.status,"PASS",JSON.stringify(acceptanceResult));
+  assert.equal(acceptanceResult.savedRoundTrip,true);
+  assert.equal(acceptanceResult.resetChanged.length,2);
+  assert.equal((await call("LIST_STATES")).some((item) => item.id === acceptanceResult.savedStateId),false,"Acceptance must remove only its temporary saved state");
+  console.log("Replay browser regressions passed: context confirmation, origin rejection, cancellation, worker termination, user navigation, and acceptance round trip.");
 }

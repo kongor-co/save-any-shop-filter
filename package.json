@@ -11,6 +11,9 @@
     "test:integration": "node --test tests/storage.test.mjs tests/live-routes.test.mjs tests/replay-lifecycle.test.mjs",
     "check": "node scripts/check-extension.mjs && npm run test:unit",
     "smoke:browser": "node scripts/browser-smoke.mjs",
+    "test:live": "node scripts/live-acceptance.mjs",
+    "support:update": "node scripts/support-matrix.mjs",
+    "support:check": "node scripts/support-matrix.mjs --check",
     "test:release": "npm run check && npm run test:coverage && npm run smoke:browser"
   },
   "engines": {

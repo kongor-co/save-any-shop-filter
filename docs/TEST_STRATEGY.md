@@ -35,7 +35,8 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - cancellation during a multi-step wait, proving that the later commit never occurs;
 - explicit service-worker termination during replay and reconnection to exactly one commit;
 - user search changes during an active wait, preventing the remaining commit;
-- rejection of changed control types and purchase controls supplied as commit targets.
+- rejection of changed control types and purchase controls supplied as commit targets;
+- the acceptance runner's complete capture, persisted Save, reset proof, replay, and cleanup against a local shop.
 
 `replay-lifecycle.test.mjs` exercises the worker's real orchestration code with controlled Chrome boundaries. It covers racing starts, preflight failures, confirmation invalidation after document replacement, serialization order, forged or stale results, executor loss, and navigation deadlines. The packaged browser cases in `scripts/replay-browser-cases.mjs` verify the corresponding document and worker behavior in Chromium.
 
@@ -60,6 +61,10 @@ npm run test:release
 ```
 
 A release candidate requires all deterministic layers to pass. Before claiming a retailer as live Verified, also reload the exact unpacked build in Chrome and perform capture, Save, state mutation, replay, and criterion-level verification on the documented live route.
+
+`npm run test:live` provides a separate isolated live runner for Idealo and Decathlon. It never treats a blocked page as a pass and does not answer consent or bot challenges. It records production runtime and scenario fingerprints, persisted Save evidence, reset differences, and criterion-level replay results. Its temporary copy receives only the selected test origins; production permission prompts still require manual acceptance. See the [live acceptance guide](LIVE_ACCEPTANCE.md).
+
+`npm run support:update` generates the [support matrix](SUPPORT.md). Static checks reject a stale matrix or invalid acceptance evidence. Live access is not required by the default release command; the manual live CI workflow retains its report even on a blocked or failed run.
 
 ## Adding a retailer or control type
 

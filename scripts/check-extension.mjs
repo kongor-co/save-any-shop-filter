@@ -1,10 +1,19 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import vm from "node:vm";
+import { runtimeIdentity } from "./lib/live-acceptance.mjs";
+import { loadAcceptanceInputs, loadAcceptanceRecords, renderSupportMatrix } from "./lib/support-evidence.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
 const errors = [];
+try {
+  const inputs = await loadAcceptanceInputs(root);
+  const records = await loadAcceptanceRecords(root,inputs.scenarios);
+  const generated = renderSupportMatrix({...inputs,records,source:await runtimeIdentity(root)});
+  const current = await readFile(resolve(root,"docs/SUPPORT.md"),"utf8");
+  if (current.replaceAll("\r\n","\n") !== generated) errors.push("Support matrix is stale; run npm run support:update");
+} catch (error) { errors.push(`Support evidence: ${error.message}`); }
 
 if (manifest.manifest_version !== 3) errors.push("manifest_version must be 3");
 if (Number(manifest.minimum_chrome_version) < 106) errors.push("minimum_chrome_version must support documentId");

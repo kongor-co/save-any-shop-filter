@@ -42,6 +42,8 @@ npm run smoke:browser
 
 No build step and no third-party runtime dependencies are required.
 
+The [support matrix](docs/SUPPORT.md) separates deterministic route coverage from dated live acceptance. Run `npm run test:live` for the isolated Idealo and Decathlon scenarios. The [live acceptance guide](docs/LIVE_ACCEPTANCE.md) explains recording results, blocked cases, and the manual CI workflow. Live retailer access is separate from the deterministic release gate.
+
 Use `main` as the integration branch. Create a short-lived branch for each change, run the relevant checks, and merge through a pull request. A permanent `develop` branch is not required.
 
 For the optional real-browser regression, install the development dependency and run `npm run smoke:browser`. It starts local mock shops in isolated Playwright Chromium, loads a temporary copy of the packaged extension, and verifies popup Save, replay diagnostics, Idealo capture, details, rename, duplicate, and delete flows.

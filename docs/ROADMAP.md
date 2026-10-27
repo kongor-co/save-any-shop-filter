@@ -17,7 +17,7 @@ The canonical repository also runs deterministic, coverage, security, and packag
 ## Priority 2: maintainability
 
 - Keep continuous integration aligned with the local release command.
-- Publish a generated support matrix from route schemas and acceptance records.
+- Maintain the generated support matrix and isolated live acceptance scenarios.
 - Add issue templates for retailer regressions and new retailer requests.
 - Define a repeatable release checklist and versioning policy.
 - Keep dated evidence under `docs/reports` rather than mixing it with current guidance.

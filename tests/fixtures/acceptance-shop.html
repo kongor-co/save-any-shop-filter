@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Acceptance shop</title></head>
+  <body>
+    <h1>Running shoes</h1>
+    <fieldset><legend>Brand</legend>
+      <label><input id="nike" type="checkbox" name="brand" value="nike">Nike</label>
+    </fieldset>
+    <fieldset><legend>Size</legend>
+      <label for="size">Shoe size</label>
+      <select id="size" name="size"><option value="40">EU 40</option><option value="42">EU 42</option></select>
+    </fieldset>
+    <a href="/product/1">Shoe one</a><a href="/product/2">Shoe two</a>
+    <a href="/product/3">Shoe three</a><a href="/product/4">Shoe four</a>
+    <script>
+      const params = new URL(location.href).searchParams;
+      document.querySelector("#nike").checked = params.get("brand") === "nike";
+      document.querySelector("#size").value = params.get("size") || "40";
+    </script>
+  </body>
+</html>

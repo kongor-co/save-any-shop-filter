@@ -15,13 +15,7 @@ const extensionDir = resolve(smokeRoot, "extension");
 await mkdir(extensionDir, { recursive: true });
 await cp(resolve(root, "src"), resolve(extensionDir, "src"), { recursive: true });
 const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
-const liveIdealoUrl = process.env.FILTERVAULT_LIVE_IDEALO_URL || "";
-const liveDecathlonUrl = process.env.FILTERVAULT_LIVE_DECATHLON_URL || "";
-manifest.host_permissions = [
-  "http://127.0.0.1/*",
-  ...(liveIdealoUrl ? ["https://www.idealo.de/*"] : []),
-  ...(liveDecathlonUrl ? ["https://www.decathlon.de/*"] : [])
-];
+manifest.host_permissions = ["http://127.0.0.1/*"];
 await writeFile(resolve(extensionDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 const playwrightSpecifier = process.env.FILTERVAULT_PLAYWRIGHT_MODULE || "playwright";
@@ -33,7 +27,13 @@ const idealoFixture = await readFile(resolve(root, "tests", "fixtures", "idealo.
 const decathlonFixture = await readFile(resolve(root, "tests", "fixtures", "decathlon.html"));
 const edgeFixture = await readFile(resolve(root, "tests", "fixtures", "edge-cases.html"));
 const lifecycleFixture = await readFile(resolve(root, "tests", "fixtures", "replay-lifecycle.html"));
+const acceptanceFixture = await readFile(resolve(root,"tests","fixtures","acceptance-shop.html"));
 const server = createServer((request, response) => {
+  if (request.url?.startsWith("/acceptance/")) {
+    response.writeHead(200,{"content-type":"text/html; charset=utf-8"});
+    response.end(acceptanceFixture);
+    return;
+  }
   if (request.url?.startsWith("/lifecycle/")) {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(lifecycleFixture);
@@ -266,54 +266,6 @@ try {
 
   await edge.goto(`http://127.0.0.1:${port}/edge/checkout?q=trail`, { waitUntil: "domcontentloaded" });
   await assert.rejects(() => call("GET_CAPTURE_PREVIEW", { tabId: edgeTabId }), /UNSUPPORTED_PAGE_TYPE:CHECKOUT/);
-
-  if (liveIdealoUrl) {
-    const liveIdealo = await context.newPage();
-    await liveIdealo.goto(liveIdealoUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
-    await liveIdealo.locator('button[class*="sr-filterTag_"]').first().waitFor({ timeout: 30_000 });
-    const liveIdealoTabId = await extension.evaluate(async () => {
-      const tabs = await chrome.tabs.query({});
-      return tabs.find((tab) => tab.url?.startsWith("https://www.idealo.de/preisvergleich/ProductCategory/"))?.id;
-    });
-    const livePreview = await call("GET_CAPTURE_PREVIEW", { tabId: liveIdealoTabId });
-    console.log("Live Idealo criteria:", livePreview.criteria.map((criterion) => `${criterion.semanticType}=${criterion.desiredValue.join("|")}`).join(", "));
-    assert.equal(livePreview.site.adapterId, "idealo-de");
-    assert.equal(livePreview.criteria.some((criterion) => criterion.semanticType === "HERSTELLER" && criterion.desiredValue.includes("Samsung")), true);
-    assert.equal(livePreview.criteria.some((criterion) => criterion.semanticType === "RAM" && criterion.desiredValue.includes("12 GB") && criterion.desiredValue.includes("8 GB")), true);
-    assert.equal(livePreview.criteria.some((criterion) => criterion.semanticType === "GEBRAUCHTE_PRODUKTE_ANZEIGEN"), true);
-  }
-
-  if (liveDecathlonUrl) {
-    const liveDecathlon = await context.newPage();
-    await liveDecathlon.goto(liveDecathlonUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
-    await liveDecathlon.locator("main h1").waitFor({ timeout: 30_000 });
-    const liveDecathlonTabId = await extension.evaluate(async () => {
-      const tabs = await chrome.tabs.query({});
-      return tabs.find((tab) => tab.url?.startsWith("https://www.decathlon.de/herren/t-shirts-hemden/"))?.id;
-    });
-    const decathlonPreview = await call("GET_CAPTURE_PREVIEW", { tabId: liveDecathlonTabId });
-    assert.equal(decathlonPreview.site.adapterId, "decathlon-de");
-    assert.equal(decathlonPreview.site.adapterVersion, 2);
-    assert.equal(decathlonPreview.supportLevel, "VERIFIED");
-    assert.deepEqual(decathlonPreview.criteria.filter((criterion) => criterion.role !== "CONTEXT").map((criterion) => criterion.semanticType).sort(), ["CONDITION", "PRICE_RANGE", "SELLER", "SIZE"]);
-    assert.deepEqual(decathlonPreview.criteria.find((criterion) => criterion.semanticType === "SIZE")?.desiredValue, ["L", "M"]);
-    assert.equal(decathlonPreview.unsupported.length, 0);
-    assert.equal(decathlonPreview.unresolved.length, 0);
-
-    const decathlonState = await call("SAVE_CAPTURE", { tabId: liveDecathlonTabId, preview: decathlonPreview, name: "Decathlon route regression" });
-    await liveDecathlon.goto("https://www.decathlon.de/herren/t-shirts-hemden", { waitUntil: "domcontentloaded", timeout: 30_000 });
-    await call("START_REPLAY", { stateId: decathlonState.id, tabId: liveDecathlonTabId });
-    let decathlonReplay;
-    const decathlonDeadline = Date.now() + 30_000;
-    do {
-      await new Promise((resolveWait) => setTimeout(resolveWait, 200));
-      decathlonReplay = await call("GET_ACTIVE_REPLAY", { tabId: liveDecathlonTabId });
-    } while (decathlonReplay && !["COMPLETE", "COMPLETE_WITH_WARNINGS", "PARTIAL", "FAILED", "CANCELLED", "INTERRUPTED"].includes(decathlonReplay.status) && Date.now() < decathlonDeadline);
-    assert.equal(decathlonReplay?.status, "COMPLETE", JSON.stringify(decathlonReplay));
-    const replayedUrl = new URL(liveDecathlon.url());
-    assert.equal(replayedUrl.pathname.includes("/f-zustand_neu/f-partner_decathlon/f-sg_37-l-19_37-m"), true);
-    assert.equal(replayedUrl.searchParams.get("price"), "from_0_to_51");
-  }
 
   await extension.evaluate(async (id) => chrome.tabs.update(id, { active: true }), idealoTabId);
   await extension.reload({ waitUntil: "domcontentloaded" });
