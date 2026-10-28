@@ -18,9 +18,9 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { width: 430px; min-height: 520px; margin: 0; color: var(--ink); background: var(--surface); font-size: 14px; }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { color: inherit; }
-button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid rgba(24, 107, 79, .25); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid rgba(24, 107, 79, .25); outline-offset: 2px; }
 
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 13px; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; }

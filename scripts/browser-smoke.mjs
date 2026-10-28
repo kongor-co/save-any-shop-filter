@@ -9,6 +9,7 @@ import { runStructuredBrowserCases } from "./structured-browser-cases.mjs";
 import { runDropdownBrowserCases } from "./dropdown-browser-cases.mjs";
 import { runHome24BrowserCases } from "./home24-browser-cases.mjs";
 import { runOttoBrowserCases } from "./otto-browser-cases.mjs";
+import { runLibraryBrowserCases } from "./library-browser-cases.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const smokeRoot = resolve(root, ".browser-smoke");
@@ -20,7 +21,7 @@ const extensionDir = resolve(smokeRoot, "extension");
 await mkdir(extensionDir, { recursive: true });
 await cp(resolve(root, "src"), resolve(extensionDir, "src"), { recursive: true });
 const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
-manifest.host_permissions = ["http://127.0.0.1/*", "https://www.mediamarkt.de/*", "https://www.cyberport.de/*", "https://www.shop-apotheke.com/*", "https://www.home24.de/*", "https://www.otto.de/*"];
+manifest.host_permissions = ["http://127.0.0.1/*", "https://www.mediamarkt.de/*", "https://www.cyberport.de/*", "https://www.shop-apotheke.com/*", "https://www.home24.de/*", "https://www.otto.de/*", "https://empty-shop.test/*"];
 await writeFile(resolve(extensionDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 const playwrightSpecifier = process.env.FILTERVAULT_PLAYWRIGHT_MODULE || "playwright";
@@ -329,6 +330,7 @@ try {
   await runDropdownBrowserCases({context,extension,call,port,smokeRoot});
   await runHome24BrowserCases({context,extension,call,smokeRoot});
   await runOttoBrowserCases({context,extension,call,smokeRoot});
+  await runLibraryBrowserCases({context,extension,call,smokeRoot});
 
   const restrictedPage = await context.newPage();
   await restrictedPage.goto("chrome://version", { waitUntil: "domcontentloaded" });
