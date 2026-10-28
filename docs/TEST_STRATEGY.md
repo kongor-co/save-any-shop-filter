@@ -30,6 +30,8 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - checkout rejection;
 - replay navigation, DOM restoration, route-only warnings, and cancellation races;
 - popup Save, Details, Rename, Duplicate, Delete confirmation, keyboard dialog focus, Export, and Import;
+- current-shop Library defaults across mixed retailer records, scope plus search, counts, empty-shop and capture-unsupported pages, navigation updates, popup reopening, and restricted-page fallback;
+- scoped Details, Rename, Duplicate, Delete, and successful replay, plus mixed-shop Import and a complete Export all backup while other shops are hidden;
 - changed-category confirmation through the popup, with no filter mutation before approval;
 - incompatible search rejection and imported URL origin rejection;
 - cancellation during a multi-step wait, proving that the later commit never occurs;

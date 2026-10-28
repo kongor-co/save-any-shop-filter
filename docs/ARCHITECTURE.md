@@ -84,6 +84,8 @@ Import validation constrains both captured and constructed replay URLs to the sa
 
 The popup presents capture coverage, save eligibility, the local library, replay diagnostics, and import or export actions. It must expose omissions before saving and must not present route-only completion as fully verified.
 
+Library visibility defaults to the active tab's HTTP or HTTPS hostname, updated on navigation in that tab. Matching ignores case, a trailing DNS dot, and the conventional `www` prefix. It preserves other subdomains and country domains, without substring or registrable-domain guesses. The shop scope intersects text search and determines the displayed count and empty-state copy. A popup-local All shops selection is available; no preference or saved-state migration is required. Missing or restricted URLs fall back to all shops. Capture failure does not disable the Library. The scope changes presentation only: saved data, full-library export, permissions, saved-origin validation, and replay orchestration retain their existing behavior.
+
 ## Persisted data rules
 
 - User data stays in `chrome.storage.local`.

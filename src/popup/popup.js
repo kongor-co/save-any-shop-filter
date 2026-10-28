@@ -1,9 +1,11 @@
 import { MESSAGE } from "../shared/constants.js";
+import { filterLibrary, shopHostname } from "./library.js";
 
 const state = {
   activeTab: null,
   capture: null,
   library: [],
+  libraryScope: "current",
   replay: null,
   replayTimer: null,
   actionState: null
@@ -46,6 +48,18 @@ function bindEvents() {
   elements.save.addEventListener("click", saveCapture);
   $("#copy-route").addEventListener("click", copySanitizedRoute);
   $("#library-search").addEventListener("input", renderLibrary);
+  $("#library-scope").addEventListener("change", (event) => {
+    state.libraryScope = event.target.value;
+    renderLibrary();
+  });
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (tabId !== state.activeTab?.id) return;
+    // Chrome may omit the URL after access is lost during navigation.
+    // Fall back to the full library instead of retaining the previous shop.
+    if (!(changeInfo.url || changeInfo.status)) return;
+    state.activeTab = tab;
+    renderLibrary();
+  });
   $("#library-list").addEventListener("click", handleLibraryAction);
   $("#export-all").addEventListener("click", () => exportStates());
   $("#import-trigger").addEventListener("click", () => $("#import-file").click());
@@ -155,13 +169,24 @@ async function copySanitizedRoute() {
 
 async function loadLibrary() {
   state.library = await send(MESSAGE.LIST_STATES);
-  elements.libraryCount.textContent = String(state.library.length);
   renderLibrary();
 }
 
 function renderLibrary() {
-  const query = $("#library-search").value.trim().toLowerCase();
-  const visible = state.library.filter((item) => `${item.name} ${item.site.hostname} ${item.context.category || ""} ${item.context.searchQuery || ""}`.toLowerCase().includes(query));
+  const hostname = shopHostname(state.activeTab?.url);
+  const scope = $("#library-scope");
+  scope.querySelector('[value="current"]').textContent = hostname ? `This shop: ${hostname}` : "This shop unavailable";
+  scope.querySelector('[value="current"]').disabled = !hostname;
+  scope.value = hostname ? state.libraryScope : "all";
+  const current = scope.value === "current" ? hostname : null;
+  const query = $("#library-search").value.trim();
+  const visible = filterLibrary(state.library, { activeUrl: state.activeTab?.url, scope: scope.value, query });
+  elements.libraryCount.textContent = String(visible.length);
+  $("#library-summary").textContent = current ? `Saved filters for ${current}` : "Grouped by shop and context";
+  $("#library-scope-status").textContent = `${visible.length} of ${state.library.length} saved configurations shown${current ? ` for ${current}` : " across all shops"}.`;
+  $("#library-search").placeholder = current ? "Search this shop" : "Search the library";
+  $("#empty-library-title").textContent = query ? "No matching saved filters" : current ? "No saved filters for this shop yet" : "No saved filters yet";
+  $("#empty-library-copy").textContent = query ? "Try another search or change the shop filter." : current ? "Save a configuration here, or choose All shops to browse your library." : "Save a configuration from a shopping results page.";
   elements.emptyLibrary.hidden = visible.length !== 0;
   elements.libraryList.replaceChildren();
   const groups = new Map();

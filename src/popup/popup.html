@@ -61,19 +61,25 @@
 
       <section id="library-view" class="view" aria-labelledby="library-title" hidden>
         <div class="library-header">
-          <div><h1 id="library-title">Saved filters</h1><p class="muted">Grouped by shop and context</p></div>
-          <button id="export-all" class="secondary-button compact" type="button">Export</button>
+          <div><h1 id="library-title">Saved filters</h1><p id="library-summary" class="muted">Grouped by shop and context</p></div>
+          <button id="export-all" class="secondary-button compact" type="button">Export all</button>
         </div>
+        <label class="field-label" for="library-scope">Shop</label>
+        <select id="library-scope" class="text-field" aria-describedby="library-scope-status">
+          <option value="current" selected>This shop</option>
+          <option value="all">All shops</option>
+        </select>
         <label class="search-field">
           <span aria-hidden="true">⌕</span>
           <span class="sr-only">Search saved filters</span>
           <input id="library-search" type="search" placeholder="Search the library">
         </label>
+        <p id="library-scope-status" class="muted" role="status" aria-live="polite"></p>
         <div id="library-list"></div>
         <div id="empty-library" class="empty-state" hidden>
           <span aria-hidden="true">◇</span>
-          <strong>No saved filters yet</strong>
-          <p>Save a configuration from a shopping results page.</p>
+          <strong id="empty-library-title">No saved filters yet</strong>
+          <p id="empty-library-copy">Save a configuration from a shopping results page.</p>
         </div>
         <div class="library-footer">
           <button id="import-trigger" class="secondary-button" type="button">Import JSON</button>
