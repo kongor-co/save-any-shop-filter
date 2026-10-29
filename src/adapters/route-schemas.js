@@ -113,12 +113,17 @@ const SCHEMAS = [
   },
   {
     id: "otto-de",
-    version: 2,
+    version: 3,
     hosts: ["otto.de", "www.otto.de"],
     parameters: {
       arbeitsspeicher: descriptor("FILTER", "RAM"),
       "kategorien~sind": descriptor("FILTER", "CATEGORY", {literalKeyCharacters:"~"}),
       sortiertnach: descriptor("PRESENTATION", "SORT"),
+      stil: ottoChoiceDescriptor("STYLE", "stil", ["Stil"]),
+      "us-groessen": ottoChoiceDescriptor("US_SIZE", "us-groessen", ["Größe", "US-Größen"],
+        (values) => splitOttoChoices(values).map((value) => value.toUpperCase())),
+      zielgruppe: ottoChoiceDescriptor("TARGET_GROUP", "zielgruppe", ["Für wen?"],
+        (values) => splitOttoChoices(values).map((value) => ({damen:"Damen",herren:"Herren",maedchen:"Mädchen",jungen:"Jungen"})[value] || value)),
       farbe: descriptor("FILTER","COLOR",{
         domLabels:["Farbe"],controlNames:["farbe"],inputName:"farbe",inputValues:splitOttoChoices,
         normalizeValues:splitOttoChoices,describeValues:splitOttoChoices,verificationTexts:splitOttoChoices,literalValueCharacters:","
@@ -222,6 +227,13 @@ export function serializeRouteUrl(urlLike) {
 
 function splitOttoChoices(values) {
   return [...new Set(values.flatMap((value) => String(value).split(",")).filter(Boolean))];
+}
+
+function ottoChoiceDescriptor(semanticType, name, domLabels, describeValues = splitOttoChoices) {
+  return descriptor("FILTER", semanticType, {
+    domLabels, controlNames: [name], inputName: name, inputValues: splitOttoChoices,
+    normalizeValues: splitOttoChoices, describeValues, verificationTexts: describeValues, literalValueCharacters: ","
+  });
 }
 
 function describeOttoSellers(values) {

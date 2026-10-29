@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
+import {runOttoFashionBrowserCases} from "./otto-fashion-browser-cases.mjs";
 
 export async function runOttoBrowserCases({context,extension,call,smokeRoot}){
   const fixture=await readFile(new URL("../tests/fixtures/otto.html",import.meta.url));
-  await context.route("https://www.otto.de/**",(route)=>route.fulfill({status:200,contentType:"text/html",body:fixture}));
+  const fashionFixture=await readFile(new URL("../tests/fixtures/otto-fashion.html",import.meta.url));
+  await context.route("https://www.otto.de/**",(route)=>route.fulfill({status:200,contentType:"text/html",body:new URL(route.request().url()).pathname.startsWith("/mode/waesche/") ? fashionFixture : fixture}));
   const base="https://www.otto.de/haushalt/kuechengeraete/reiskocher/";const url=new URL(base);for(const [key,value]of [["farbe","grau,lila"],["hoehe-in-cm~bis","24"],["tiefe-in-cm~bis","25"],["verkaeufer","otto"]])url.searchParams.set(key,value);
   const page=await context.newPage();await page.goto(url.toString());const tabId=await extension.evaluate(async(href)=>(await chrome.tabs.query({})).find((tab)=>tab.url===href)?.id,page.url());
   async function terminal(){let latest;const deadline=Date.now()+15_000;while(Date.now()<deadline){latest=await call("GET_ACTIVE_REPLAY",{tabId});if(["COMPLETE","COMPLETE_WITH_WARNINGS","PARTIAL","FAILED","CANCELLED","INTERRUPTED"].includes(latest?.status))return latest;await new Promise((resolve)=>setTimeout(resolve,50));}assert.fail(JSON.stringify(latest));}
@@ -38,4 +40,5 @@ export async function runOttoBrowserCases({context,extension,call,smokeRoot}){
   await page.evaluate(()=>{const chip=document.createElement("demo-chip");chip.setAttribute("icon-right","close");chip.innerHTML='<input type="checkbox" name="unmapped" value="metal" checked aria-label="Material: Metall"><button slot="content">Material: Metall</button>';document.querySelector("#chosen").append(chip);});
   const unknownChip=await call("GET_CAPTURE_PREVIEW",{tabId});assert.equal(unknownChip.criteria.length,4);assert.ok(unknownChip.unresolved.some((item)=>/not a replay action target/.test(item.reason)),"An unknown removal chip is reported instead of becoming a destructive DOM mapping");
   console.log("OTTO regressions passed: four filters, native and removal-chip evidence, shadow fields, interval duplicates, literal query syntax, Save, reset, replay, and mismatch rejection.");
+  await runOttoFashionBrowserCases({context,extension,call});
 }

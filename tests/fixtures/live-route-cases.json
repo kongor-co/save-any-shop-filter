@@ -62,6 +62,12 @@
     "expected": { "COLOR": ["grau", "lila"], "MAX_HEIGHT": ["24"], "MAX_DEPTH": ["25"], "SELLER": ["otto"] }
   },
   {
+    "shop": "OTTO fashion",
+    "url": "https://www.otto.de/mode/waesche/?stil=elegant,erotisch\u0026us-groessen=s\u0026zielgruppe=damen",
+    "schema": "otto-de",
+    "expected": { "STYLE": ["elegant", "erotisch"], "US_SIZE": ["s"], "TARGET_GROUP": ["damen"] }
+  },
+  {
     "shop": "Autohero",
     "url": "https://www.autohero.com/de/v5/search/?sort=price_asc&brand0=bmw&utm_expid=123",
     "schema": "autohero-de",

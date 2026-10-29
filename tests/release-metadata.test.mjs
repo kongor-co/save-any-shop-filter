@@ -20,6 +20,9 @@ test("release scripts expose deterministic, security, integration, coverage, and
 });
 
 test("the cross-shop regression fixture retains all twelve storefronts", () => {
-  assert.equal(liveCases.length, 12);
-  assert.equal(new Set(liveCases.map((item) => item.shop)).size, 12);
+  assert.deepEqual([...new Set(liveCases.map((item) => item.schema))].sort(), [
+    "amazon-de", "autohero-de", "cyberport-de", "decathlon-de", "home24-de", "idealo-de",
+    "kleinanzeigen-de", "mediamarkt-de", "otto-de", "rebuy-de", "shop-apotheke-de", "zalando-de"
+  ]);
+  assert.equal(new Set(liveCases.map((item) => item.shop)).size, liveCases.length, "Each scenario needs a unique name; one shop may have multiple category scenarios");
 });
