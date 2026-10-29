@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-29T19:05:29.972Z",
+  "sort": {
+    "name": "sortiertnach",
+    "value": "preis-aufsteigend",
+    "url": "https://www.otto.de/sport/fitnessgeraete/?sortiertnach=preis-aufsteigend"
+  },
+  "price": {
+    "parameters": [
+      [
+        "selektion",
+        "(und.(bis.preis-in-eur.100).(ist.sortiment.sportausruestung).(oder.(sind.kategorien.ablagen.laufbandablagen).(sind.kategorien.boards.balance-boards).(sind.kategorien.fitnessbaender).(sind.kategorien.gurte.slacklines).(sind.kategorien.hanteln).(sind.kategorien.kissen.balancekissen).(sind.kategorien.kraftstationen).(sind.kategorien.manschetten.gewichtsmanschetten).(sind.kategorien.matten).(sind.kategorien.reifen.hula-hoop-reifen).(sind.kategorien.seile.springseile).(sind.kategorien.stangen.klimmzugstangen).(sind.kategorien.stepper).(sind.kategorien.trainer).(sind.kategorien.trampoline).(sind.kategorien.vibrationsplatten)).(~.(v.1)))"
+      ],
+      [
+        "sortiertnach",
+        "preis-aufsteigend"
+      ]
+    ],
+    "priceInputs": [
+      {
+        "name": "preis-in-eur",
+        "value": "_,100"
+      },
+      {
+        "name": "preis-in-eur",
+        "value": "_,100"
+      }
+    ],
+    "url": "https://www.otto.de/?selektion=(und.(bis.preis-in-eur.100).(ist.sortiment.sportausruestung).(oder.(sind.kategorien.ablagen.laufbandablagen).(sind.kategorien.boards.balance-boards).(sind.kategorien.fitnessbaender).(sind.kategorien.gurte.slacklines).(sind.kategorien.hanteln).(sind.kategorien.kissen.balancekissen).(sind.kategorien.kraftstationen).(sind.kategorien.manschetten.gewichtsmanschetten).(sind.kategorien.matten).(sind.kategorien.reifen.hula-hoop-reifen).(sind.kategorien.seile.springseile).(sind.kategorien.stangen.klimmzugstangen).(sind.kategorien.stepper).(sind.kategorien.trainer).(sind.kategorien.trampoline).(sind.kategorien.vibrationsplatten)).(~.(v.1)))\u0026sortiertnach=preis-aufsteigend"
+  }
+}

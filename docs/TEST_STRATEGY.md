@@ -54,6 +54,7 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - exact applied-chip evidence rejects 140cm for 14cm, five stars for four stars, missing colours, unrelated product text, and duplicated evidence regions;
 - group summaries retain warnings when a selected value is unaccounted for, and a mismatched native sort remains route-only;
 - OTTO comma-delimited colours, maximum height and depth, seller, literal query syntax, Save, reset, replay, and idempotency;
+- OTTO fashion style multi-select, US clothing size, target group radio selection, Save, reset, replay, idempotency, and rejection of unchecked originals, missing or mismatched chips, and extra checked styles;
 - composite removal chips do not become action targets, and custom numeric mirrors in open shadow roots do not duplicate route filters;
 - original and removal-chip state must agree; a 240 input cannot verify saved 24, missing chips remain unverified, and extra checked values or unrelated sliders remain omissions;
 - generic labelled lists, nested accordions, numeric bounds, unchanged defaults, idempotent replay, and duplicate-group rejection.

@@ -64,6 +64,8 @@ Capture uses this evidence to omit duplicated native representations instead of 
 
 A selected removal chip without a recognized route representation remains unresolved. It cannot fall through to generic Boolean capture and become a replay action that removes the selected value.
 
+OTTO route schema version 3 adds `stil`, `us-groessen`, and `zielgruppe` as explicit choices. Style and size lists split comma-separated semantic values while retaining original query values and separators. Size display text uses uppercase labels; known target-group slugs have German labels. Each descriptor reuses the existing checked-original plus visible-chip evidence contract, including target-group radio buttons and size buttons in custom components. The generic executor and older bindings are unchanged.
+
 Route serialization preserves literal delimiters only for descriptor-declared OTTO keys and values. It leaves free-text query values encoded and preserves origin, credentials for rejection by the existing validator, and the sanitation policy. Other storefronts keep their existing serialization behavior.
 
 Route verification may read the visible associated label of a checked native checkbox or radio styled out of view. An unchecked label cannot verify selection. This does not authorize clicks on hidden inputs, and page header/footer and sensitive controls remain excluded. Replay expands closed native accordion ancestors only when needed and resolves controls again before each action.

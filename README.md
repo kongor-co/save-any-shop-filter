@@ -41,6 +41,8 @@ Home24 width bounds, ratings, and separate colour choices have explicit route se
 
 OTTO colour choices, seller, and maximum centimetre dimensions use explicit route semantics. Repeated custom-component inputs and removal chips are read as evidence rather than stored as one combined clickable filter. Confirmation requires both the original checked control and exactly one matching visible removal chip. Known interval mirrors, including numeric fields in open shadow roots, are omitted only when they agree with the saved route; inactive intervals require proven full bounds. Literal comma and tilde syntax is retained for OTTO's declared parameters.
 
+OTTO fashion filters also recognize style, US clothing sizes, and target groups. Comma-separated choices remain separate semantic values while preserving the physical route. Original checkboxes or radio buttons and their matching visible removal chips must agree before replay is verified. Chips are never stored as actions that remove a filter.
+
 FilterVault deliberately does not automate login, checkout, consent choices, CAPTCHAs, closed Shadow DOM, arbitrary scripts, or controls it cannot identify and verify safely.
 
 ## Development

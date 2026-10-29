@@ -9,6 +9,10 @@
 - [Live acceptance](LIVE_ACCEPTANCE.md): isolated retailer runs, evidence recording, and manual CI.
 - [Contributing](../CONTRIBUTING.md): development workflow and completion criteria.
 
+## Research inventories
+
+The [OTTO parameter inventory](research/otto-parameters-2026-10-29/README.md) records the October 29, 2026 public category sitemap scan and browser observations. It separates published query names, live URL evidence, and control-only field names, with listing-path mappings and explicit completeness limits.
+
 ## Product proposals
 
 - [Profile-based automation](proposals/profile-based-automation.md)
@@ -18,6 +22,7 @@ These proposals preserve useful ideas from predecessor prototypes. They are not 
 
 ## Historical evidence
 
+- [OTTO fashion filter validation, October 2026](reports/2026-10-29-otto-fashion-validation.md)
 - [Saved filter updates validation, October 2026](reports/2026-10-29-saved-filter-updates.md)
 - [OTTO filter validation, October 2026](reports/2026-10-27-otto-filter-validation.md)
 - [Home24 filter validation, October 2026](reports/2026-10-27-home24-filter-validation.md)

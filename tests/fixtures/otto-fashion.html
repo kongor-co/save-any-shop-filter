@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Reizwäsche</title>
+  <style>body{font:16px system-ui;margin:24px}fieldset{margin:12px 0}label{display:block}oc-chip-v3{display:inline-block;margin:5px}button{padding:8px}input{margin:5px}</style>
+</head>
+<body>
+  <header><form role="search"><input name="query" role="searchbox" aria-label="Suche"></form></header>
+  <main>
+    <h1>Reizwäsche</h1>
+    <div id="filters"></div>
+    <section><h2>Gewählte und beliebte Filter</h2><button type="button">Auswahl aufheben</button><ul id="chosen"></ul></section>
+    <label>Sortieren nach: <select name="sortiertnach"><option value="relevanz" selected>Topseller</option><option value="preis-aufsteigend">Preis aufsteigend</option></select></label>
+    <section><a href="/p/product-one">Artikel 1</a><a href="/p/product-two">Artikel 2</a><a href="/p/product-three">Artikel 3</a><a href="/p/product-four">Artikel 4</a></section>
+  </main>
+  <script>
+    customElements.define("oc-chip-v3", class extends HTMLElement {
+      connectedCallback() { if (!this.shadowRoot) this.attachShadow({mode:"open"}).innerHTML = '<slot></slot><slot name="content"></slot>'; }
+    });
+    let clicks = 0;
+    const params = new URL(location.href).searchParams;
+    const fields = [
+      {name:"stil",title:"Stil",type:"checkbox",options:[["erotisch","erotisch"],["elegant","elegant"],["casual","casual"]]},
+      {name:"us-groessen",title:"Größe",type:"checkbox",options:[["s","S"],["m","M"],["xl","XL"]]},
+      {name:"zielgruppe",title:"Für wen?",type:"radio",options:[["damen","Damen"],["herren","Herren"],["maedchen","Mädchen"],["jungen","Jungen"]]}
+    ];
+    for (const field of fields) {
+      const selected = params.getAll(field.name).flatMap((value) => value.split(","));
+      const group = document.createElement("fieldset");
+      const legend = document.createElement("legend"); legend.textContent = field.title; group.append(legend);
+      document.querySelector("#filters").append(group);
+      for (const [value, label] of field.options) {
+        const host = document.createElement(field.name === "us-groessen" ? "oc-chip-v3" : "label");
+        const input = document.createElement("input");
+        input.id = `original-${field.name}-${value}`; input.type = field.type; input.name = field.name;
+        input.value = value; input.checked = selected.includes(value); input.setAttribute("aria-label", label);
+        input.addEventListener("click", () => { clicks += 1; }); host.append(input);
+        const text = document.createElement(field.name === "us-groessen" ? "button" : "span"); text.textContent = label;
+        if (text.tagName === "BUTTON") { text.type = "button"; text.slot = "content"; }
+        host.append(text); group.append(host);
+        if (input.checked) {
+          const item = document.createElement("li"); const chip = document.createElement("oc-chip-v3"); chip.setAttribute("icon-right", "close");
+          const mirror = document.createElement("input"); mirror.type = "checkbox"; mirror.name = field.name; mirror.value = value; mirror.checked = true; mirror.setAttribute("aria-label", label);
+          const button = document.createElement("button"); button.type = "button"; button.slot = "content"; button.textContent = label;
+          button.addEventListener("click", () => { clicks += 1; item.remove(); });
+          chip.append(mirror, button); item.append(chip); document.querySelector("#chosen").append(item);
+        }
+      }
+    }
+    window.filterClicks = () => clicks;
+  </script>
+</body>
+</html>

@@ -1,0 +1,456 @@
+{
+  "checkedAt": "2026-10-29T18:56:53.409Z",
+  "scope": "All files in OTTO's published category sitemap index; not a complete backend parameter specification",
+  "indexUrl": "https://www.otto.de/category-sitemap/sitemap_index.xml.gz",
+  "indexSha256": "ab4d3628a55f789aaeb7bfc8dcb1a5baa7f1d5f9973aa2ea1c38625881bf537b",
+  "sitemapsExpected": 49,
+  "sitemapsScanned": 49,
+  "totalPublishedUrls": 467662,
+  "queryUrls": 459618,
+  "uniqueCategoryPaths": 8624,
+  "uniqueParameterNames": 276,
+  "failures": [],
+  "sources": [
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_accessoires.xml.gz",
+      "status": "OK",
+      "bytes": 791886,
+      "sha256": "e58f6639fb2b688e87e6fd7328c691d03c17f1ec82332c919974be83a1dcef4c",
+      "urls": 8735,
+      "queryUrls": 8628,
+      "checkedAt": "2026-10-29T18:56:51.417Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_arbeitsschutzkleidung.xml.gz",
+      "status": "OK",
+      "bytes": 148952,
+      "sha256": "a9996e046ceff47d8ebdde90ba9d27c17920b7a553015a4f734f470c3bec0d1b",
+      "urls": 1433,
+      "queryUrls": 1409,
+      "checkedAt": "2026-10-29T18:56:51.433Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_auto.xml.gz",
+      "status": "OK",
+      "bytes": 227552,
+      "sha256": "4386ee6a9494bef32224caf985a10138c74f9f388b1c0db5cd5b9d6a419524d9",
+      "urls": 2358,
+      "queryUrls": 2202,
+      "checkedAt": "2026-10-29T18:56:51.442Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_babys.xml.gz",
+      "status": "OK",
+      "bytes": 253987,
+      "sha256": "f34d8435b1057c383c74135514e7605b8997d8156e300c9aa95b61ec6239d34f",
+      "urls": 2711,
+      "queryUrls": 2449,
+      "checkedAt": "2026-10-29T18:56:51.479Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_baumarkt.xml.gz",
+      "status": "OK",
+      "bytes": 3121082,
+      "sha256": "c7fc1369562bd885ab3de9874560d42c436669a9c17782305625bf59d4382b7c",
+      "urls": 32387,
+      "queryUrls": 31508,
+      "checkedAt": "2026-10-29T18:56:51.670Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_beauty.xml.gz",
+      "status": "OK",
+      "bytes": 146258,
+      "sha256": "18c350fcb12a9c4db1fe60591ce4bfba89688ac1748f82cfe2af28d880523447",
+      "urls": 2189,
+      "queryUrls": 2189,
+      "checkedAt": "2026-10-29T18:56:51.500Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_buecher-filme-musik.xml.gz",
+      "status": "OK",
+      "bytes": 4570,
+      "sha256": "504ed7d3ab65f9d3d88e10d5b880c700bb85ffc9b3460100a9b98446913db223",
+      "urls": 45,
+      "queryUrls": 45,
+      "checkedAt": "2026-10-29T18:56:51.488Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_buecher.xml.gz",
+      "status": "OK",
+      "bytes": 312218,
+      "sha256": "e5517a65e965381f3d809d76e57fae23f9e64705ade6af6b98b8183fccb66b55",
+      "urls": 4092,
+      "queryUrls": 4052,
+      "checkedAt": "2026-10-29T18:56:51.557Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_buerobedarf.xml.gz",
+      "status": "OK",
+      "bytes": 432016,
+      "sha256": "bfc21e948de2b4a1c3896a1c480fe199ea6f0bcedbde11965ee7e69f457070d9",
+      "urls": 4926,
+      "queryUrls": 4800,
+      "checkedAt": "2026-10-29T18:56:51.574Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_camping.xml.gz",
+      "status": "OK",
+      "bytes": 118793,
+      "sha256": "82fafbbf1db1f217b8a26d69dc5dd7edc4d1d73e1e321228978f707490c570cd",
+      "urls": 1415,
+      "queryUrls": 1367,
+      "checkedAt": "2026-10-29T18:56:51.544Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_damen_1.xml.gz",
+      "status": "OK",
+      "bytes": 4052340,
+      "sha256": "9e7c99aa1b5c6dd690585cc47d58c015da84f5ccf4ba0339aca2a2a5d86fb412",
+      "urls": 44446,
+      "queryUrls": 44055,
+      "checkedAt": "2026-10-29T18:56:52.150Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_damen.xml.gz",
+      "status": "OK",
+      "bytes": 4618987,
+      "sha256": "bb860ac23b496a429781a81cbe599b814cea263953a1799cb36dd7bc00089cf7",
+      "urls": 50000,
+      "queryUrls": 49661,
+      "checkedAt": "2026-10-29T18:56:51.905Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_dekoration.xml.gz",
+      "status": "OK",
+      "bytes": 2369702,
+      "sha256": "039ab77252efb042b92ba721520df4e4d082181c7cff2e2779826e36864bdb5a",
+      "urls": 25826,
+      "queryUrls": 25572,
+      "checkedAt": "2026-10-29T18:56:52.005Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_diy.xml.gz",
+      "status": "OK",
+      "bytes": 295652,
+      "sha256": "eadd40b27144c11a207c2ba8bbcaf237f8006ba368cefebe94c2e731eb504b9e",
+      "urls": 3418,
+      "queryUrls": 3336,
+      "checkedAt": "2026-10-29T18:56:51.720Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_erotik.xml.gz",
+      "status": "OK",
+      "bytes": 7226,
+      "sha256": "c5bb38f04fa37547e4e53c9c662203589c9bcd8e8b83332953cd0684b0426c60",
+      "urls": 102,
+      "queryUrls": 97,
+      "checkedAt": "2026-10-29T18:56:51.757Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_fahrraeder.xml.gz",
+      "status": "OK",
+      "bytes": 320218,
+      "sha256": "48231404984d7253008895716538e07475add4e59452846dc7bfb9351b6cbe91",
+      "urls": 3402,
+      "queryUrls": 3297,
+      "checkedAt": "2026-10-29T18:56:51.921Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_fanartikel.xml.gz",
+      "status": "OK",
+      "bytes": 160,
+      "sha256": "ef153bc5130f95514249ded452d741eed4bd05163744fd29bef74de01926fe2a",
+      "urls": 1,
+      "queryUrls": 0,
+      "checkedAt": "2026-10-29T18:56:52.018Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_filme.xml.gz",
+      "status": "OK",
+      "bytes": 9483,
+      "sha256": "965f4f1c262bff82be1e7c634463f99b0bdc79e7de3ee12c5794b0da7a6a0cb8",
+      "urls": 134,
+      "queryUrls": 132,
+      "checkedAt": "2026-10-29T18:56:52.019Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_garten.xml.gz",
+      "status": "OK",
+      "bytes": 1131589,
+      "sha256": "9e95a1f0269eef73c69ed3772e2debc1fd1a006da03ade814e441f988183dad6",
+      "urls": 12214,
+      "queryUrls": 11828,
+      "checkedAt": "2026-10-29T18:56:52.200Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_geschenkideen.xml.gz",
+      "status": "OK",
+      "bytes": 3620,
+      "sha256": "66fa91a09e9aa389116ba36d20abf83b18cc4d65396fb1c5059b47bcfa305357",
+      "urls": 40,
+      "queryUrls": 33,
+      "checkedAt": "2026-10-29T18:56:52.153Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_gesundheit.xml.gz",
+      "status": "OK",
+      "bytes": 384375,
+      "sha256": "dfce87ff2175fc3bf5b9822a2813483c6cff39f57eb39ed42d6db84df158574f",
+      "urls": 3943,
+      "queryUrls": 3770,
+      "checkedAt": "2026-10-29T18:56:52.164Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_haushalt.xml.gz",
+      "status": "OK",
+      "bytes": 3400822,
+      "sha256": "3ad81b636db3c3bab67cbf0f478f4df9476ec32cf69e9536aeebd76e129e87f5",
+      "urls": 35464,
+      "queryUrls": 34580,
+      "checkedAt": "2026-10-29T18:56:52.648Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_heimtextilien.xml.gz",
+      "status": "OK",
+      "bytes": 2015699,
+      "sha256": "8effb896d67593b92ecc35dcac59da16e1f507d0be5f479b2286c89da77b4432",
+      "urls": 20644,
+      "queryUrls": 20438,
+      "checkedAt": "2026-10-29T18:56:52.422Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_herren.xml.gz",
+      "status": "OK",
+      "bytes": 3354675,
+      "sha256": "26a91fd2d4e4d0f9b91aafb43d109b510057e5edd9c70cca7287e760670e59cc",
+      "urls": 36520,
+      "queryUrls": 35997,
+      "checkedAt": "2026-10-29T18:56:52.806Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_inspiration.xml.gz",
+      "status": "OK",
+      "bytes": 161,
+      "sha256": "e7c65eb724ff551c87118b7349bf184863578489babb2cfb69c966fa5f9bb495",
+      "urls": 1,
+      "queryUrls": 0,
+      "checkedAt": "2026-10-29T18:56:52.269Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_jungen.xml.gz",
+      "status": "OK",
+      "bytes": 99129,
+      "sha256": "02bf4db37fa30a28d5ff2beb4382fe686bcd51767e425938f4e5ead1a119876e",
+      "urls": 1203,
+      "queryUrls": 984,
+      "checkedAt": "2026-10-29T18:56:52.324Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_koerperpflege.xml.gz",
+      "status": "OK",
+      "bytes": 1396604,
+      "sha256": "d51679264b79ef491dc6958ec537cbf3dfa2f6543d59c067ab63ac895fd6bcd6",
+      "urls": 13989,
+      "queryUrls": 13705,
+      "checkedAt": "2026-10-29T18:56:52.486Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_kraftraeder.xml.gz",
+      "status": "OK",
+      "bytes": 36044,
+      "sha256": "be917749b425650ff89620ada6e78594e205e94de0c435cacdb9b59984c50160",
+      "urls": 380,
+      "queryUrls": 363,
+      "checkedAt": "2026-10-29T18:56:52.494Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_lampen.xml.gz",
+      "status": "OK",
+      "bytes": 1131265,
+      "sha256": "c6a12163c050c09acfb147fa3000279b2a0bbdf51212df636ab21e4036eae04a",
+      "urls": 12245,
+      "queryUrls": 12166,
+      "checkedAt": "2026-10-29T18:56:52.864Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_maedchen.xml.gz",
+      "status": "OK",
+      "bytes": 145085,
+      "sha256": "54f5cf170e686e3d52afd95ee4804fce94374557330fc157feb07603646c5c9a",
+      "urls": 1713,
+      "queryUrls": 1398,
+      "checkedAt": "2026-10-29T18:56:52.664Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_marken.xml.gz",
+      "status": "OK",
+      "bytes": 156,
+      "sha256": "dee13630fc62a261e85ad67876686612ba4b4664948e1de3e25e82950f8b1113",
+      "urls": 1,
+      "queryUrls": 0,
+      "checkedAt": "2026-10-29T18:56:52.823Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_mode.xml.gz",
+      "status": "OK",
+      "bytes": 1404138,
+      "sha256": "a5e384125f168b6dda248c18c002c03f64102c627f78e63f4f4eec94de3a4440",
+      "urls": 17446,
+      "queryUrls": 17391,
+      "checkedAt": "2026-10-29T18:56:52.930Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_moebel.xml.gz",
+      "status": "OK",
+      "bytes": 4082749,
+      "sha256": "c06d9ef73f9e6e5d93918bea7e834ae302a62e8ce781f4d5f8c4e8c9603664c1",
+      "urls": 44576,
+      "queryUrls": 44240,
+      "checkedAt": "2026-10-29T18:56:53.119Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_musikinstrumente.xml.gz",
+      "status": "OK",
+      "bytes": 100503,
+      "sha256": "d5108f9419d0f20e687fab6ccd359890c4b63ad6d544a979eb0a753115ffd5cc",
+      "urls": 1120,
+      "queryUrls": 1029,
+      "checkedAt": "2026-10-29T18:56:52.940Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_reisegepaeck.xml.gz",
+      "status": "OK",
+      "bytes": 108476,
+      "sha256": "9f66a341973e11cdb98c56ec74c87d2823f9163d9d00bc62ec114a02af5af6e0",
+      "urls": 1243,
+      "queryUrls": 1226,
+      "checkedAt": "2026-10-29T18:56:52.949Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_sale.xml.gz",
+      "status": "OK",
+      "bytes": 333,
+      "sha256": "4a0cde7eccc1dd09ede920eaacbccaefdf0bd29d0fbd4432c4d5497645090cc0",
+      "urls": 4,
+      "queryUrls": 1,
+      "checkedAt": "2026-10-29T18:56:52.971Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_schuhe.xml.gz",
+      "status": "OK",
+      "bytes": 970816,
+      "sha256": "658f922a3296b3a837a8ef411fd6d64ca11520070441ed607f8c0d3b1324845d",
+      "urls": 11415,
+      "queryUrls": 11396,
+      "checkedAt": "2026-10-29T18:56:53.168Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_schule-lernen.xml.gz",
+      "status": "OK",
+      "bytes": 174473,
+      "sha256": "1b6d5ff202226778e246eb9e9a0b5b5ce3d4b625427b100b7948306112e9c563",
+      "urls": 1722,
+      "queryUrls": 1683,
+      "checkedAt": "2026-10-29T18:56:53.133Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_spielwaren.xml.gz",
+      "status": "OK",
+      "bytes": 113130,
+      "sha256": "284b30f3a2ead9f9a63a8154de1f917190a77d5b1ad558f8735a6cf0f905afc0",
+      "urls": 1579,
+      "queryUrls": 1579,
+      "checkedAt": "2026-10-29T18:56:53.128Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_spielzeug.xml.gz",
+      "status": "OK",
+      "bytes": 856949,
+      "sha256": "8007c3b34e4498f2d33edfd8318c797f35ef686497ed4be5b01a13d88b130a28",
+      "urls": 9503,
+      "queryUrls": 9109,
+      "checkedAt": "2026-10-29T18:56:53.205Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_sport.xml.gz",
+      "status": "OK",
+      "bytes": 886237,
+      "sha256": "a62c2d4c5fc27d796ffd6f19a1bc298a7c20cdb730038fb8c8523253721b096c",
+      "urls": 9088,
+      "queryUrls": 8669,
+      "checkedAt": "2026-10-29T18:56:53.231Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_supermarkt.xml.gz",
+      "status": "OK",
+      "bytes": 150984,
+      "sha256": "6575457f90c43c4b1d27c1673bcba90e58c40b6bfdc86e7dca00c11e09f22cd1",
+      "urls": 1602,
+      "queryUrls": 1537,
+      "checkedAt": "2026-10-29T18:56:53.175Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_taschen.xml.gz",
+      "status": "OK",
+      "bytes": 900607,
+      "sha256": "e49280c27029a2b91889bce264acebfe27a16de32af5738bd8604081205ca5d8",
+      "urls": 10878,
+      "queryUrls": 10830,
+      "checkedAt": "2026-10-29T18:56:53.273Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_technik.xml.gz",
+      "status": "OK",
+      "bytes": 2177484,
+      "sha256": "1016386276cd7b4e64fd4bdb3125494c4b3a86b15dee5c01168679e7be082041",
+      "urls": 23015,
+      "queryUrls": 22537,
+      "checkedAt": "2026-10-29T18:56:53.373Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_tierbedarf.xml.gz",
+      "status": "OK",
+      "bytes": 287737,
+      "sha256": "01ce6216ef98e5edfd2b6868ceb6a0b1ceb5c5472ae18005d64076b79b4a31b4",
+      "urls": 3222,
+      "queryUrls": 3100,
+      "checkedAt": "2026-10-29T18:56:53.286Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_verkleidung.xml.gz",
+      "status": "OK",
+      "bytes": 154336,
+      "sha256": "037c695c30f42690fcebf882d5053c48add0c59e97981113cc3731dd77aa6e15",
+      "urls": 1837,
+      "queryUrls": 1798,
+      "checkedAt": "2026-10-29T18:56:53.301Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_weihnachten.xml.gz",
+      "status": "OK",
+      "bytes": 161,
+      "sha256": "e324e7a44e67d536ea27ae7676b20b38f3ed024e0cc46310e5d47de69cbe34f0",
+      "urls": 1,
+      "queryUrls": 0,
+      "checkedAt": "2026-10-29T18:56:53.376Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_wm.xml.gz",
+      "status": "OK",
+      "bytes": 152,
+      "sha256": "68237321471ee6dd5aab5c0f85b46d80d3e7a2f89baef07446f405a7aaa042c2",
+      "urls": 1,
+      "queryUrls": 0,
+      "checkedAt": "2026-10-29T18:56:53.376Z"
+    },
+    {
+      "url": "https://www.otto.de/category-sitemap/sitemap_wohnen.xml.gz",
+      "status": "OK",
+      "bytes": 236097,
+      "sha256": "efdc3e1cf42ea0beabfe52f50aaa77210ed9aba1defebb8afc38734107ef790b",
+      "urls": 3433,
+      "queryUrls": 3432,
+      "checkedAt": "2026-10-29T18:56:53.383Z"
+    }
+  ]
+}
