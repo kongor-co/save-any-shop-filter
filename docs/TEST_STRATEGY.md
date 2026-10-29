@@ -30,6 +30,7 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - checkout rejection;
 - replay navigation, DOM restoration, route-only warnings, and cancellation races;
 - popup Save, Details, Rename, Duplicate, Delete confirmation, keyboard dialog focus, Export, and Import;
+- saved-filter Update preview, cancellation, omission visibility, identity preservation, replay of replacement criteria, Undo, and stale-page confirmation rejection;
 - current-shop Library defaults across mixed retailer records, scope plus search, counts, empty-shop and capture-unsupported pages, navigation updates, popup reopening, and restricted-page fallback;
 - scoped Details, Rename, Duplicate, Delete, and successful replay, plus mixed-shop Import and a complete Export all backup while other shops are hidden;
 - changed-category confirmation through the popup, with no filter mutation before approval;
@@ -62,6 +63,8 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 Required criteria with only route evidence produce `PARTIAL`. `COMPLETE_WITH_WARNINGS` is reserved for warnings on presentation criteria after required criteria are verified. Route-only evidence degrades mapping health; unavailable inventory alone preserves its previous health.
 
 ## Coverage gate
+
+`saved-updates.test.mjs` covers update revisions, change summaries, context guards, known path facets, capture replacement, and message validation. `saved-update-worker.test.mjs` runs the actual worker orchestration with controlled Chrome storage and page boundaries. It checks replacement, Undo, races, stale confirmations, quota failures, migration, replay coordination, and existing export, duplicate, import, and delete behavior. The local popup fixture checks the real popup against that worker harness in the built-in browser. This fixture does not establish packaged-extension or live-storefront acceptance. The additional packaged scenarios are in `scripts/saved-update-browser-cases.mjs`.
 
 `npm run test:coverage` measures the environment-independent shared core and route-schema registry. Required minimums are:
 

@@ -8,7 +8,9 @@ const state = {
   libraryScope: "current",
   replay: null,
   replayTimer: null,
-  actionState: null
+  actionState: null,
+  updatePreview: null,
+  updateRequest: 0
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -72,6 +74,10 @@ function bindEvents() {
   elements.actionsDialog.addEventListener("click", handleDialogAction);
   $("#cancel-delete").addEventListener("click", () => elements.confirmDialog.close());
   $("#confirm-delete").addEventListener("click", confirmDelete);
+  $("#close-update").addEventListener("click", () => $("#update-dialog").close());
+  $("#cancel-update").addEventListener("click", () => $("#update-dialog").close());
+  $("#confirm-update").addEventListener("click", confirmSavedUpdate);
+  $("#update-dialog").addEventListener("close", () => { state.updatePreview = null; state.updateRequest += 1; });
 }
 
 async function loadCapture() {
@@ -219,6 +225,7 @@ function libraryCard(saved) {
     <div class="card-actions">
       <button class="replay" type="button" data-action="replay">Replay</button>
       <button type="button" data-action="details">Details</button>
+      <button type="button" data-action="update">Update</button>
       <button type="button" data-action="more" aria-label="More actions">•••</button>
     </div>`;
   card.querySelector("strong").textContent = saved.name;
@@ -236,6 +243,7 @@ async function handleLibraryAction(event) {
     if (button.dataset.action === "replay") await beginReplay(saved);
     if (button.dataset.action === "details") showDetails(saved);
     if (button.dataset.action === "more") await moreActions(saved);
+    if (button.dataset.action === "update") await openUpdatePreview(saved);
   } catch (error) {
     toast(humanError(error), true);
   }
@@ -245,6 +253,66 @@ async function moreActions(saved) {
   state.actionState = saved;
   $("#rename-value").value = saved.name;
   elements.actionsDialog.showModal();
+  $("#undo-state-update").disabled = true;
+  const info = await send(MESSAGE.GET_STATE_UPDATE_INFO, { stateId: saved.id });
+  if (state.actionState?.id === saved.id) $("#undo-state-update").disabled = !info.undoAvailable;
+}
+
+async function openUpdatePreview(saved, mode = "update") {
+  const request = ++state.updateRequest;
+  state.updatePreview = null;
+  const dialog = $("#update-dialog");
+  $("#update-title").textContent = mode === "undo" ? "Undo last filter update" : "Update saved filters";
+  $("#update-context").textContent = saved.name;
+  $("#update-description").textContent = mode === "undo"
+    ? "Restore the previous saved settings. Use Replay to apply them to the shop."
+    : "Review the current page's settings before replacing this saved configuration. The previous version will be available through Undo.";
+  $("#update-status").textContent = "Preparing change preview…";
+  $("#update-changes").replaceChildren();
+  $("#update-coverage").replaceChildren();
+  $("#update-omissions").hidden = true;
+  $("#confirm-update").disabled = true;
+  $("#confirm-update").textContent = mode === "undo" ? "Undo last update" : "Update saved filters";
+  dialog.showModal();
+  try {
+    const preview = await send(mode === "undo" ? MESSAGE.PREVIEW_STATE_UNDO : MESSAGE.PREVIEW_STATE_UPDATE,
+      mode === "undo" ? { stateId: saved.id } : { stateId: saved.id, tabId: state.activeTab.id });
+    if (!dialog.open || request !== state.updateRequest) return;
+    state.updatePreview = { ...preview, tabId: state.activeTab.id };
+    $("#update-context").textContent = `${preview.name} · ${preview.site.hostname} · ${preview.context.category || preview.context.searchQuery || preview.context.surface}`;
+    $("#update-status").textContent = preview.reason || (preview.changes.length ? `${preview.changes.length} filter or setting changes to review.` : "Control mappings or captured page details will be refreshed.");
+    $("#update-changes").replaceChildren(...preview.changes.map((change) => {
+      const row = document.createElement("div"); row.className = "update-change";
+      const title = document.createElement("strong"); title.textContent = `${humanSemantic(change.kind)}: ${humanSemantic(change.semanticType)}`;
+      const before = document.createElement("small"); before.textContent = `Before: ${change.before.join(", ") || "None"}`;
+      const after = document.createElement("small"); after.textContent = `After: ${change.after.join(", ") || "None"}`;
+      row.append(title, before, after); return row;
+    }));
+    renderCoverage($("#update-coverage"), preview.coverage);
+    const omissions = [...preview.unsupported, ...preview.unresolved];
+    $("#update-omissions").hidden = !omissions.length;
+    $("#update-omissions-list").replaceChildren(...omissions.map((item) => {
+      const row = document.createElement("p"); row.textContent = `${item.label}: ${item.reason}`; return row;
+    }));
+    $("#confirm-update").disabled = !preview.canApply;
+  } catch (error) { if (dialog.open ? request === state.updateRequest : false) $("#update-status").textContent = humanError(error); }
+}
+
+async function confirmSavedUpdate() {
+  const preview = state.updatePreview;
+  if (!preview) return;
+  $("#confirm-update").disabled = true;
+  try {
+    const updated = await send(preview.mode === "undo" ? MESSAGE.UNDO_STATE_UPDATE : MESSAGE.APPLY_STATE_UPDATE,
+      preview.mode === "undo" ? { stateId: preview.stateId, expectedRevision: preview.expectedRevision }
+        : { stateId: preview.stateId, tabId: preview.tabId, expectedRevision: preview.expectedRevision, captureToken: preview.captureToken });
+    $("#update-dialog").close();
+    await loadLibrary();
+    toast(preview.mode === "undo" ? `Restored previous filters for “${updated.name}”.` : `Updated “${updated.name}”. Replay to verify the new settings.`);
+  } catch (error) {
+    state.updatePreview = null;
+    $("#update-status").textContent = `${humanError(error)} Close this preview and try again.`;
+  }
 }
 
 async function handleDialogAction(event) {
@@ -267,6 +335,9 @@ async function handleDialogAction(event) {
       elements.actionsDialog.close();
       $("#confirm-copy").textContent = `“${saved.name}” will be permanently removed from this Chrome profile.`;
       elements.confirmDialog.showModal();
+    } else if (button.dataset.libraryAction === "undo") {
+      elements.actionsDialog.close();
+      await openUpdatePreview(saved, "undo");
     }
   } catch (error) {
     toast(humanError(error), true);
@@ -513,7 +584,13 @@ function humanError(error) {
     CAPTURE_UNSTABLE: "The page kept changing while filters were read. Wait for results to settle, then retry.",
     NO_SUPPORTED_CRITERIA: "No supported active filters were found.",
     NO_MEANINGFUL_CRITERIA: "Only search or page context was detected; select a filter or non-default sort before saving.",
-    REPLAY_ALREADY_ACTIVE: "A replay is already active in this tab."
+    REPLAY_ALREADY_ACTIVE: "A replay is already active in this tab.",
+    UPDATE_ORIGIN_MISMATCH: "Open the saved configuration's exact webshop before updating it.",
+    UPDATE_CONTEXT_MISMATCH: "Open the same listing or search as the saved configuration before updating it.",
+    SAVED_STATE_IN_USE: "This configuration is being replayed. Finish or cancel its replay before updating it.",
+    SAVED_STATE_CHANGED: "The saved configuration changed while this preview was open.",
+    NO_STATE_UPDATE_TO_UNDO: "There is no previous filter update available to restore.",
+    NO_UPDATE_CHANGES: "These settings already match the saved configuration."
   };
   return known[code] || code.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 }

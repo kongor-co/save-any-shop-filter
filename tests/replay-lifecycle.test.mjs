@@ -8,6 +8,7 @@ import * as coverage from "../src/shared/coverage.js";
 import * as route from "../src/shared/route.js";
 import * as validator from "../src/shared/validator.js";
 import * as policy from "../src/shared/replay-policy.js";
+import * as updates from "../src/shared/saved-updates.js";
 
 const source = (await readFile(new URL("../src/background/service-worker.js", import.meta.url), "utf8"))
   .replace(/import[\s\S]*?from\s+["'][^"']+["'];/g, "");
@@ -42,7 +43,7 @@ async function harness(options = {}) {
     clearActiveReplay:async (id) => active.delete(id)
   };
   const sandbox = {
-    ...constants,...planner,...coverage,...route,...validator,...policy,...storage,
+    ...constants,...planner,...coverage,...route,...validator,...policy,...updates,...storage,
     console,URL,Date,Map,Set,Promise,crypto,structuredClone,setTimeout,clearTimeout,
     chrome:{
       runtime:{id:"extension",getURL:(path) => `chrome-extension://extension/${path}`,onInstalled:event("installed"),onMessage:event("message")},
@@ -52,7 +53,10 @@ async function harness(options = {}) {
       tabs:{
         onUpdated:event("updated"),onRemoved:event("removed"),
         get:async () => ({id:1,url:sender.url,status:"complete"}),
-        update:async (_id, value) => {navigation.push(value.url);sender.url=value.url;},
+        update:async (_id, value) => {
+          navigation.push(value.url);sender.url=value.url;
+          if (options.completeDuringNavigation) await sandbox.api.executeReplay(await storage.getActiveReplay(1), await storage.getState("saved"));
+        },
         sendMessage:async (_id,message,target) => {
           messages.push({message,target});
           if (target?.documentId !== sender.documentId) throw new Error("STALE_DOCUMENT");
@@ -102,6 +106,17 @@ test("replay finishes and racing starts cannot install two controllers", async (
   await settled(() => complete.storage.getReplay(started.replayId),(item) => item.status === "COMPLETE");
   await complete.failReplay(started,new Error("late failure"));
   assert.equal((await complete.storage.getReplay(started.replayId)).status,"COMPLETE");
+});
+
+test("fast replay completion during navigation cannot deadlock saved-state update coordination", async () => {
+  const h = await harness({ completeDuringNavigation: true });
+  h.sender.url = "https://shop.example/search";
+  let timer;
+  try {
+    const replay = await Promise.race([h.startReplay("saved", 1), new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error("REPLAY_DEADLOCK")), 1000); })]);
+    assert.equal(replay.status, "COMPLETE");
+    assert.equal(h.states.get("saved").metadata.health, "HEALTHY");
+  } finally { clearTimeout(timer); }
 });
 
 test("context failures become terminal and uncertainty requires fresh document confirmation", async () => {

@@ -7,6 +7,10 @@ import {
 import { calculateReplayBudget, topologicalSort } from "../shared/planner.js";
 import { calculateCoverage } from "../shared/coverage.js";
 import {
+  assertUpdateContext, diffSavedCriteria, previewUpdateContent, replaceSavedCapture,
+  restoreSavedCapture, savedUpdateContent, updateRevision
+} from "../shared/saved-updates.js";
+import {
   buildReplayUrl,
   captureRouteCriteria,
   cleanCaptureUrl,
@@ -40,6 +44,7 @@ import {
   putState,
   removeState
 } from "./storage.js";
+import { getStateUndo, putUpdatedState, putRestoredState } from "./storage.js";
 
 const TERMINAL_STATUSES = new Set([
   REPLAY_STATUS.COMPLETE,
@@ -103,14 +108,24 @@ async function handleMessage(message, sender) {
       return ok(await captureTab(assertTabId(message.tabId)));
     case MESSAGE.SAVE_CAPTURE:
       return ok(await saveCapture(message));
+    case MESSAGE.PREVIEW_STATE_UPDATE:
+      return ok(await previewStateUpdate(message));
+    case MESSAGE.APPLY_STATE_UPDATE:
+      return ok(await applyStateUpdate(message));
+    case MESSAGE.GET_STATE_UPDATE_INFO:
+      return ok(await getStateUpdateInfo(message.stateId));
+    case MESSAGE.PREVIEW_STATE_UNDO:
+      return ok(await previewStateUndo(message.stateId));
+    case MESSAGE.UNDO_STATE_UPDATE:
+      return ok(await undoStateUpdate(message));
     case MESSAGE.LIST_STATES:
       return ok(await listStates());
     case MESSAGE.RENAME_STATE:
-      return ok(await renameState(message));
+      return ok(await withReplayLock(`state:${message.stateId}`, () => renameState(message)));
     case MESSAGE.DUPLICATE_STATE:
       return ok(await duplicateState(message.stateId));
     case MESSAGE.DELETE_STATE:
-      await removeState(message.stateId);
+      await withReplayLock(`state:${message.stateId}`, () => removeState(message.stateId));
       return ok(true);
     case MESSAGE.EXPORT_LIBRARY:
       return ok(await exportLibrary(message.stateIds));
@@ -289,6 +304,92 @@ async function renameState(message) {
   return updated;
 }
 
+async function assertStateIdle(stateId) {
+  const running = (await listActiveReplays()).some((replay) => replay.savedStateId === stateId ? !TERMINAL_STATUSES.has(replay.status) : false);
+  if (running) throw new Error("SAVED_STATE_IN_USE");
+}
+
+async function validUndoFor(saved) {
+  const undo = await getStateUndo(saved.id);
+  if (!undo || undo.previous.site.origin !== saved.site.origin) return null;
+  return undo.contentRevision === await updateRevision(savedUpdateContent(saved)) ? undo : null;
+}
+
+async function getStateUpdateInfo(stateId) {
+  const saved = await getState(stateId);
+  return { undoAvailable: Boolean(await validUndoFor(saved)) };
+}
+
+async function captureForUpdate(saved, tabId) {
+  const tab = await chrome.tabs.get(assertTabId(tabId));
+  assertSupportedUrl(tab.url);
+  if (new URL(tab.url).origin !== saved.site.origin) throw new Error("UPDATE_ORIGIN_MISMATCH");
+  const preview = await captureTab(tabId);
+  assertUpdateContext(saved, preview);
+  return preview;
+}
+
+async function updatePreviewResult(saved, preview, mode) {
+  const before = savedUpdateContent(saved);
+  const after = previewUpdateContent(preview);
+  const changes = diffSavedCriteria(saved.criteria, preview.criteria);
+  const hasChanges = await updateRevision(before) !== await updateRevision(after);
+  return {
+    stateId: saved.id, name: saved.name, mode, expectedRevision: await updateRevision(saved),
+    captureToken: await updateRevision(after), changes, hasChanges,
+    coverage: preview.coverage, unsupported: preview.unsupported || [], unresolved: preview.unresolved || [],
+    site: preview.site, context: preview.context,
+    canApply: mode === "undo" ? true : Boolean(preview.coverage.saveEligible ? hasChanges : false),
+    reason: mode === "undo" ? null : !preview.coverage.saveEligible ? preview.coverage.saveReason : !hasChanges ? "These settings already match the saved configuration." : null
+  };
+}
+
+async function previewStateUpdate(message) {
+  return withReplayLock(`state:${message.stateId}`, async () => {
+    await assertStateIdle(message.stateId);
+    const saved = await getState(message.stateId);
+    const preview = await captureForUpdate(saved, message.tabId);
+    return updatePreviewResult(saved, preview, "update");
+  });
+}
+
+async function applyStateUpdate(message) {
+  return withReplayLock(`state:${message.stateId}`, async () => {
+    await assertStateIdle(message.stateId);
+    const saved = await getState(message.stateId);
+    if (await updateRevision(saved) !== message.expectedRevision) throw new Error("SAVED_STATE_CHANGED");
+    const fresh = await captureForUpdate(saved, message.tabId);
+    if (await updateRevision(previewUpdateContent(fresh)) !== message.captureToken) throw new Error("CAPTURE_STATE_CHANGED");
+    if (!fresh.coverage.saveEligible) throw new Error("NO_MEANINGFUL_CRITERIA");
+    if (await updateRevision(savedUpdateContent(saved)) === message.captureToken) throw new Error("NO_UPDATE_CHANGES");
+    const updated = replaceSavedCapture(saved, fresh, new Date().toISOString());
+    validateSavedState(updated);
+    await putUpdatedState(updated, saved, await updateRevision(savedUpdateContent(updated)));
+    return updated;
+  });
+}
+
+async function previewStateUndo(stateId) {
+  return withReplayLock(`state:${stateId}`, async () => {
+    await assertStateIdle(stateId);
+    const saved = await getState(stateId);
+    const undo = await validUndoFor(saved);
+    if (!undo) throw new Error("NO_STATE_UPDATE_TO_UNDO");
+    return updatePreviewResult(saved, savedUpdateContent(undo.previous), "undo");
+  });
+}
+
+async function undoStateUpdate(message) {
+  return withReplayLock(`state:${message.stateId}`, async () => {
+    await assertStateIdle(message.stateId);
+    const saved = await getState(message.stateId);
+    if (await updateRevision(saved) !== message.expectedRevision) throw new Error("SAVED_STATE_CHANGED");
+    const undo = await validUndoFor(saved);
+    if (!undo) throw new Error("NO_STATE_UPDATE_TO_UNDO");
+    return putRestoredState(restoreSavedCapture(saved, undo.previous, new Date().toISOString()));
+  });
+}
+
 async function duplicateState(stateId) {
   const state = await getState(stateId);
   const now = new Date().toISOString();
@@ -332,7 +433,7 @@ async function startReplay(stateId, tabId) {
   return withReplayLock(`tab:${tabId}`, () => startReplayInTab(stateId, tabId));
 }
 
-async function startReplayInTab(stateId, tabId) {
+async function prepareReplay(stateId, tabId) {
   const state = await getState(stateId);
   validateSavedState(state);
   topologicalSort(state.criteria);
@@ -359,6 +460,7 @@ async function startReplayInTab(stateId, tabId) {
     deadlineAt: Date.now() + calculateReplayBudget(state.criteria),
     replayId,
     savedStateId: state.id,
+    savedContentRevision: await updateRevision(savedUpdateContent(state)),
     savedStateName: state.name,
     tabId,
     frameId: 0,
@@ -375,6 +477,16 @@ async function startReplayInTab(stateId, tabId) {
     updatedAt: now
   };
   await putReplay(checkpoint);
+  return { checkpoint, state, tab, replayUrl };
+}
+
+async function startReplayInTab(stateId, tabId) {
+  // Release the saved-state lock before navigation can complete a replay and
+  // write its metadata. Registration alone is serialized against updates.
+  const prepared = await withReplayLock(`state:${stateId}`, () => prepareReplay(stateId, tabId));
+  if (prepared.permissionRequired) return prepared;
+  const { checkpoint, state, tab, replayUrl } = prepared;
+  const replayId = checkpoint.replayId;
 
   if (!sameReplayRoute(tab.url, replayUrl)) {
     const waiting = { ...checkpoint, status: REPLAY_STATUS.WAITING_NAVIGATION, updatedAt: new Date().toISOString() };
@@ -551,24 +663,29 @@ async function failReplay(checkpoint, error) {
 
 async function updateReplayMetadata(checkpoint) {
   try {
-    const state = await getState(checkpoint.savedStateId);
-    const success = checkpoint.status === REPLAY_STATUS.COMPLETE || checkpoint.status === REPLAY_STATUS.COMPLETE_WITH_WARNINGS;
-    const health = deriveMappingHealth(checkpoint.results, state.metadata.health);
-    const mappingHealthEvidence = (checkpoint.results || []).map((result) => ({
-      criterionId: result.criterionId,
-      status: result.status,
-      observedAt: checkpoint.completedAt || new Date().toISOString()
-    }));
-    await putState({
-      ...state,
-      metadata: {
-        ...state.metadata,
-        updatedAt: new Date().toISOString(),
-        lastReplayAt: checkpoint.completedAt || new Date().toISOString(),
-        lastSuccessfulReplayAt: success ? (checkpoint.completedAt || new Date().toISOString()) : state.metadata.lastSuccessfulReplayAt,
-        health,
-        mappingHealthEvidence
+    await withReplayLock(`state:${checkpoint.savedStateId}`, async () => {
+      const state = await getState(checkpoint.savedStateId);
+      if (checkpoint.savedContentRevision) {
+        if (checkpoint.savedContentRevision !== await updateRevision(savedUpdateContent(state))) return;
       }
+      const success = checkpoint.status === REPLAY_STATUS.COMPLETE || checkpoint.status === REPLAY_STATUS.COMPLETE_WITH_WARNINGS;
+      const health = deriveMappingHealth(checkpoint.results, state.metadata.health);
+      const mappingHealthEvidence = (checkpoint.results || []).map((result) => ({
+        criterionId: result.criterionId,
+        status: result.status,
+        observedAt: checkpoint.completedAt || new Date().toISOString()
+      }));
+      await putState({
+        ...state,
+        metadata: {
+          ...state.metadata,
+          updatedAt: new Date().toISOString(),
+          lastReplayAt: checkpoint.completedAt || new Date().toISOString(),
+          lastSuccessfulReplayAt: success ? (checkpoint.completedAt || new Date().toISOString()) : state.metadata.lastSuccessfulReplayAt,
+          health,
+          mappingHealthEvidence
+        }
+      });
     });
   } catch {
     // A deleted/corrupt state must not break replay finalization.

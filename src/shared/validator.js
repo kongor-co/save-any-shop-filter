@@ -246,6 +246,11 @@ export function validateUiMessage(message, source = "ui") {
   const uiSchemas = {
     [MESSAGE.GET_CAPTURE_PREVIEW]: { fields: ["tabId"], validate: () => validTabId(message.tabId) },
     [MESSAGE.SAVE_CAPTURE]: { fields: ["tabId", "preview", "name"], validate: () => validTabId(message.tabId) && plainObject(message.preview) && optionalString(message.name, 160) },
+    [MESSAGE.PREVIEW_STATE_UPDATE]: { fields: ["stateId", "tabId"], validate: () => validString(message.stateId, 100) ? validTabId(message.tabId) : false },
+    [MESSAGE.APPLY_STATE_UPDATE]: { fields: ["stateId", "tabId", "expectedRevision", "captureToken"], validate: () => validString(message.stateId, 100) ? validTabId(message.tabId) ? validUpdateToken(message.expectedRevision) ? validUpdateToken(message.captureToken) : false : false : false },
+    [MESSAGE.GET_STATE_UPDATE_INFO]: { fields: ["stateId"], validate: () => validString(message.stateId, 100) },
+    [MESSAGE.PREVIEW_STATE_UNDO]: { fields: ["stateId"], validate: () => validString(message.stateId, 100) },
+    [MESSAGE.UNDO_STATE_UPDATE]: { fields: ["stateId", "expectedRevision"], validate: () => validString(message.stateId, 100) ? validUpdateToken(message.expectedRevision) : false },
     [MESSAGE.LIST_STATES]: { fields: [], validate: () => true },
     [MESSAGE.RENAME_STATE]: { fields: ["stateId", "name"], validate: () => validString(message.stateId, 100) && validString(message.name, 160) },
     [MESSAGE.DUPLICATE_STATE]: { fields: ["stateId"], validate: () => validString(message.stateId, 100) },
@@ -307,6 +312,10 @@ function validIdList(value) {
 
 function validTabId(value) {
   return Number.isInteger(value) && value >= 0;
+}
+
+function validUpdateToken(value) {
+  return typeof value === "string" ? /^[a-f0-9]{64}$/.test(value) : false;
 }
 
 function optionalString(value, max) {

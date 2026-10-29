@@ -88,6 +88,12 @@ Library visibility defaults to the active tab's HTTP or HTTPS hostname, updated 
 
 ## Persisted data rules
 
+Saved-filter updates use a fresh capture through the existing capture pipeline. The worker checks the exact origin, listing path, search query, context criteria, and context compatibility before replacement. Only registered filter-bearing path patterns are normalized; numeric category identifiers and unknown paths remain exact. A canonical SHA-256 record revision and capture token reject stale confirmations. Replacement preserves the ID, name, and creation date, and clears previous replay verification.
+
+One previous capture is stored separately at `fv:update-undo:<stateId>` with its own `formatVersion: 1`. The saved-state schema remains version 4 and mapping version remains 5. The replacement and backup use one storage write. Undo preserves a later rename, restores the previous capture, clears verification, and consumes the backup. Deletion removes the backup. Export, Duplicate, and Import operate on saved states without carrying this history.
+
+Updates, Undo, Rename, Delete, replay preparation, and replay metadata writes coordinate per saved record. Update and Undo reject records with an active or awaiting replay in any tab. Replay releases the record lock before navigation so fast completion cannot deadlock. Checkpoints carry a functional content revision so late results cannot verify replacement criteria. Preview and Cancel do not write an update; existing read-time schema migration still applies.
+
 - User data stays in `chrome.storage.local`.
 - Temporary replay checkpoints stay in `chrome.storage.session`.
 - Stored actions are data-only and validator-approved.

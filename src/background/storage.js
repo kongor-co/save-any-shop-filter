@@ -4,6 +4,7 @@ import {
   REPLAY_KEY_PREFIX,
   STATE_KEY_PREFIX
 } from "../shared/constants.js";
+import { UPDATE_UNDO_PREFIX } from "../shared/constants.js";
 import { migrateSavedState, validateSavedState } from "../shared/validator.js";
 
 function stateKey(id) {
@@ -55,8 +56,37 @@ export async function putState(state) {
 export async function removeState(id) {
   const result = await chrome.storage.local.get(LIBRARY_INDEX_KEY);
   const index = Array.isArray(result[LIBRARY_INDEX_KEY]) ? result[LIBRARY_INDEX_KEY] : [];
-  await chrome.storage.local.remove(stateKey(id));
+  await chrome.storage.local.remove([stateKey(id), `${UPDATE_UNDO_PREFIX}${id}`]);
   await chrome.storage.local.set({ [LIBRARY_INDEX_KEY]: index.filter((item) => item !== id) });
+}
+
+export async function getStateUndo(id) {
+  const key = `${UPDATE_UNDO_PREFIX}${id}`;
+  const entry = (await chrome.storage.local.get(key))[key];
+  if (!entry || entry.formatVersion !== 1 || entry.stateId !== id) return null;
+  if (!/^[a-f0-9]{64}$/.test(entry.contentRevision || "")) return null;
+  try {
+    validateSavedState(entry.previous);
+    if (entry.previous.id !== id) return null;
+    return entry;
+  } catch { return null; }
+}
+
+export async function putUpdatedState(updated, previous, contentRevision) {
+  validateSavedState(updated);
+  validateSavedState(previous);
+  if (updated.id !== previous.id || updated.site.origin !== previous.site.origin) throw new Error("INVALID_STATE_UPDATE");
+  await chrome.storage.local.set({
+    [stateKey(updated.id)]: updated,
+    [`${UPDATE_UNDO_PREFIX}${updated.id}`]: { formatVersion: 1, stateId: updated.id, contentRevision, previous }
+  });
+  return updated;
+}
+
+export async function putRestoredState(restored) {
+  validateSavedState(restored);
+  await chrome.storage.local.set({ [stateKey(restored.id)]: restored, [`${UPDATE_UNDO_PREFIX}${restored.id}`]: null });
+  return restored;
 }
 
 export async function putReplay(checkpoint) {
