@@ -7,3 +7,5 @@ The MVP has no backend, analytics, telemetry, advertising, or cloud synchronizat
 FilterVault excludes known tracking parameters, session/authentication parameters, credentials, payment fields, address fields, account forms, checkout inputs, and unrelated page content. It never automates login, MFA, consent choices, CAPTCHA challenges, purchases, or checkout.
 
 Persistent saved states use Chrome's local extension storage. Active replay checkpoints use in-memory session storage and are not automatically resumed after a browser restart. Removing the extension clears its local extension storage according to Chrome's storage behavior.
+
+Updating a saved configuration keeps one previous version in local extension storage for Undo. A later update replaces that backup, and Undo or deletion removes it. Backups are excluded from configuration exports, duplicates, and imports.
