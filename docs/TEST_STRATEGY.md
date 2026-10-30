@@ -46,6 +46,7 @@ The packaged Chromium test uses an isolated profile and a temporary copy of the 
 - unchecked hidden inputs cannot verify saved route state, and active custom widgets retain warnings;
 - native paired range capture, Apply, idempotent replay, and rejection of changed structure or unrelated sliders;
 - generic structured URL grouping, sanitation, replay construction, sensitive nested-key exclusion, and older mapping compatibility;
+- hostname-independent filter namespaces, lazy ARIA menus with checked native options, exact field/value association, translated labels, closed/open menu restoration, and DOM replay for unfamiliar plain query keys;
 - Shop Apotheke category and two pack sizes captured without duplicated option checkboxes or result counts;
 - active button-dropdown inspection across document-level popups, regenerated IDs, closed menus, and collapsed More filters surfaces;
 - restoration of menu visibility after capture, changing pagination between preview and Save, default relevance menus, and page-category chips;

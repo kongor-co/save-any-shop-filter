@@ -22,6 +22,7 @@ These proposals preserve useful ideas from predecessor prototypes. They are not 
 
 ## Historical evidence
 
+- [Generic filter discovery and Proshop regression, October 2026](reports/2026-10-30-generic-filter-discovery.md)
 - [OTTO fashion filter validation, October 2026](reports/2026-10-29-otto-fashion-validation.md)
 - [Saved filter updates validation, October 2026](reports/2026-10-29-saved-filter-updates.md)
 - [OTTO filter validation, October 2026](reports/2026-10-27-otto-filter-validation.md)
