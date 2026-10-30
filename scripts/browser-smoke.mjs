@@ -11,6 +11,7 @@ import { runHome24BrowserCases } from "./home24-browser-cases.mjs";
 import { runOttoBrowserCases } from "./otto-browser-cases.mjs";
 import { runLibraryBrowserCases } from "./library-browser-cases.mjs";
 import { runSavedUpdateBrowserCases } from "./saved-update-browser-cases.mjs";
+import { runNamespacedMenuBrowserCases } from "./namespaced-menu-browser-cases.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const smokeRoot = resolve(root, ".browser-smoke");
@@ -333,6 +334,7 @@ try {
   await runOttoBrowserCases({context,extension,call,smokeRoot});
   await runLibraryBrowserCases({context,extension,call,smokeRoot});
   await runSavedUpdateBrowserCases({context,extension,call,port});
+  await runNamespacedMenuBrowserCases({context,extension,call,port});
 
   const restrictedPage = await context.newPage();
   await restrictedPage.goto("chrome://version", { waitUntil: "domcontentloaded" });

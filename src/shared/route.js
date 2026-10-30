@@ -4,6 +4,8 @@ import {
   routeCaptureHints,
   schemaParameterDescriptor,
   parameterControlEvidence,
+  filterNamespaceField,
+  sensitiveFilterField,
   serializeRouteUrl,
   schemaPathCriteria
 } from "../adapters/route-schemas.js";
@@ -32,6 +34,8 @@ export function normalizeSemanticType(value) {
 }
 
 export function classifyRouteParameter(name, urlLike = null) {
+  const namespaceField = filterNamespaceField(name);
+  if (namespaceField ? sensitiveFilterField(namespaceField) : false) return "EPHEMERAL";
   if (/\[(?:[^\]]*(?:token|session|password|secret|email|phone|address|payment|account|profile|user.?id|auth|tracking)[^\]]*)\]/i.test(String(name))) return "EPHEMERAL";
   const owned = schemaParameterDescriptor(urlLike ? findRouteSchema(urlLike) : null, name);
   if (owned) return owned.role;
@@ -183,7 +187,9 @@ export function mergeCriteria(routeCriteria, domCriteria) {
     });
     if (existing) {
       existing.bindings.push(...domCriterion.bindings);
-      existing.observedRepresentation = [...new Set([...existing.observedRepresentation, ...domCriterion.observedRepresentation])];
+      existing.observedRepresentation = existing.bindings.some((binding) => binding.type === "URL_QUERY" ? Boolean(filterNamespaceField(binding.parameter)) : false)
+        ? [...domCriterion.observedRepresentation]
+        : [...new Set([...existing.observedRepresentation, ...domCriterion.observedRepresentation])];
     } else {
       merged.push(domCriterion);
     }

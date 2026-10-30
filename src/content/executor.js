@@ -62,8 +62,10 @@
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const startedUrl = location.href;
       const startedSignature = activeStateSignature();
-      const snapshot = captureSnapshot(hints);
-      await inspectActiveMenus(snapshot, hints);
+      const effectiveHints = discoverMenuHints(hints);
+      const snapshot = captureSnapshot(effectiveHints);
+      await inspectActiveMenus(snapshot, effectiveHints);
+      reportUnmappedRemovalChips(snapshot);
       await delay(180 + (attempt * 120));
       if (startedUrl === location.href && startedSignature === activeStateSignature()) return snapshot;
     }
@@ -97,6 +99,16 @@
     };
   }
 
+  function reportUnmappedRemovalChips(snapshot) {
+    const represented = snapshot.domCriteria.flatMap((criterion) => criterion.observedRepresentation || []).map(plainText);
+    for (const button of queryAllDeep('button[aria-label]')) {
+      if (!isElementVisible(button) || outsideFilterSurface(button) || isSensitiveControl(button)) continue;
+      const label = /^(?:filter entfernen|remove filter)\s*:\s*(.+)$/i.exec(button.getAttribute("aria-label"))?.[1];
+      if (!label || represented.includes(plainText(label))) continue;
+      snapshot.unresolved.push({label,reason:"An applied filter chip was detected, but its setting could not be mapped safely. Removal buttons are not replay targets."});
+    }
+  }
+
   function detectPageType() {
     const path = location.pathname.toLowerCase();
     if (/\/(checkout|payment|order|basket|cart)(\/|$)/.test(path)) return "CHECKOUT";
@@ -104,6 +116,9 @@
     if (/\/(account|profile|settings)(\/|$)/.test(path)) return "ACCOUNT";
 
     const filterControls = queryAllDeep('input[type="checkbox"], input[type="radio"], select, button[role="combobox"][aria-controls], button[aria-pressed][aria-label^="Filtern nach:"], button[aria-pressed][aria-label^="Filter by:"], [role="checkbox"], [role="radio"], [aria-checked], [aria-selected]');
+    const menuFilters = queryAllDeep('button[aria-haspopup][aria-controls][aria-expanded]').filter(isDropdownTrigger)
+      .filter((trigger) => !outsideFilterSurface(trigger)).filter((trigger) => /^(?:filtern nach|filter by|filters?\b)/i.test(trigger.parentElement?.getAttribute("aria-label") || ""));
+    filterControls.push(...menuFilters);
     const productLinks = [...document.querySelectorAll('a[href]')].filter((link) => /product|produkt|item|sku|dp\//i.test(link.getAttribute("href") || ""));
     const routeLooksSearch = /search|category|collections?|products?|shop|catalog/i.test(path) || [...new URL(location.href).searchParams.keys()].some((key) => /^(q|query|search|keyword|k|ntt)$/i.test(key));
     if (filterControls.length >= 2 || productLinks.length >= 4 || routeLooksSearch) return routeLooksSearch ? "SEARCH" : "LISTING";
@@ -135,6 +150,10 @@
       seen.add(element);
       if (outsideFilterSurface(element)) continue;
       if (decorativeOptionInput(element)) continue;
+      const menuOwner = dropdownOwner(element);
+      if (menuOwner ? dropdownPopup(menuOwner)?.matches('[role="menu"]') : false) {
+        if (dropdownHint(menuOwner,hints)?.parameters?.length) continue;
+      }
       if (element instanceof HTMLInputElement) {
         if (["checkbox","radio"].includes(element.type)) {
           const hint = (hints || []).find((item) => item.controlEvidence?.name === element.name ? item.parameters?.length : false);
@@ -241,6 +260,10 @@
 
   function captureSemanticType(label, hints, group = null) {
     if (Array.isArray(hints)) {
+      if (group ? isDropdownTrigger(group) : false) {
+        const dropdown = dropdownHint(group,hints);
+        if (dropdown) return dropdown.semanticType;
+      }
       const field = group ? dropdownField(group)?.name : null;
       const fieldHint = field ? hints.find((item) => item.controlNames?.includes(field)) : null;
       if (fieldHint) return fieldHint.semanticType;
@@ -332,8 +355,14 @@
   }
 
   function isDropdownTrigger(element) {
-    if (!element.matches('button[role="combobox"][aria-controls][aria-expanded][aria-label]')) return false;
-    return [null,"none"].includes(element.getAttribute("aria-autocomplete"));
+    if (!element.matches?.('button[aria-controls][aria-expanded]')) return false;
+    if (![null,"none"].includes(element.getAttribute("aria-autocomplete"))) return false;
+    if (element.matches('[role="combobox"][aria-label]')) return true;
+    return ["true","menu"].includes(element.getAttribute("aria-haspopup")) ? Boolean(dropdownLabel(element)) : false;
+  }
+
+  function dropdownLabel(trigger) {
+    return trigger.getAttribute("aria-label") || labelText(trigger);
   }
 
   function dropdownField(trigger) {
@@ -342,19 +371,86 @@
 
   function dropdownHint(trigger, hints) {
     const field = dropdownField(trigger)?.name;
-    return (hints || []).find((hint) => hint.controlNames?.includes(field) || hint.labels?.some((label) => normalizedText(label) === normalizedText(trigger.getAttribute("aria-label"))));
+    return (hints || []).find((hint) => hint.controlNames?.includes(field)
+      || hint.labels?.some((label) => normalizedText(label) === normalizedText(dropdownLabel(trigger)))
+      || (trigger.matches('[aria-haspopup]') ? hint.controlNames?.some((name) => [trigger.id,trigger.getAttribute("aria-controls")].some((id) => String(id || "").toLowerCase().endsWith(name.toLowerCase()))) : false));
   }
 
   function dropdownPopup(trigger) {
     const root = trigger.getRootNode();
-    const controlled = root.getElementById?.(trigger.getAttribute("aria-controls"));
+    const controlled = unique([...root.querySelectorAll('[id]')].filter((element) => element.id === trigger.getAttribute("aria-controls")));
     if (!controlled) return null;
-    if (controlled.matches('[role="listbox"]')) return controlled;
+    if (controlled.matches('[role="listbox"],[role="menu"]')) return controlled;
     return unique(queryAllDeep('[role="listbox"]',controlled));
   }
 
+  function discoverMenuHints(hints) {
+    const result = [...(hints || [])];
+    const triggers = queryAllDeep('button[aria-haspopup][aria-controls][aria-expanded]').filter(isDropdownTrigger)
+      .filter(isElementVisible).filter((trigger) => !outsideFilterSurface(trigger)).filter((trigger) => !isSensitiveControl(trigger))
+      .filter((trigger) => /^(?:filtern nach|filter by|filters?\b)/i.test(trigger.parentElement?.getAttribute("aria-label") || ""));
+    for (const key of new Set(new URL(location.href).searchParams.keys())) {
+      if (!/^[a-z0-9_.\u00c0-\u024f-]{1,100}$/i.test(key)) continue;
+      if (/token|session|password|secret|email|phone|address|payment|account|profile|user.?id|auth|tracking|cookie|csrf|credit.?card|customer|^(?:utm_|gclid$|fbclid$)/i.test(key)) continue;
+      if (result.some((hint) => hint.parameters?.includes(key))) continue;
+      const hint = {labels:[],semanticType:normalizeSemanticType(key),controlNames:[key],parameters:[key]};
+      const matching = triggers.filter((trigger) => dropdownHint(trigger,[hint]));
+      if (matching.length !== 1) continue;
+      hint.labels = [dropdownLabel(matching[0])];
+      result.push(hint);
+    }
+    return result;
+  }
+
   function dropdownForPopup(popup) {
-    return unique(queryAllDeep('button[role="combobox"][aria-controls]').filter((trigger) => dropdownPopup(trigger) === popup));
+    return unique(queryAllDeep('button[aria-controls][aria-expanded]').filter(isDropdownTrigger).filter((trigger) => dropdownPopup(trigger) === popup));
+  }
+
+  function dropdownOwner(element) {
+    let popup = element.closest('[role="listbox"],[role="menu"]');
+    while (popup) {
+      const trigger = dropdownForPopup(popup);
+      if (trigger) return trigger;
+      popup = popup.parentElement?.closest('[role="listbox"],[role="menu"]');
+    }
+    return null;
+  }
+
+  function menuOptions(popup) {
+    return queryAllDeep('input[type="checkbox"],input[type="radio"]',popup).filter(isElementVisible).filter((option) => !isSensitiveControl(option));
+  }
+
+  function menuOptionIdentity(option, hint) {
+    const matches = [];
+    for (const parameter of hint.parameters || []) {
+      for (const value of new URL(location.href).searchParams.getAll(parameter)) {
+        for (const field of hint.controlNames || []) {
+          if (option.name === field ? option.value === value : false) matches.push({value,locator:{type:"NAME_VALUE",value:`${field}\u0000${value}`}});
+          else if ([`${field}_${value}`,`${field}-${value}`].includes(option.id)) matches.push({value,locator:{type:"ID",value:option.id}});
+        }
+      }
+    }
+    return unique([...new Map(matches.map((match) => [JSON.stringify(match),match])).values()]);
+  }
+
+  function captureMenuOptions(popup, hint, hints, snapshot) {
+    const selected = menuOptions(popup).filter((option) => option.checked);
+    const expected = [...new Set((hint.parameters || []).flatMap((key) => new URL(location.href).searchParams.getAll(key)))];
+    const identities = selected.map((option) => menuOptionIdentity(option,hint));
+    if (identities.some((identity) => !identity) || expected.some((value) => identities.filter((identity) => identity?.value === value).length !== 1)) {
+      snapshot.unresolved.push({label:dropdownLabel(dropdownForPopup(popup)),reason:"The URL filter values do not match unique checked menu options."});
+      return [];
+    }
+    const captured = selected.map((option,index) => {
+      const candidate = captureControl(option,hints);
+      if (!candidate) return null;
+      candidate.values = [identities[index].value];
+      candidate.binding.bindingId = stableId("dom-menu",hint.semanticType,identities[index].value);
+      candidate.binding.mapping.option.locatorChain = [identities[index].locator];
+      return candidate;
+    }).filter(Boolean);
+    if (captured.length !== selected.length) snapshot.unresolved.push({label:dropdownLabel(dropdownForPopup(popup)),reason:"The checked menu options could not be mapped unambiguously."});
+    return captured;
   }
 
   function inactiveDropdown(trigger) {
@@ -399,7 +495,8 @@
   }
 
   async function inspectActiveMenus(snapshot, hints) {
-    let triggers = queryAllDeep('button[role="combobox"]').filter(isDropdownTrigger).filter(isElementVisible);
+    const selector = 'button[role="combobox"],button[aria-haspopup][aria-controls][aria-expanded]';
+    let triggers = queryAllDeep(selector).filter(isDropdownTrigger).filter(isElementVisible).filter((trigger) => !outsideFilterSurface(trigger)).filter((trigger) => !isSensitiveControl(trigger));
     const original = triggers.filter((trigger) => trigger.getAttribute("aria-expanded") === "true");
     const reveal = unique(queryAllDeep("button").filter(isElementVisible).filter((button) => /^(mehr filter|more filters|alle filter|all filters)$/i.test(plainText(button.textContent))));
     const inspected = [];
@@ -413,13 +510,13 @@
           if (await revealDropdown(label)) break;
         }
       }
-      triggers = queryAllDeep('button[role="combobox"]').filter(isDropdownTrigger).filter(isElementVisible);
+      triggers = queryAllDeep(selector).filter(isDropdownTrigger).filter(isElementVisible).filter((trigger) => !outsideFilterSurface(trigger)).filter((trigger) => !isSensitiveControl(trigger));
       for (const trigger of triggers) {
         const hint = dropdownHint(trigger,hints);
         if (hint?.controlEvidence) continue;
         if (hint?.appliedFilterTexts) continue;
         if (!hint?.parameters?.length) continue;
-        const same = triggers.filter((other) => normalizedText(other.getAttribute("aria-label")) === normalizedText(trigger.getAttribute("aria-label")));
+        const same = triggers.filter((other) => normalizedText(dropdownLabel(other)) === normalizedText(dropdownLabel(trigger)));
         if (same.length !== 1) {
           snapshot.unresolved.push({label:controlLabel(trigger),reason:"More than one dropdown has this filter label."});
           continue;
@@ -430,7 +527,12 @@
           continue;
         }
         const popup = dropdownPopup(trigger);
-        const candidates = queryAllDeep('[role="option"][aria-selected="true"]',popup).filter(isElementVisible).map((option) => captureControl(option,hints)).filter(Boolean);
+        if (dropdownForPopup(popup) !== trigger) {
+          snapshot.unresolved.push({label:dropdownLabel(trigger),reason:"The dropdown popup has more than one controlling button."});
+          continue;
+        }
+        const candidates = popup.matches('[role="menu"]') ? captureMenuOptions(popup,hint,hints,snapshot)
+          : queryAllDeep('[role="option"][aria-selected="true"]',popup).filter(isElementVisible).map((option) => captureControl(option,hints)).filter(Boolean);
         for (const criterion of groupCandidates(candidates)) {
           const existing = snapshot.domCriteria.find((item) => item.semanticType === criterion.semanticType);
           if (!existing) snapshot.domCriteria.push(criterion);
@@ -1009,10 +1111,10 @@
 
   function resolveLocator(locator, scope, isContainer) {
     const value = String(locator.value || "");
-    const all = (selector) => queryAllDeep(selector, scope);
+    const all = (selector) => queryAllDeep(selector, isDropdownTrigger(scope) ? (dropdownPopup(scope) || scope) : scope);
     if (locator.type === "COMBOBOX_LABEL") {
-      return unique(all('button[role="combobox"][aria-controls][aria-label]').filter(isDropdownTrigger)
-        .filter((trigger) => plainText(trigger.getAttribute("aria-label")) === plainText(value)));
+      return unique(all('button[aria-controls][aria-expanded]').filter(isDropdownTrigger)
+        .filter((trigger) => plainText(dropdownLabel(trigger)) === plainText(value)));
     }
     if (locator.type === "DROPDOWN_OPTION") {
       const popup = isDropdownTrigger(scope) ? dropdownPopup(scope) : null;
@@ -1079,7 +1181,7 @@
 
   function buildContainerLocators(element, label) {
     const locators = [];
-    if (isDropdownTrigger(element)) return [{type:"COMBOBOX_LABEL",value:element.getAttribute("aria-label")}];
+    if (isDropdownTrigger(element)) return [{type:"COMBOBOX_LABEL",value:dropdownLabel(element)}];
     if (element.matches('ul[aria-labelledby],ol[aria-labelledby],[role="list"][aria-labelledby],[role="listbox"][aria-labelledby]')) locators.push({type:"LABELLED_LIST", value:label});
     if (element.matches("details")) locators.push({type:"DETAILS_SUMMARY", value:label});
     if (isIdealoAdapter()) locators.push({ type: "IDEALO_FILTER_GROUP", value: label });
@@ -1113,6 +1215,8 @@
   }
 
   function findFilterGroup(element) {
+    const owner = dropdownOwner(element);
+    if (owner) return {element:owner,label:dropdownLabel(owner),depth:0};
     const popup = element.closest('[role="listbox"]');
     if (popup) {
       const trigger = dropdownForPopup(popup);
@@ -1176,6 +1280,13 @@
   }
 
   function controlLabel(element) {
+    if (element instanceof HTMLInputElement) {
+      const owner = dropdownOwner(element);
+      if (owner ? dropdownPopup(owner)?.matches('[role="menu"]') : false) {
+        const label = element.getAttribute("aria-label") || labelText(element.labels?.[0]);
+        if (label) return conciseLabel(label.replace(/\s*\(\s*\d+[\d.,]*\s*\)\s*$/, ""));
+      }
+    }
     if (element.matches('[role="option"]')) {
       const label = labelText(element);
       const attribute = element.getAttribute("data-attribute");
@@ -1401,7 +1512,7 @@
   function isSensitiveControl(element) {
     if (element instanceof HTMLInputElement && ["password", "email", "tel"].includes(element.type)) return true;
     const haystack = `${element.getAttribute("name") || ""} ${element.id || ""} ${element.getAttribute("autocomplete") || ""} ${location.pathname}`;
-    return /password|login|email|phone|card|cc-|cvc|address|checkout|payment|account|profile/i.test(haystack);
+    return /password|login|email|phone|card|cc-|cvc|address|checkout|payment|account|profile|token|session|secret|cookie|csrf|user.?id|tracking/i.test(haystack);
   }
 
   function isDisabled(element) {

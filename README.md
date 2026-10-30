@@ -45,6 +45,8 @@ OTTO fashion filters also recognize style, US clothing sizes, and target groups.
 
 FilterVault deliberately does not automate login, checkout, consent choices, CAPTCHAs, closed Shadow DOM, arbitrary scripts, or controls it cannot identify and verify safely.
 
+Generic filter namespaces such as `f~field`, `filter[field]`, and `filters.field` are recognized on any domain. ARIA menu buttons with lazy checkbox or radio options can be inspected through their current popup relationship. Exact input name/value or field/value IDs associate URL tokens with translated labels. Filter-labelled menus can also discover unfamiliar plain query fields and save their supported DOM state without treating every unknown URL key as safe. Removal chips remain evidence rather than replay actions; unmatched applied chips are reported.
+
 ## Development
 
 Run the checks with the bundled or system Node.js 22+ runtime:

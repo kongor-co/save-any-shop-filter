@@ -246,7 +246,24 @@ export function schemaParameterDescriptor(schema, parameter) {
   return schema?.dynamicParameters?.find((entry) => entry.pattern.test(parameter))?.descriptor || structuredParameterDescriptor(parameter);
 }
 
+export function filterNamespaceField(parameter) {
+  const text = String(parameter);
+  return /^(?:f~|filters?[._~]|facets?[._~])([a-z0-9_.\u00c0-\u024f-]{1,100})$/i.exec(text)?.[1]
+    || /^(?:filters?|facets?)\[([a-z0-9_.\u00c0-\u024f -]{1,100})\](?:\[\d{1,3}\])?$/i.exec(text)?.[1] || null;
+}
+
+export function sensitiveFilterField(field) {
+  return /token|session|password|secret|email|phone|address|payment|account|profile|user.?id|auth|tracking|cookie|csrf|credit.?card|customer|^(?:utm_|gclid$|fbclid$)/i.test(field);
+}
+
 function structuredParameterDescriptor(parameter) {
+  const namespaced = filterNamespaceField(parameter);
+  if (namespaced) {
+    if (sensitiveFilterField(namespaced)) return null;
+    return descriptor("FILTER", semantic(namespaced), {
+      canonical:String(parameter).replace(/\[\d+\]$/, "").toLowerCase(), domLabels:[namespaced], controlNames:[namespaced]
+    });
+  }
   const match = String(parameter).match(/^(refinementList|hierarchicalMenu|menu|ratingMenu|range|numericMenu)\[([a-z0-9_.\u00c0-\u024f -]{1,100})\](?:\[(\d{1,3})\])?$/i);
   if (!match) return null;
   const [, widget, attribute] = match;

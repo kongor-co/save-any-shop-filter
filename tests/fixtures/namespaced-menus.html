@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de" data-native-names="false" data-query-prefix="f~">
+<head><meta charset="utf-8"><title>Scanner catalogue</title><style>body{font:16px system-ui;margin:24px}.filters{display:flex;gap:12px;list-style:none;padding:0}.facet{position:relative}button{padding:10px}.menu{position:absolute;top:40px;left:0;width:240px;background:white;border:1px solid #ddd;padding:12px;z-index:4}.menu ul{list-style:none;padding:0}.menu label{padding:8px;display:inline-block}#chips button{margin:6px}.products{margin-top:40px}</style></head>
+<body><header><label>Search <input role="searchbox" name="query"></label></header><main>
+<h2>Scanner catalogue</h2><ul class="filters" id="filter-groups"></ul><div id="chips"></div>
+<div class="products"><a href="/scanner/one">Scanner one</a><a href="/scanner/two">Scanner two</a><a href="/scanner/three">Scanner three</a><a href="/scanner/four">Scanner four</a></div></main>
+<script>
+  const fields = [
+    {field:"stregkodelaesere_forbindelse",label:"Verbindung",options:[["kabling","Kabel"],["traadlos","Wireless"]]},
+    {field:"stregkodelaesere_type",label:"Typ",options:[["haandmodel","Hand Modell"],["stationaer","Stationär"]]}
+  ];
+  let clicks=0, opened=0;
+  const prefix=document.documentElement.dataset.queryPrefix;
+  const data = new Map(fields.map((field) => [field.field,new Set(new URL(location.href).searchParams.getAll(prefix+field.field))]));
+  const buttons = [];
+  function chips() {
+    const region=document.querySelector("#chips"); region.replaceChildren();
+    for (const field of fields) for (const [value,label] of field.options) {
+      if (!data.get(field.field).has(value)) continue;
+      const button=document.createElement("button"); button.type="button"; button.setAttribute("aria-label","Filter entfernen: "+label); button.textContent=label+" ×";
+      button.addEventListener("click",()=>{clicks+=1;data.get(field.field).delete(value);sync(field);}); region.append(button);
+    }
+  }
+  function sync(field) {
+    const url=new URL(location.href); url.searchParams.delete(prefix+field.field);
+    for (const value of data.get(field.field)) url.searchParams.append(prefix+field.field,value);
+    history.replaceState(null,"",url); chips();
+  }
+  for(const field of fields) {
+    const group=document.createElement("li");group.className="facet";group.setAttribute("aria-label","Filtern nach "+field.label);
+    const trigger=document.createElement("button");trigger.type="button";trigger.id="filterButton"+field.field;trigger.setAttribute("aria-haspopup","true");trigger.setAttribute("aria-expanded","false");trigger.setAttribute("aria-controls","filterMenu"+field.field);trigger.textContent=field.label; group.append(trigger);buttons.push(trigger);
+    trigger.addEventListener("click",()=>{
+      if(trigger.getAttribute("aria-expanded")==="true"){document.getElementById(trigger.getAttribute("aria-controls"))?.remove();trigger.setAttribute("aria-expanded","false");return;}
+      for(const other of buttons) if(other!==trigger){document.getElementById(other.getAttribute("aria-controls"))?.remove();other.setAttribute("aria-expanded","false");}
+      opened+=1;const popup=document.createElement("div");popup.id=trigger.getAttribute("aria-controls");popup.setAttribute("role","menu");popup.setAttribute("aria-labelledby",trigger.id);popup.className="menu";
+      const list=document.createElement("ul");list.setAttribute("role","menu");popup.append(list);
+      for(const [value,label]of field.options){
+        const item=document.createElement("li");item.setAttribute("role","menuitem");const input=document.createElement("input");input.type="checkbox";input.id=field.field+"_"+value;
+        if(document.documentElement.dataset.nativeNames==="true"){input.name=field.field;input.value=value;input.id="generated-option-"+opened+"-"+value;}
+        input.checked=document.documentElement.dataset.unchecked===field.field ? false : data.get(field.field).has(value);const text=document.createElement("label");text.htmlFor=input.id;text.textContent=label+" (127)";item.append(input,text);list.append(item);
+        input.addEventListener("change",()=>{clicks+=1;if(input.checked)data.get(field.field).add(value);else data.get(field.field).delete(value);sync(field);});
+      }
+      group.append(popup);trigger.setAttribute("aria-expanded","true");
+    });
+    document.querySelector("#filter-groups").append(group);
+  }
+  chips();window.filterClicks=()=>clicks;
+</script></body></html>
