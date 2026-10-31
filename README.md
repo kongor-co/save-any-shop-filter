@@ -16,7 +16,8 @@ FilterVault targets Chrome 106 or newer. It uses only `activeTab`, `scripting`, 
 ## Use it
 
 - On a shopping listing/search page, open FilterVault, review the detected route and active DOM-backed criteria, name the configuration, and choose **Save filters**.
-- Open **Library** to search, inspect, replay, rename, duplicate, delete, import, or export configurations.
+- Open **Library** to search, inspect, replay, rename, duplicate or delete configurations. Individual JSON export remains in a configuration's **More actions** menu.
+- Open **Settings** for **Export all**, **Import JSON**, local storage and site-access information, total saved configurations and shops, the installed version and the JSON backup format. Export includes every shop; imports add configurations without replacing existing entries.
 - The Library defaults to **This shop**, using the current tab's website independently of capture support. Search and the Library count reflect that scope. Choose **All shops** to browse the full library; reopening the popup defaults to the current shop again. Pages without an available website show the full library. **Export all** always backs up every saved configuration.
 - To change a saved configuration, adjust the shop's filters, open **Library**, and choose **Update** on its card. Review the changes and any omissions before confirming. Updates keep the configuration's name and identity and require the same shop and compatible listing context. **More actions** offers **Undo last filter update** for the latest replacement. Use **Replay** to apply saved filters to the page.
 - Replay restores the saved route/context first, then applies supported DOM criteria idempotently and verifies the final state.

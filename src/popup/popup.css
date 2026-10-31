@@ -30,7 +30,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .brand div span { color: var(--muted); font-size: 11px; margin-top: 1px; }
 .privacy-pill { padding: 5px 8px; border-radius: 999px; color: var(--green); background: var(--green-soft); font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
 
-.tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 0 18px; border-bottom: 1px solid var(--line); }
+.tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 0 18px; border-bottom: 1px solid var(--line); }
 .tab { border: 0; border-bottom: 2px solid transparent; padding: 12px 8px 10px; background: transparent; color: var(--muted); cursor: pointer; font-weight: 650; }
 .tab.is-active { color: var(--green); border-bottom-color: var(--green); }
 .count { display: inline-grid; min-width: 19px; height: 19px; place-items: center; padding: 0 5px; margin-left: 3px; border-radius: 999px; background: var(--soft); font-size: 11px; }
