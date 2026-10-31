@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 export async function runSavedUpdateBrowserCases({ context, extension, call, port }) {
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${port}/search?brand=nike#saved-update-case`);
+  await page.locator("#min-price").fill("25");
   const tabId = await extension.evaluate(async (href) => (await chrome.tabs.query({})).find((tab) => tab.url === href)?.id, page.url());
   const preview = await call("GET_CAPTURE_PREVIEW", { tabId });
   const saved = await call("SAVE_CAPTURE", { tabId, preview, name: "Update regression shoes" });
@@ -18,7 +19,9 @@ export async function runSavedUpdateBrowserCases({ context, extension, call, por
 
   await card.locator('[data-action="update"]').click();
   await extension.locator("#confirm-update:enabled").waitFor();
-  assert.match(await extension.locator("#update-changes").innerText(), /60/);
+  const changes = await extension.locator("#update-changes").innerText();
+  assert.match(changes, /Before: Minimum price: 25/);
+  assert.match(changes, /After: Minimum price: 60/);
   assert.equal(await extension.locator("#update-omissions").isVisible(), true);
   await extension.locator("#cancel-update").click();
   assert.deepEqual((await read()).criteria, saved.criteria, "Cancel leaves the saved criteria untouched");
@@ -47,6 +50,9 @@ export async function runSavedUpdateBrowserCases({ context, extension, call, por
   await extension.locator("#undo-state-update:enabled").waitFor();
   await extension.locator("#undo-state-update").click();
   await extension.locator("#confirm-update:enabled").waitFor();
+  const undoChanges = await extension.locator("#update-changes").innerText();
+  assert.match(undoChanges, /Before: Minimum price: 60/);
+  assert.match(undoChanges, /After: Minimum price: 25/);
   await extension.locator("#confirm-update").click();
   await extension.locator("#update-dialog").waitFor({ state: "hidden" });
   assert.deepEqual((await read()).criteria, saved.criteria);

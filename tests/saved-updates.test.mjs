@@ -47,6 +47,53 @@ test("updates require the exact origin and a compatible listing, query, locale a
   assert.throws(() => assertUpdateContext(previous, preview()), /CONTEXT_MISMATCH/);
 });
 
+test("numeric update previews show old and new values while preserving control labels", () => {
+  const price = (value) => ({
+    role: "FILTER", semanticType: "PRICE", desiredValue: [value], observedRepresentation: ["Minimum price"],
+    bindings: [{ type: "DOM", mapping: { controlType: "NUMERIC_VALUE", desiredValue: [value],
+      option: { locatorChain: [{ type: "ID", value: "min-price" }, { type: "LABEL_TEXT", value: "Minimum price" }] } } }]
+  });
+  const before = [price("50")], after = [price("60")];
+  const original = structuredClone([before, after]);
+  const [change] = diffSavedCriteria(before, after);
+  assert.deepEqual(change.before, ["Minimum price: 50"]);
+  assert.deepEqual(change.after, ["Minimum price: 60"]);
+  assert.deepEqual(diffSavedCriteria([], [price("0")])[0].after, ["Minimum price: 0"]);
+  assert.deepEqual(diffSavedCriteria(after, before)[0].after, ["Minimum price: 50"], "Undo displays the restored number");
+  assert.deepEqual([before, after], original, "Formatting cannot modify capture or replay data");
+});
+
+test("range previews keep endpoint identity even when both bounds have the same value", () => {
+  const range = (lower, upper) => ({
+    role: "FILTER", semanticType: "WIDTH", desiredValue: [...new Set([lower, upper])],
+    observedRepresentation: ["Lower bound", "Upper bound"],
+    bindings: [lower, upper].map((value, index) => ({ type: "DOM", mapping: {
+      controlType: "NUMERIC_VALUE", desiredValue: [value],
+      option: { locatorChain: [{ type: "NATIVE_RANGE_ENDPOINT", value: index ? "UPPER" : "LOWER" }] }
+    } }))
+  });
+  const [change] = diffSavedCriteria([range("0", "100")], [range("14", "14")]);
+  assert.deepEqual(change.before, ["Lower bound: 0", "Upper bound: 100"]);
+  assert.deepEqual(change.after, ["Lower bound: 14", "Upper bound: 14"]);
+});
+
+test("preview formatting supports older captures, missing labels and friendly nonnumeric options", () => {
+  const numeric = { role: "FILTER", semanticType: "PRICE", desiredValue: ["60"], observedRepresentation: ["Minimum price"],
+    bindings: [{ type: "DOM", mapping: { controlType: "NUMERIC_VALUE", desiredValue: ["60"] } }] };
+  assert.deepEqual(diffSavedCriteria([], [numeric])[0].after, ["Minimum price: 60"]);
+  delete numeric.observedRepresentation;
+  assert.deepEqual(diffSavedCriteria([], [numeric])[0].after, ["60"]);
+  numeric.bindings[0].mapping.option = { locatorChain: [{ type: "ARIA_LABEL", value: "From" }] };
+  numeric.bindings.push({ type: "URL_QUERY" });
+  numeric.desiredValue.push("other");
+  assert.deepEqual(diffSavedCriteria([], [numeric])[0].after, ["From: 60", "other"]);
+  const choice = { role: "FILTER", semanticType: "SIZE", desiredValue: ["42"], observedRepresentation: ["EU 42"],
+    bindings: [{ type: "DOM", mapping: { controlType: "NATIVE_SELECT" } }] };
+  assert.deepEqual(diffSavedCriteria([], [choice])[0].after, ["EU 42"]);
+  choice.observedRepresentation = [];
+  assert.deepEqual(diffSavedCriteria([], [choice])[0].after, ["42"]);
+});
+
 test("listing identity strips only registered path facets and preserves exact category identifiers", () => {
   const pairs = [
     ["https://www.decathlon.de/herren/t-shirts/f-zustand_neu/f-sg_37-m", "https://www.decathlon.de/herren/t-shirts"],

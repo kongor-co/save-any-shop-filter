@@ -61,6 +61,29 @@ export function assertUpdateContext(saved, preview) {
   if (!["EXACT", "COMPATIBLE"].includes(compatibility.level)) throw new Error("UPDATE_CONTEXT_MISMATCH");
 }
 
+function displayCriteriaValues(criterion) {
+  const observed = criterion.observedRepresentation || [];
+  const numericBindings = (criterion.bindings || []).filter((binding) =>
+    binding.type === "DOM" ? binding.mapping.controlType === "NUMERIC_VALUE" : false);
+  if (!numericBindings.length) return observed.length ? observed : criterion.desiredValue;
+
+  // Numeric observations can contain only a control label. Read each binding's
+  // value so equal range endpoints retain their separate lower/upper labels.
+  const numericValues = new Set();
+  const display = numericBindings.flatMap((binding, index) => {
+    const locators = binding.mapping.option?.locatorChain || [];
+    const endpoint = locators.find((locator) => locator.type === "NATIVE_RANGE_ENDPOINT");
+    const label = endpoint ? `${endpoint.value === "LOWER" ? "Lower" : "Upper"} bound`
+      : locators.find((locator) => ["LABEL_TEXT", "ARIA_LABEL"].includes(locator.type))?.value
+        || (observed.length === numericBindings.length ? observed[index] : "");
+    return binding.mapping.desiredValue.map((value) => {
+      numericValues.add(String(value));
+      return label ? `${label}: ${value}` : String(value);
+    });
+  });
+  return [...display, ...criterion.desiredValue.filter((value) => !numericValues.has(String(value)))];
+}
+
 function groupedCriteria(criteria) {
   const groups = new Map();
   for (const criterion of criteria) {
@@ -68,7 +91,7 @@ function groupedCriteria(criteria) {
     if (!groups.has(key)) groups.set(key, { role: criterion.role, semanticType: criterion.semanticType, values: [], display: [] });
     const group = groups.get(key);
     group.values.push(...criterion.desiredValue.map((value) => JSON.stringify(canonical(value))));
-    group.display.push(...(criterion.observedRepresentation || criterion.desiredValue).map(String));
+    group.display.push(...displayCriteriaValues(criterion).map(String));
   }
   for (const group of groups.values()) {
     group.values = [...new Set(group.values)].sort();
