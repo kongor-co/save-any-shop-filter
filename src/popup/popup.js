@@ -1,4 +1,4 @@
-import { MESSAGE } from "../shared/constants.js";
+import { MESSAGE, SCHEMA_VERSION, MAX_IMPORT_BYTES, MAX_IMPORT_STATES } from "../shared/constants.js";
 import { filterLibrary, shopHostname } from "./library.js";
 
 const state = {
@@ -18,6 +18,7 @@ const elements = {
   tabs: [...document.querySelectorAll(".tab")],
   captureView: $("#capture-view"),
   libraryView: $("#library-view"),
+  settingsView: $("#settings-view"),
   replayView: $("#replay-view"),
   loading: $("#capture-loading"),
   captureError: $("#capture-error"),
@@ -179,6 +180,7 @@ async function loadLibrary() {
 }
 
 function renderLibrary() {
+  renderSettingsInfo();
   const hostname = shopHostname(state.activeTab?.url);
   const scope = $("#library-scope");
   scope.querySelector('[value="current"]').textContent = hostname ? `This shop: ${hostname}` : "This shop unavailable";
@@ -210,6 +212,23 @@ function renderLibrary() {
     section.append(heading, ...states.map(libraryCard));
     elements.libraryList.append(section);
   }
+}
+
+function renderSettingsInfo() {
+  $("#settings-import-help").textContent = `FilterVault JSON only. Up to ${MAX_IMPORT_BYTES / 1_000_000} MB and ${MAX_IMPORT_STATES} configurations per import.`;
+  const shops = new Set(state.library.map((saved) => shopHostname(saved.site.origin)));
+  const info = [
+    ["Saved configurations", String(state.library.length)],
+    ["Webshops", String(shops.size)],
+    ["Extension version", chrome.runtime.getManifest().version],
+    ["Backup format", `JSON v${SCHEMA_VERSION}`]
+  ];
+  $("#settings-info").replaceChildren(...info.map(([label, value]) => {
+    const div = document.createElement("div");
+    const span = document.createElement("span"); span.textContent = label;
+    const strong = document.createElement("strong"); strong.textContent = value;
+    div.append(span, strong); return div;
+  }));
 }
 
 function libraryCard(saved) {
@@ -378,6 +397,7 @@ function showReplay(replay) {
   for (const tab of elements.tabs) tab.classList.remove("is-active");
   elements.captureView.hidden = true;
   elements.libraryView.hidden = true;
+  elements.settingsView.hidden = true;
   elements.replayView.hidden = false;
   $("#replay-title").textContent = replay.savedStateName || "Applying filters";
   renderReplay(replay);
@@ -487,6 +507,7 @@ function switchView(view) {
   clearInterval(state.replayTimer);
   elements.captureView.hidden = view !== "capture";
   elements.libraryView.hidden = view !== "library";
+  elements.settingsView.hidden = view !== "settings";
   elements.replayView.hidden = true;
   for (const tab of elements.tabs) {
     const active = tab.dataset.view === view;

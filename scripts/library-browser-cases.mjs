@@ -37,6 +37,7 @@ export async function runLibraryBrowserCases({ context, extension, call, smokeRo
   await expectCount(otto.length);
 
   // Export remains a complete backup even when the list is scoped or searched.
+  await extension.locator('[data-view="settings"]').click();
   const downloadPromise = extension.waitForEvent("download");
   await extension.locator("#export-all").click();
   const download = await downloadPromise;
@@ -45,6 +46,7 @@ export async function runLibraryBrowserCases({ context, extension, call, smokeRo
   const exported = JSON.parse(await readFile(exportPath, "utf8"));
   assert.equal(exported.states.length, library.length);
   await extension.locator("#import-file").setInputFiles({ name: "mixed-shops.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ ...exported, states: [otto[0], home24[0]] })) });
+  await extension.locator('[data-view="library"]').click();
   await expectCount(otto.length + 1);
   assert.deepEqual(await extension.locator(".shop-title").allTextContents(), ["www.otto.de"], "Import keeps other shops hidden without discarding their records");
   const originalIds = new Set(library.map((item) => item.id));

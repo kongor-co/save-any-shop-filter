@@ -12,6 +12,7 @@ import { runOttoBrowserCases } from "./otto-browser-cases.mjs";
 import { runLibraryBrowserCases } from "./library-browser-cases.mjs";
 import { runSavedUpdateBrowserCases } from "./saved-update-browser-cases.mjs";
 import { runNamespacedMenuBrowserCases } from "./namespaced-menu-browser-cases.mjs";
+import { runSettingsBrowserCases } from "./settings-browser-cases.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const smokeRoot = resolve(root, ".browser-smoke");
@@ -315,6 +316,7 @@ try {
 
   const beforeImport = Number(await extension.locator("#library-count").innerText());
   const downloadPromise = extension.waitForEvent("download");
+  await extension.locator('[data-view="settings"]').click();
   await extension.locator("#export-all").click();
   const download = await downloadPromise;
   const exportPath = resolve(smokeRoot, "filtervault-export.json");
@@ -323,6 +325,7 @@ try {
   assert.equal(exported.schemaVersion, 4);
   assert.equal(exported.states.length, beforeImport);
   await extension.locator("#import-file").setInputFiles(exportPath);
+  await extension.locator('[data-view="library"]').click();
   await extension.waitForFunction((expected) => Number(document.querySelector("#library-count")?.textContent) === expected, beforeImport * 2);
   assert.equal(Number(await extension.locator("#library-count").innerText()), beforeImport * 2);
 
@@ -335,6 +338,7 @@ try {
   await runLibraryBrowserCases({context,extension,call,smokeRoot});
   await runSavedUpdateBrowserCases({context,extension,call,port});
   await runNamespacedMenuBrowserCases({context,extension,call,port});
+  await runSettingsBrowserCases({context,extension,call,smokeRoot});
 
   const restrictedPage = await context.newPage();
   await restrictedPage.goto("chrome://version", { waitUntil: "domcontentloaded" });

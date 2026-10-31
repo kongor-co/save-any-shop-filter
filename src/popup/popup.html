@@ -15,12 +15,12 @@
           <span>State saved. Results current.</span>
         </div>
       </div>
-      <span class="privacy-pill">Local only</span>
     </header>
 
     <nav class="tabs" aria-label="FilterVault sections">
       <button class="tab is-active" type="button" data-view="capture" aria-selected="true">Save current</button>
       <button class="tab" type="button" data-view="library" aria-selected="false">Library <span id="library-count" class="count">0</span></button>
+      <button class="tab" type="button" data-view="settings" aria-selected="false">Settings</button>
     </nav>
 
     <main>
@@ -55,14 +55,12 @@
           <button id="save-state" class="primary-button" type="button">Save filters</button>
           <p id="save-reason" class="save-reason" hidden></p>
           <button id="copy-route" class="secondary-button fallback-button" type="button" hidden>Copy sanitized current route</button>
-          <p class="privacy-note">Stored in this Chrome profile. Nothing is sent to a server.</p>
         </div>
       </section>
 
       <section id="library-view" class="view" aria-labelledby="library-title" hidden>
         <div class="library-header">
           <div><h1 id="library-title">Saved filters</h1><p id="library-summary" class="muted">Grouped by shop and context</p></div>
-          <button id="export-all" class="secondary-button compact" type="button">Export all</button>
         </div>
         <label class="field-label" for="library-scope">Shop</label>
         <select id="library-scope" class="text-field" aria-describedby="library-scope-status">
@@ -81,10 +79,31 @@
           <strong id="empty-library-title">No saved filters yet</strong>
           <p id="empty-library-copy">Save a configuration from a shopping results page.</p>
         </div>
-        <div class="library-footer">
+      </section>
+
+      <section id="settings-view" class="view" aria-labelledby="settings-title" hidden>
+        <h1 id="settings-title">Settings</h1>
+
+        <h2 class="field-label">Storage and privacy</h2>
+        <span class="privacy-pill">Local only</span>
+        <p class="muted">Stored in this Chrome profile. Nothing is sent to a FilterVault server. No account or cloud sync is used.</p>
+
+        <h2 class="field-label">Library backups</h2>
+        <p class="muted">Export all includes every shop, regardless of the Library search or shop filter. Import adds configurations without replacing existing entries.</p>
+        <div class="action-grid">
+          <button id="export-all" class="secondary-button" type="button">Export all</button>
           <button id="import-trigger" class="secondary-button" type="button">Import JSON</button>
           <input id="import-file" type="file" accept="application/json,.json" hidden>
         </div>
+        <p id="settings-import-help" class="muted"></p>
+
+        <h2 class="field-label">App information</h2>
+        <div id="settings-info" class="detail-grid"></div>
+        <details>
+          <summary class="field-label">Site access and backup details</summary>
+          <p class="muted">FilterVault uses the active shop tab. Opening a saved configuration on another shop may request access to that site.</p>
+          <p class="muted">Backups include saved filters and page context, including search terms. Undo history is excluded. Removing the extension clears its local data, so export first if you want to keep your library.</p>
+        </details>
       </section>
 
       <section id="replay-view" class="view" aria-labelledby="replay-title" hidden>
