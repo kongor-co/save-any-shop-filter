@@ -1,0 +1,163 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-11-01T10:43:56.344Z",
+  "runId": "2026-11-01T10-43-56-344Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "3c9ea96224d2fbaad866b67782befc08eb7e5ec1c243f721284cfe3d21c3698b"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.rebuy.de"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "rebuy-sony-headphones",
+      "scenario": {
+        "id": "rebuy-sony-headphones",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-sony-headphones",
+        "resetUrl": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "BRAND",
+            "desiredValue": [
+              "sony"
+            ]
+          },
+          {
+            "semanticType": "HEADPHONE_POSITION",
+            "desiredValue": [
+              "ohrumschließend"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony?f_prop_position_earphonespeaker=ohrumschlie%C3%9Fend\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "0de6289c72d44efae6f54940d3ce73d0a5a1b0ed75f4f64edffc9ad9aec0eff8",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-audio-und-hifi-kopfhoerer",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "audio und hifi kopfhoerer"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-brand-sony",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "sony"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-position-earphonespeaker-headphone-position",
+          "role": "FILTER",
+          "semanticType": "HEADPHONE_POSITION",
+          "desiredValue": [
+            "ohrumschließend"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-audio-und-hifi-kopfhoerer",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "audio und hifi kopfhoerer"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-brand-sony",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "sony"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-position-earphonespeaker-headphone-position"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-position-earphonespeaker-headphone-position",
+            "desiredValue": [
+              "ohrumschließend"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "HEADPHONE_POSITION",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-brand-sony",
+            "desiredValue": [
+              "sony"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "BRAND",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-audio-und-hifi-kopfhoerer",
+            "desiredValue": [
+              "audio und hifi kopfhoerer"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "82c1418a-0708-4705-bd3c-ab8e33cd1436",
+      "savedRoundTrip": true,
+      "startedReplayId": "a3c28d91-e5ab-48d0-a712-cf53b63314d9",
+      "finalUrl": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony?f_prop_position_earphonespeaker=ohrumschlie%C3%9Fend\u0026sortBy=price_asc"
+    }
+  ]
+}

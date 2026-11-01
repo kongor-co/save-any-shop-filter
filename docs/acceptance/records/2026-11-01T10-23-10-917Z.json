@@ -1,0 +1,1623 @@
+{
+  "formatVersion": 1,
+  "environment": "live",
+  "checkedAt": "2026-11-01T10:23:10.917Z",
+  "runId": "2026-11-01T10-23-10-917Z",
+  "source": {
+    "version": "0.3.0",
+    "runtimeSha256": "3c9ea96224d2fbaad866b67782befc08eb7e5ec1c243f721284cfe3d21c3698b"
+  },
+  "permissionMode": "isolated-test-origins",
+  "testOrigins": [
+    "https://www.rebuy.de"
+  ],
+  "browserVersion": "151.0.7922.34",
+  "cases": [
+    {
+      "scenarioId": "rebuy-sony-headphones",
+      "scenario": {
+        "id": "rebuy-sony-headphones",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-sony-headphones",
+        "resetUrl": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "BRAND",
+            "desiredValue": [
+              "sony"
+            ]
+          },
+          {
+            "semanticType": "HEADPHONE_POSITION",
+            "desiredValue": [
+              "ohrumschließend"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony?f_prop_position_earphonespeaker=ohrumschlie%C3%9Fend\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "0de6289c72d44efae6f54940d3ce73d0a5a1b0ed75f4f64edffc9ad9aec0eff8",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "BLOCKED",
+      "stage": "NAVIGATE",
+      "reason": "CONSENT_REQUIRED",
+      "capturedCriteria": [],
+      "resetCriteria": [],
+      "resetChanged": [],
+      "omissions": 0,
+      "replay": null,
+      "httpStatus": 200,
+      "finalUrl": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony?f_prop_position_earphonespeaker=ohrumschlie%C3%9Fend\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-handy",
+      "scenario": {
+        "id": "rebuy-catalog-handy",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-handy",
+        "resetUrl": "https://www.rebuy.de/kaufen/handy",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "SEASON",
+            "desiredValue": [
+              "2026"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/handy?f_prop_season=2026\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "f863c68386f922fe98955fc3918a575cf77ac3e3d67962df7a01084a2eff0d7a",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-handy",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "handy"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-season-season",
+          "role": "FILTER",
+          "semanticType": "SEASON",
+          "desiredValue": [
+            "2026"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-handy",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "handy"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-season-season"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-season-season",
+            "desiredValue": [
+              "2026"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SEASON",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-handy",
+            "desiredValue": [
+              "handy"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "5e7153b8-1d73-4cf7-b7ab-26bd89098e30",
+      "savedRoundTrip": true,
+      "startedReplayId": "b8c9dc68-e3e1-4191-badb-91627d1d3e20",
+      "finalUrl": "https://www.rebuy.de/kaufen/handy?f_prop_season=2026\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-tablets-und-ebook-reader",
+      "scenario": {
+        "id": "rebuy-catalog-tablets-und-ebook-reader",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-tablets-und-ebook-reader",
+        "resetUrl": "https://www.rebuy.de/kaufen/tablets-und-ebook-reader",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "SEASON",
+            "desiredValue": [
+              "2026"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/tablets-und-ebook-reader?f_prop_season=2026\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "38c21ede97bc6dce3a4946d451d79322b77155645716cbec092fd5cfb4645bf2",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-tablets-und-ebook-reader",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "tablets und ebook reader"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-season-season",
+          "role": "FILTER",
+          "semanticType": "SEASON",
+          "desiredValue": [
+            "2026"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-tablets-und-ebook-reader",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "tablets und ebook reader"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-season-season"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-season-season",
+            "desiredValue": [
+              "2026"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SEASON",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-tablets-und-ebook-reader",
+            "desiredValue": [
+              "tablets und ebook reader"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "bc5e080d-98ec-4c98-aa12-a5fd1d12750e",
+      "savedRoundTrip": true,
+      "startedReplayId": "ccb47f48-0394-4765-a5a6-ec8d44cf0c62",
+      "finalUrl": "https://www.rebuy.de/kaufen/tablets-und-ebook-reader?f_prop_season=2026\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-kameras-und-zubehoer",
+      "scenario": {
+        "id": "rebuy-catalog-kameras-und-zubehoer",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-kameras-und-zubehoer",
+        "resetUrl": "https://www.rebuy.de/kaufen/kameras-und-zubehoer",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "BRAND",
+            "desiredValue": [
+              "Insta360"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/kameras-und-zubehoer?f_prop_manufacturer=Insta360\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "6fe5168a35e3b87a16a301ca4acb3f60221917d3ebc11e01459e40dfb5565857",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-kameras-und-zubehoer",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "kameras und zubehoer"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-manufacturer-brand",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "Insta360"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-kameras-und-zubehoer",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "kameras und zubehoer"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-manufacturer-brand"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-manufacturer-brand",
+            "desiredValue": [
+              "Insta360"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "BRAND",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-kameras-und-zubehoer",
+            "desiredValue": [
+              "kameras und zubehoer"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "ee961ccc-d114-4283-acd2-dad7f862852b",
+      "savedRoundTrip": true,
+      "startedReplayId": "e767b8a5-7723-4857-8eb5-636a4989fc7d",
+      "finalUrl": "https://www.rebuy.de/kaufen/kameras-und-zubehoer?f_prop_manufacturer=Insta360\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-wearables",
+      "scenario": {
+        "id": "rebuy-catalog-wearables",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-wearables",
+        "resetUrl": "https://www.rebuy.de/kaufen/wearables",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "BRAND",
+            "desiredValue": [
+              "Apple"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/wearables?f_prop_manufacturer=Apple\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "70b014de05a2c9a2603320cc648db285487d833ad7d8345efea199eaea22aaf4",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-wearables",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "wearables"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-manufacturer-brand",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "Apple"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-wearables",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "wearables"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-manufacturer-brand"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-manufacturer-brand",
+            "desiredValue": [
+              "Apple"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "BRAND",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-wearables",
+            "desiredValue": [
+              "wearables"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "7295b976-45f0-48fc-b9c3-379ddeb115f4",
+      "savedRoundTrip": true,
+      "startedReplayId": "7e7a291e-44c8-4c74-87b7-9693b6b5195d",
+      "finalUrl": "https://www.rebuy.de/kaufen/wearables?f_prop_manufacturer=Apple\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-konsolen-und-zubehoer",
+      "scenario": {
+        "id": "rebuy-catalog-konsolen-und-zubehoer",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-konsolen-und-zubehoer",
+        "resetUrl": "https://www.rebuy.de/kaufen/konsolen-und-zubehoer",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "BRAND",
+            "desiredValue": [
+              "ASUS"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/konsolen-und-zubehoer?f_prop_manufacturer=ASUS\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "50a5aa17a1de7b6bae48a82162efc800a5a564ce088792e178a0ce21c1bca612",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-konsolen-und-zubehoer",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "konsolen und zubehoer"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-manufacturer-brand",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "ASUS"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-konsolen-und-zubehoer",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "konsolen und zubehoer"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-manufacturer-brand"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-manufacturer-brand",
+            "desiredValue": [
+              "ASUS"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "BRAND",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-konsolen-und-zubehoer",
+            "desiredValue": [
+              "konsolen und zubehoer"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "84c46483-0a3f-405c-a15c-e9a63b81ee95",
+      "savedRoundTrip": true,
+      "startedReplayId": "dae5695c-a295-4124-b3ea-dd192c4e5738",
+      "finalUrl": "https://www.rebuy.de/kaufen/konsolen-und-zubehoer?f_prop_manufacturer=ASUS\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-notebooks-apple",
+      "scenario": {
+        "id": "rebuy-catalog-notebooks-apple",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-notebooks-apple",
+        "resetUrl": "https://www.rebuy.de/kaufen/notebooks/apple",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "SEASON",
+            "desiredValue": [
+              "2026"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/notebooks/apple?f_prop_season=2026\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "8031066d123135488f2e18ab5842e4e0dd049b35ea9bb3604b766ea317c32bb5",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-notebooks",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "notebooks"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-brand-apple",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "apple"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-season-season",
+          "role": "FILTER",
+          "semanticType": "SEASON",
+          "desiredValue": [
+            "2026"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-notebooks",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "notebooks"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-brand-apple",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "apple"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-season-season"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-season-season",
+            "desiredValue": [
+              "2026"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SEASON",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-brand-apple",
+            "desiredValue": [
+              "apple"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "BRAND",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-notebooks",
+            "desiredValue": [
+              "notebooks"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "b492150e-4ec0-4450-87ab-9b63d7050929",
+      "savedRoundTrip": true,
+      "startedReplayId": "1277a096-a423-4a1e-b963-335fa7f1d0b3",
+      "finalUrl": "https://www.rebuy.de/kaufen/notebooks/apple?f_prop_season=2026\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-audio-und-hifi",
+      "scenario": {
+        "id": "rebuy-catalog-audio-und-hifi",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-audio-und-hifi",
+        "resetUrl": "https://www.rebuy.de/kaufen/audio-und-hifi",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "BRAND",
+            "desiredValue": [
+              "Amazon"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/audio-und-hifi?f_prop_manufacturer=Amazon\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "eaac394868abbdc8bb8f001068281e18d7ac1599875d8b5dd888dfd309353a7e",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-audio-und-hifi",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "audio und hifi"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-manufacturer-brand",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "Amazon"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-audio-und-hifi",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "audio und hifi"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-manufacturer-brand"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-manufacturer-brand",
+            "desiredValue": [
+              "Amazon"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "BRAND",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-audio-und-hifi",
+            "desiredValue": [
+              "audio und hifi"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "636ec46c-d6b8-4f7e-a3e1-2e98e852ed90",
+      "savedRoundTrip": true,
+      "startedReplayId": "dace185d-8a15-4a76-9f1d-2ba2b9da8a5b",
+      "finalUrl": "https://www.rebuy.de/kaufen/audio-und-hifi?f_prop_manufacturer=Amazon\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-buecher",
+      "scenario": {
+        "id": "rebuy-catalog-buecher",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-buecher",
+        "resetUrl": "https://www.rebuy.de/kaufen/buecher",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "PRODUKT_FORM_FILTER",
+            "desiredValue": [
+              "Adressbuch"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/buecher?f_prop_produkt_form_filter=Adressbuch\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "62ccb010af3fecbee4edc382c24d128cb62c537917591bfb435a27e66397b01b",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-buecher",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "buecher"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-produkt-form-filter-produkt-form-filter",
+          "role": "FILTER",
+          "semanticType": "PRODUKT_FORM_FILTER",
+          "desiredValue": [
+            "Adressbuch"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-buecher",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "buecher"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-produkt-form-filter-produkt-form-filter"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-produkt-form-filter-produkt-form-filter",
+            "desiredValue": [
+              "Adressbuch"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "PRODUKT_FORM_FILTER",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-buecher",
+            "desiredValue": [
+              "buecher"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "c59fd720-af94-49cd-a3b8-ceff725e9b88",
+      "savedRoundTrip": true,
+      "startedReplayId": "0f843169-a1a0-4c4b-9672-d05336a15c63",
+      "finalUrl": "https://www.rebuy.de/kaufen/buecher?f_prop_produkt_form_filter=Adressbuch\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-filme",
+      "scenario": {
+        "id": "rebuy-catalog-filme",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-filme",
+        "resetUrl": "https://www.rebuy.de/kaufen/filme",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "PROP_MOVIE_LANGUAGE_FILTER",
+            "desiredValue": [
+              "Deutsch"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/filme?f_prop_prop_movie_language_filter=Deutsch\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "40813d48bcb5b0944b319a6b8f986ff622fe7532bd070b116376a34d0a5ff4f2",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-filme",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "filme"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-prop-movie-language-filter-prop-movie-language-filter",
+          "role": "FILTER",
+          "semanticType": "PROP_MOVIE_LANGUAGE_FILTER",
+          "desiredValue": [
+            "Deutsch"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-filme",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "filme"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-prop-movie-language-filter-prop-movie-language-filter"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-prop-movie-language-filter-prop-movie-language-filter",
+            "desiredValue": [
+              "Deutsch"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "PROP_MOVIE_LANGUAGE_FILTER",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-filme",
+            "desiredValue": [
+              "filme"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "3d77046a-f12b-476d-8cbf-78c614f4fd39",
+      "savedRoundTrip": true,
+      "startedReplayId": "24b3801b-f149-4ec9-965c-d851337075f7",
+      "finalUrl": "https://www.rebuy.de/kaufen/filme?f_prop_prop_movie_language_filter=Deutsch\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-videospiele",
+      "scenario": {
+        "id": "rebuy-catalog-videospiele",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-videospiele",
+        "resetUrl": "https://www.rebuy.de/kaufen/videospiele",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "VR_GAME",
+            "desiredValue": [
+              "Ja"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/videospiele?f_prop_vr_game=Ja\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "0cabad96472233faa0c43b6d805c7c9c0680361d5da83d4365c4c9428c1af112",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-videospiele",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "videospiele"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-vr-game-vr-game",
+          "role": "FILTER",
+          "semanticType": "VR_GAME",
+          "desiredValue": [
+            "Ja"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-videospiele",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "videospiele"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-vr-game-vr-game"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-vr-game-vr-game",
+            "desiredValue": [
+              "Ja"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "VR_GAME",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-videospiele",
+            "desiredValue": [
+              "videospiele"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "c1439956-6130-4324-abca-6c8b511a0867",
+      "savedRoundTrip": true,
+      "startedReplayId": "326ac30b-d1b0-42fa-9a58-61af94f4fb55",
+      "finalUrl": "https://www.rebuy.de/kaufen/videospiele?f_prop_vr_game=Ja\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-musik",
+      "scenario": {
+        "id": "rebuy-catalog-musik",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-musik",
+        "resetUrl": "https://www.rebuy.de/kaufen/musik",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "PRODUKT_FORM_FILTER",
+            "desiredValue": [
+              "Audio-CD"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/musik?f_prop_produkt_form_filter=Audio-CD\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "8b89752a72c481c27d779750f54f77b5cdd98e40b7a68f5ff411fe0e644344bf",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-musik",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "musik"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-produkt-form-filter-produkt-form-filter",
+          "role": "FILTER",
+          "semanticType": "PRODUKT_FORM_FILTER",
+          "desiredValue": [
+            "Audio-CD"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-musik",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "musik"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-produkt-form-filter-produkt-form-filter"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-produkt-form-filter-produkt-form-filter",
+            "desiredValue": [
+              "Audio-CD"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "PRODUKT_FORM_FILTER",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-musik",
+            "desiredValue": [
+              "musik"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "25b02ed6-5009-4e70-8fb0-c87725e2f00e",
+      "savedRoundTrip": true,
+      "startedReplayId": "28024fa2-6bb3-4368-8b15-d7ebb2fa8371",
+      "finalUrl": "https://www.rebuy.de/kaufen/musik?f_prop_produkt_form_filter=Audio-CD\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-geschenkgutscheine",
+      "scenario": {
+        "id": "rebuy-catalog-geschenkgutscheine",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-geschenkgutscheine",
+        "resetUrl": "https://www.rebuy.de/kaufen/geschenkgutscheine",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "MIN_PRICE",
+            "desiredValue": [
+              "1000"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/geschenkgutscheine?priceMin=1000\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "f558d973e8320362cf5c050cf06623f31c3ab2e72b02aa580c66c8339f218eab",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-geschenkgutscheine",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "geschenkgutscheine"
+          ]
+        },
+        {
+          "criterionId": "route-pricemin-min-price",
+          "role": "FILTER",
+          "semanticType": "MIN_PRICE",
+          "desiredValue": [
+            "1000"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-geschenkgutscheine",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "geschenkgutscheine"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-pricemin-min-price"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-pricemin-min-price",
+            "desiredValue": [
+              "1000"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "MIN_PRICE",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-geschenkgutscheine",
+            "desiredValue": [
+              "geschenkgutscheine"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "0503b4d9-d964-4dc3-bb8f-46f58f5d7719",
+      "savedRoundTrip": true,
+      "startedReplayId": "a3b6623e-057b-4de3-b7bc-b18db22d1520",
+      "finalUrl": "https://www.rebuy.de/kaufen/geschenkgutscheine?priceMin=1000\u0026sortBy=price_asc"
+    },
+    {
+      "scenarioId": "rebuy-catalog-notebooks-apple-mac-mini",
+      "scenario": {
+        "id": "rebuy-catalog-notebooks-apple-mac-mini",
+        "schemaId": "rebuy-de",
+        "routeCase": "rebuy-catalog-notebooks-apple-mac-mini",
+        "resetUrl": "https://www.rebuy.de/kaufen/notebooks/apple/mac-mini",
+        "readySelector": "h1",
+        "resetReadySelector": "h1",
+        "expectedCriteria": [
+          {
+            "semanticType": "SEASON",
+            "desiredValue": [
+              "2026"
+            ]
+          },
+          {
+            "role": "PRESENTATION",
+            "semanticType": "SORT",
+            "desiredValue": [
+              "price_asc"
+            ]
+          }
+        ],
+        "filteredUrl": "https://www.rebuy.de/kaufen/notebooks/apple/mac-mini?f_prop_season=2026\u0026sortBy=price_asc"
+      },
+      "scenarioSha256": "571ada1c9c1e318091e9bb51dd837b3f7d70c2e6ad8f248f33483dc858469e62",
+      "schemaId": "rebuy-de",
+      "schemaVersion": 2,
+      "status": "PASS",
+      "stage": "COMPLETE",
+      "reason": "CAPTURE_SAVE_RESET_REPLAY_VERIFIED",
+      "capturedCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-notebooks",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "notebooks"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-brand-apple",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "apple"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-model-mac-mini",
+          "role": "FILTER",
+          "semanticType": "MODEL",
+          "desiredValue": [
+            "mac mini"
+          ]
+        },
+        {
+          "criterionId": "route-f-prop-season-season",
+          "role": "FILTER",
+          "semanticType": "SEASON",
+          "desiredValue": [
+            "2026"
+          ]
+        },
+        {
+          "criterionId": "route-sortby-sort",
+          "role": "PRESENTATION",
+          "semanticType": "SORT",
+          "desiredValue": [
+            "price_asc"
+          ]
+        }
+      ],
+      "resetCriteria": [
+        {
+          "criterionId": "route-rebuy-de-path-category-notebooks",
+          "role": "CONTEXT",
+          "semanticType": "CATEGORY_CONTEXT",
+          "desiredValue": [
+            "notebooks"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-brand-apple",
+          "role": "FILTER",
+          "semanticType": "BRAND",
+          "desiredValue": [
+            "apple"
+          ]
+        },
+        {
+          "criterionId": "route-rebuy-de-path-model-mac-mini",
+          "role": "FILTER",
+          "semanticType": "MODEL",
+          "desiredValue": [
+            "mac mini"
+          ]
+        }
+      ],
+      "resetChanged": [
+        "route-f-prop-season-season"
+      ],
+      "omissions": 0,
+      "replay": {
+        "status": "COMPLETE",
+        "error": null,
+        "results": [
+          {
+            "criterionId": "route-f-prop-season-season",
+            "desiredValue": [
+              "2026"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SEASON",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-brand-apple",
+            "desiredValue": [
+              "apple"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "BRAND",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-category-notebooks",
+            "desiredValue": [
+              "notebooks"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "CATEGORY_CONTEXT",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-rebuy-de-path-model-mac-mini",
+            "desiredValue": [
+              "mac mini"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "MODEL",
+            "status": "VERIFIED"
+          },
+          {
+            "criterionId": "route-sortby-sort",
+            "desiredValue": [
+              "price_asc"
+            ],
+            "evidence": "VISIBLE_STATE",
+            "message": "The storefront visibly confirms this criterion.",
+            "semanticType": "SORT",
+            "status": "VERIFIED"
+          }
+        ]
+      },
+      "httpStatus": 200,
+      "savedStateId": "fe715382-4a29-4de2-8edf-c00559842724",
+      "savedRoundTrip": true,
+      "startedReplayId": "1b8da0c2-033c-4d29-ad83-6f677190877d",
+      "finalUrl": "https://www.rebuy.de/kaufen/notebooks/apple/mac-mini?f_prop_season=2026\u0026sortBy=price_asc"
+    }
+  ]
+}

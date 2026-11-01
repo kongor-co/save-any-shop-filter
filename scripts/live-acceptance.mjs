@@ -1,21 +1,23 @@
 import { readFile, mkdir, cp, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { runtimeIdentity, runAcceptanceScenario, acceptanceExitCode } from "./lib/live-acceptance.mjs";
+import { runtimeIdentity, runAcceptanceScenario, acceptanceExitCode, detectBlocker } from "./lib/live-acceptance.mjs";
 import { loadAcceptanceInputs, validateAcceptanceRecord } from "./lib/support-evidence.mjs";
 
 const root = resolve(import.meta.dirname,"..");
 const args = process.argv.slice(2);
 let shop = "all";
+let scenarioId = null;
 let record = false;
 for (let index=0; index<args.length; index+=1) {
   if (args[index] === "--record") record=true;
   else if (args[index] === "--shop") shop=args[++index];
+  else if (args[index] === "--scenario") scenarioId=args[++index];
   else throw new Error(`Unknown argument: ${args[index]}`);
 }
 const inputs = await loadAcceptanceInputs(root);
-const scenarios = inputs.scenarios.filter((item) => shop === "all" || item.schemaId === shop);
-if (!scenarios.length) throw new Error("Choose all, idealo-de, decathlon-de, mediamarkt-de, cyberport-de, shop-apotheke-de, home24-de, or otto-de with --shop");
+const scenarios = inputs.scenarios.filter((item) => shop === "all" || item.schemaId === shop).filter((item) => scenarioId ? item.id === scenarioId : true);
+if (!scenarios.length) throw new Error("Choose all, idealo-de, decathlon-de, mediamarkt-de, cyberport-de, shop-apotheke-de, home24-de, otto-de, or rebuy-de with --shop");
 const checkedAt = new Date().toISOString();
 const runId = checkedAt.replace(/[:.]/g,"-");
 const output = resolve(root,".live-acceptance",runId);
@@ -49,18 +51,39 @@ try {
     return response.data;
   },{type,payload});
   for (const scenario of scenarios) {
-    console.log(`${scenario.schemaId}: starting live acceptance`);
+    console.log(`${scenario.id}: starting live acceptance`);
     const [page,tab] = await Promise.all([
       context.waitForEvent("page"),
       ui.evaluate(async (url) => chrome.tabs.create({url,active:false}),scenario.resetUrl)
     ]);
     const tabId = tab.id;
     if (!Number.isInteger(tabId)) throw new Error("LIVE_TAB_NOT_FOUND");
+    if (scenario.schemaId === "rebuy-de") {
+      await page.waitForLoadState("domcontentloaded");
+      const reject = page.locator("#cookiescript_reject");
+      const visible = await reject.waitFor({state:"visible",timeout:8000}).then(()=>true,()=>false);
+      if (visible) {
+        await reject.click();
+        await reject.waitFor({state:"hidden",timeout:5000});
+      }
+    }
     const schemaVersion = inputs.catalog.find((item) => item.id === scenario.schemaId).version;
-    const result = await runAcceptanceScenario({page,call,tabId,scenario,schemaVersion,onStage:(stage) => console.log(`${scenario.schemaId}: ${stage.toLowerCase()}`)});
+    const blocker = async (target,origin) => {
+      const detected = await detectBlocker(target,origin);
+      if (scenario.schemaId === "rebuy-de" ? detected === "CONSENT_REQUIRED" : false) {
+        const reject = target.locator("#cookiescript_reject");
+        if (await reject.isVisible()) {
+          await reject.click();
+          await reject.waitFor({state:"hidden",timeout:5000});
+          return detectBlocker(target,origin);
+        }
+      }
+      return detected;
+    };
+    const result = await runAcceptanceScenario({page,call,tabId,scenario,schemaVersion,blocker,onStage:(stage) => console.log(`${scenario.id}: ${stage.toLowerCase()}`)});
     report.cases.push(result);
-    await page.screenshot({path:resolve(output,`${scenario.schemaId}.png`),timeout:5000}).catch(() => undefined);
-    console.log(`${scenario.schemaId}: ${result.status} (${result.reason})`);
+    await page.screenshot({path:resolve(output,`${scenario.id}.png`),timeout:5000}).catch(() => undefined);
+    console.log(`${scenario.id}: ${result.status} (${result.reason})`);
     await page.close();
   }
 } catch (error) {

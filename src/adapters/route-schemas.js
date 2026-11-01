@@ -29,11 +29,17 @@ const SCHEMAS = [
   },
   {
     id: "rebuy-de",
-    version: 1,
+    version: 2,
     hosts: ["rebuy.de", "www.rebuy.de"],
     parameters: {
-      pricemax: descriptor("FILTER", "MAX_PRICE"),
-      sortby: descriptor("PRESENTATION", "SORT")
+      pricemin: descriptor("FILTER", "MIN_PRICE", {domLabels:["Preis (€)"],controlNames:["priceMin"]}),
+      pricemax: descriptor("FILTER", "MAX_PRICE", {domLabels:["Preis (€)"],controlNames:["priceMax"]}),
+      displaymin: descriptor("FILTER", "MIN_DISPLAY_SIZE", {domLabels:["Displaygröße (Zoll)"],controlNames:["displayMin"]}),
+      displaymax: descriptor("FILTER", "MAX_DISPLAY_SIZE", {domLabels:["Displaygröße (Zoll)"],controlNames:["displayMax"]}),
+      instock: descriptor("FILTER", "AVAILABILITY", {domLabels:["Lieferbar"],controlNames:["inStock"]}),
+      insale: descriptor("FILTER", "SALE", {domLabels:["Nur Sale"],controlNames:["inSale"]}),
+      fullbattery: descriptor("FILTER", "FULL_BATTERY", {domLabels:["100% Akku"],controlNames:["fullBattery"]}),
+      sortby: descriptor("PRESENTATION", "SORT", {domLabels:["Sortiere nach"],controlNames:["sortBy"],describeValues:describeRebuySort,verificationTexts:describeRebuySort})
     },
     parsePath: parseRebuyPath
   },
@@ -243,6 +249,15 @@ function describeOttoSellers(values) {
 export function schemaParameterDescriptor(schema, parameter) {
   const key = String(parameter).toLowerCase();
   if (schema?.parameters[key]) return schema.parameters[key];
+  if (schema?.id === "rebuy-de") {
+    const field = /^f_(prop|variant)_([a-z0-9_]+)(?:\[\])?$/i.exec(String(parameter));
+    if (field ? !sensitiveCatalogField(field[2]) : false) {
+      const base = String(parameter).replace(/\[\]$/, "");
+      const type = ({manufacturer:"BRAND",colour_filter:"COLOR",availability:"CONDITION",position_earphonespeaker:"HEADPHONE_POSITION"})[field[2].toLowerCase()]
+        || semantic(field[2].replace(/^gr_/i,""));
+      return descriptor("FILTER", type, {canonical:base.toLowerCase(),domLabels:[base],controlNames:[base]});
+    }
+  }
   return schema?.dynamicParameters?.find((entry) => entry.pattern.test(parameter))?.descriptor || structuredParameterDescriptor(parameter);
 }
 
@@ -254,6 +269,11 @@ export function filterNamespaceField(parameter) {
 
 export function sensitiveFilterField(field) {
   return /token|session|password|secret|email|phone|address|payment|account|profile|user.?id|auth|tracking|cookie|csrf|credit.?card|customer|^(?:utm_|gclid$|fbclid$)/i.test(field);
+}
+
+export function sensitiveCatalogField(field) {
+  const name = String(field).replace(/([a-z])([A-Z])/g,"$1_$2");
+  return /token|session|password|secret|email|address|payment|account|profile|user.?id|auth|tracking|cookie|csrf|credit.?card|customer|(?:^|[_.-])(?:phone|telephone)(?:[_.-]|$)/i.test(name);
 }
 
 function structuredParameterDescriptor(parameter) {
@@ -324,12 +344,37 @@ function parseRebuyPath(url) {
   const segments = pathSegments(url.pathname);
   const kaufen = segments.indexOf("kaufen");
   if (kaufen < 0) return [];
-  const rest = segments.slice(kaufen + 1);
+  const category = pathSegments(rebuyCategoryPath(url)).slice(1);
+  const rest = segments.slice(kaufen + 1 + category.length);
   const criteria = [];
-  if (rest[0]) criteria.push(pathCriterion(url, "path-category", "CONTEXT", "CATEGORY_CONTEXT", [decodePathValue(rest[0])]));
-  if (rest[1]) criteria.push(pathCriterion(url, "path-brand", "FILTER", "BRAND", [decodePathValue(rest[1])]));
-  if (rest[2]) criteria.push(pathCriterion(url, "path-model", "FILTER", "MODEL", [decodePathValue(rest.slice(2).join(" "))]));
+  if (category.length) criteria.push(pathCriterion(url, "path-category", "CONTEXT", "CATEGORY_CONTEXT", [decodePathValue(category.join(" "))]));
+  if (category[0] === "konsolen-und-zubehoer") {
+    if (rest.length) criteria.push(pathCriterion(url, "path-model", "FILTER", "MODEL", [decodePathValue(rest.join(" "))]));
+  } else {
+    if (rest[0]) criteria.push(pathCriterion(url, "path-brand", "FILTER", "BRAND", [decodePathValue(rest[0])]));
+    if (rest[1]) criteria.push(pathCriterion(url, "path-model", "FILTER", "MODEL", [decodePathValue(rest.slice(1).join(" "))]));
+  }
   return criteria;
+}
+
+export function rebuyCategoryPath(urlLike) {
+  const url = urlLike instanceof URL ? urlLike : new URL(urlLike);
+  const parts = pathSegments(url.pathname);
+  if (parts[0] !== "kaufen") return url.pathname;
+  const branches = {
+    "audio-und-hifi":["apple-tv","ipod","kopfhoerer","lautsprecher"],
+    "kameras-und-zubehoer":["action-cams","digitalkameras","objektive","system-und-spiegelreflex"],
+    wearables:["smartwatches","fitness-tracker","sportuhren"],
+    "konsolen-und-zubehoer":["playstation","nintendo","xbox","steam-deck","asus","lenovo-legion-go","msi-claw"]
+  };
+  const depth = branches[parts[1]]?.includes(parts[2]) ? 3 : 2;
+  return `/${parts.slice(0,depth).map(encodeURIComponent).join("/")}`;
+}
+
+function describeRebuySort(values) {
+  return values.map((value) => /^(?:price_asc|variant_a\d+_price asc)$/i.test(value) ? "Preis: aufsteigend"
+    : /^(?:price_desc|variant_a\d+_price desc)$/i.test(value) ? "Preis: absteigend"
+      : /^(?:relevance|relevance_desc|best_match|best_results)$/i.test(value) ? "Beste Ergebnisse" : value);
 }
 
 function parseDecathlonPath(url) {
