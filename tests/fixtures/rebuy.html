@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>reBuy listing fixture</title><style>ry-filter-dropdown-bar,ry-filter-group,ry-filter-price,ry-filter-select,ry-filter-boolean,ry-filter-sort{display:block;margin:6px}a,label{margin:4px}</style></head><body>
+<header><button type="button">Anmelden</button></header>
+<main><h1></h1><ol typeof="BreadcrumbList"></ol><section id="products"></section></main>
+<script>
+const catalog = __REBUY_CATALOG__;
+const path = location.pathname.replace(/\/$/, "");
+const category = [...catalog.categories].sort((a,b) => b.path.length-a.path.length).find(item => path === item.path || path.startsWith(item.path+"/")) || catalog.categories[1];
+const params = new URL(location.href).searchParams;
+const desktopSort = innerWidth >= 1400;
+window.metrics = {filterClicks:0,menuClicks:0};
+document.querySelector("h1").textContent = path.endsWith("/kopfhoerer/sony") ? "Sony Kopfhörer kaufen" : path.split("/").slice(2).join(" ").replaceAll("-"," ");
+const breadcrumb = document.querySelector("ol");
+const parts = path.split("/").filter(Boolean);
+for (let index=1;index<parts.length;index+=1) {
+  const li=document.createElement("li"), node=document.createElement(index===parts.length-1?"span":"a");
+  node.setAttribute("property","item");
+  node.setAttribute(index===parts.length-1?"resource":"href","/"+parts.slice(0,index+1).join("/"));
+  node.textContent=decodeURIComponent(parts[index]).replaceAll("-"," ");
+  li.append(node); breadcrumb.append(li);
+}
+if(breadcrumb.children.length>1){const wrapper=document.createElement("li"),details=document.createElement("details"),summary=document.createElement("summary"),list=document.createElement("ul");summary.textContent="Weitere Kategorien anzeigen";for(const child of [...breadcrumb.children].slice(0,-1))list.append(child);details.append(summary,list);wrapper.append(details);breadcrumb.prepend(wrapper);}
+for(let index=0;index<4;index+=1){const a=document.createElement("a");a.href=`/i,${100+index}/kopfhoerer/fixture-${index}`;a.dataset.cy="product-link";a.textContent="In den Warenkorb";document.querySelector("#products").append(a);}
+const hidden=document.createElement("input");hidden.type="checkbox";hidden.hidden=true;document.body.append(hidden);
+const values = (name) => [...new Set([...params].filter(([key]) => key.replace(/\[\]$/,"")===name).map(([,value])=>value))];
+const parameter = (name) => name==="availability" ? "f_variant_availability" : "f_prop_"+name;
+const clear = (url,name) => {url.searchParams.delete(name);url.searchParams.delete(name+"[]");};
+const change = (url) => {window.metrics.filterClicks+=1;history.replaceState({},"",url);};
+function link(text,url,attrs={}){const a=document.createElement("a");a.textContent=text;a.href=url;for(const [key,value]of Object.entries(attrs))a.setAttribute(key,value);a.addEventListener("click",event=>{event.preventDefault();change(a.href);});return a;}
+function group(label,parentTag){const parent=document.createElement(parentTag),g=document.createElement("ry-filter-group"),title=document.createElement("div");title.className="headline";title.textContent=label;g.append(title);parent.append(g);return{parent,g};}
+let drawer=null,sortPanel=null;
+const bar=document.createElement("ry-filter-dropdown-bar");
+const all=document.createElement("button");all.type="button";all.textContent="Alle Filter 2 ausgewählt";
+const sort=document.createElement("button");sort.type="button";sort.textContent="Sortiere nach";sort.setAttribute("aria-expanded","false");
+bar.append(sort,all);if(!category.landing)document.querySelector("main").append(bar);
+all.addEventListener("click",()=>{
+  window.metrics.menuClicks+=1;if(drawer)return;
+  drawer=document.createElement("aside");
+  const close=document.createElement("button");close.type="button";close.textContent="Filter schließen";close.onclick=()=>{drawer.remove();drawer=null;};drawer.append(close);
+  for(const name of category.fields){
+    const [label,options]=catalog.fields[name],key=parameter(name),selected=values(key);
+    const {parent,g}=group(label,"ry-filter-select");
+    for(const value of [...new Set([...options,...selected])]){
+      const target=new URL(location.href),active=selected.includes(value);clear(target,key);
+      const next=active?selected.filter(item=>item!==value):[...selected,value];
+      for(const item of next)target.searchParams.append(next.length>1?key+"[]":key,item);
+      if(name==="availability" ? params.get("sortBy")?.includes("price") : false) target.searchParams.set("sortBy",active?"price_asc":`variant_${value}_price asc`);
+      const a=link(value,target,{"data-cy":`filter-${key}-${value}`,class:desktopSort?"":active?"select-item--selected":"select-item"});g.append(a);
+    }
+    drawer.append(parent);
+  }
+  const numeric=category.numeric||[];
+  for(const type of ["price","display"]){
+    if(!numeric.some(name=>name.startsWith(type)))continue;
+    const {parent,g}=group(type==="price"?"Preis (€)":"Displaygröße (Zoll)","ry-filter-price");
+    if(type==="display" ? path.startsWith("/kaufen/handy") : false){
+      if(params.has("displayMin") || params.has("displayMax")){const target=new URL(location.href);target.searchParams.delete("displayMin");target.searchParams.delete("displayMax");const label=!params.has("displayMin")?"Klein":!params.has("displayMax")?"Groß":"Mittel";g.append(link(label,target,{class:"select-item--selected"}));}
+    } else for(const bound of ["Min","Max"]){
+      const name=type+bound,input=document.createElement("input"),label=document.createElement("label");input.type="number";input.name=name;input.id=name;label.htmlFor=name;label.textContent=bound;
+      input.value=params.has(name)?String(Number(params.get(name))/(type==="price"?100:1)):"";
+      input.onchange=()=>{const target=new URL(location.href);target.searchParams.set(name,String(Number(input.value)*(type==="price"?100:1)));change(target);};g.append(label,input);
+    }
+    drawer.append(parent);
+  }
+  for(const [name,label]of [["inStock","Lieferbar"],["inSale","Nur Sale"],["fullBattery","100% Akku"]]){
+    const active=(params.get(name)??(name==="inStock"?"1":"0"))==="1",target=new URL(location.href);target.searchParams.set(name,active?"0":"1");
+    const parent=document.createElement("ry-filter-boolean");parent.append(link(label,target,{"aria-label":`${active?"Deaktiviere":"Aktiviere"} Filterung nach Eigenschaft ${label}`}));drawer.append(parent);
+  }
+  document.querySelector("main").append(drawer);
+});
+sort.addEventListener("click",()=>{
+  window.metrics.menuClicks+=1;
+  if(sortPanel){sortPanel.remove();sortPanel=null;sort.setAttribute("aria-expanded","false");return;}
+  sortPanel=document.createElement("ry-filter-sort");sortPanel.setAttribute("role","group");sortPanel.setAttribute("aria-label","Sortiere nach");
+  const selected=params.get("sortBy")||"";
+  for(const [index,label]of ["Beste Ergebnisse","Preis: aufsteigend","Preis: absteigend"].entries()){
+    const input=document.createElement("input"),text=document.createElement("label");input.type="radio";input.name="s_filter-sort";input.id=`s_filter-sort-${index}`;text.htmlFor=input.id;text.textContent=label;
+    input.checked=index===(/desc$/.test(selected)?2:/asc$/.test(selected)?1:0);input.onchange=()=>{const target=new URL(location.href);if(index)target.searchParams.set("sortBy",index===1?"price_asc":"price_desc");else target.searchParams.delete("sortBy");change(target);};sortPanel.append(input,text);
+  }
+  bar.append(sortPanel);sort.setAttribute("aria-expanded","true");
+});
+window.openAllFilters=()=>all.click();
+if(desktopSort){
+  sort.hidden=true;
+  const host=document.createElement("ry-filter-sort"),select=document.createElement("select");select.setAttribute("aria-label","Sortiere nach");
+  for(const [value,label]of [["best_results","Beste Ergebnisse"],["price_asc","Preis: aufsteigend"],["price_desc","Preis: absteigend"]]){const option=document.createElement("option");option.value=value;option.textContent=label;select.append(option);}
+  const selected=params.get("sortBy")||"best_results";select.value=/desc$/.test(selected)?"price_desc":/asc$/.test(selected)?"price_asc":"best_results";
+  select.onchange=()=>{const target=new URL(location.href);target.searchParams.set("sortBy",select.value);change(target);};host.append(select);document.querySelector("main").append(host);
+}
+</script></body></html>

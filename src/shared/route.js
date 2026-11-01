@@ -6,6 +6,7 @@ import {
   parameterControlEvidence,
   filterNamespaceField,
   sensitiveFilterField,
+  sensitiveCatalogField,
   serializeRouteUrl,
   schemaPathCriteria
 } from "../adapters/route-schemas.js";
@@ -34,6 +35,8 @@ export function normalizeSemanticType(value) {
 }
 
 export function classifyRouteParameter(name, urlLike = null) {
+  const propertyField = /^f_(?:prop|variant)_([^\[]+)(?:\[\])?$/i.exec(String(name))?.[1];
+  if (propertyField ? sensitiveCatalogField(propertyField) : false) return "EPHEMERAL";
   const namespaceField = filterNamespaceField(name);
   if (namespaceField ? sensitiveFilterField(namespaceField) : false) return "EPHEMERAL";
   if (/\[(?:[^\]]*(?:token|session|password|secret|email|phone|address|payment|account|profile|user.?id|auth|tracking)[^\]]*)\]/i.test(String(name))) return "EPHEMERAL";

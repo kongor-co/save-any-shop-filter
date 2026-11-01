@@ -13,6 +13,7 @@ import { runLibraryBrowserCases } from "./library-browser-cases.mjs";
 import { runSavedUpdateBrowserCases } from "./saved-update-browser-cases.mjs";
 import { runNamespacedMenuBrowserCases } from "./namespaced-menu-browser-cases.mjs";
 import { runSettingsBrowserCases } from "./settings-browser-cases.mjs";
+import { runRebuyBrowserCases } from "./rebuy-browser-cases.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const smokeRoot = resolve(root, ".browser-smoke");
@@ -24,7 +25,7 @@ const extensionDir = resolve(smokeRoot, "extension");
 await mkdir(extensionDir, { recursive: true });
 await cp(resolve(root, "src"), resolve(extensionDir, "src"), { recursive: true });
 const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
-manifest.host_permissions = ["http://127.0.0.1/*", "https://www.mediamarkt.de/*", "https://www.cyberport.de/*", "https://www.shop-apotheke.com/*", "https://www.home24.de/*", "https://www.otto.de/*", "https://empty-shop.test/*"];
+manifest.host_permissions = ["http://127.0.0.1/*", "https://www.mediamarkt.de/*", "https://www.cyberport.de/*", "https://www.shop-apotheke.com/*", "https://www.home24.de/*", "https://www.otto.de/*", "https://www.rebuy.de/*", "https://rebuy.de/*", "https://empty-shop.test/*"];
 await writeFile(resolve(extensionDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 const playwrightSpecifier = process.env.FILTERVAULT_PLAYWRIGHT_MODULE || "playwright";
@@ -120,6 +121,8 @@ try {
     return response.data;
   }, { type, payload });
 
+  await runRebuyBrowserCases({context,extension,call,smokeRoot});
+  if (!process.argv.includes("--rebuy-only")) {
   const preview = await call("GET_CAPTURE_PREVIEW", { tabId });
   assert.equal(preview.criteria.some((criterion) => criterion.semanticType === "BRAND"), true);
   assert.equal(preview.criteria.some((criterion) => criterion.semanticType === "SIZE"), true);
@@ -354,6 +357,7 @@ try {
     clip: { x: 0, y: 0, width: 430, height: 650 }
   });
   console.log(`Browser smoke passed: generic replay completed, Idealo captured ${idealoPreview.criteria.length} verified criteria, and Decathlon route evidence verified.`);
+  }
 } finally {
   await context?.close();
   await new Promise((resolveClosed) => server.close(resolveClosed));

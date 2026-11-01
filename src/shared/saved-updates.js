@@ -1,4 +1,5 @@
 import { getRouteSchemaInfo } from "./route.js";
+import { rebuyCategoryPath } from "../adapters/route-schemas.js";
 import { classifyContextCompatibility } from "./replay-policy.js";
 
 function canonical(value) {
@@ -39,7 +40,7 @@ export function updateListingPath(urlLike) {
     const parts = path.split("/").filter(Boolean);
     if (parts[1]?.includes(".")) path = `/${[parts[0], ...parts.slice(2)].join("/")}/`;
   }
-  if (schema === "rebuy-de") path = path.replace(/(\/kaufen\/[^/]+)(?:\/.*)?$/i, "$1");
+  if (schema === "rebuy-de") path = rebuyCategoryPath(url);
   if (schema === "kleinanzeigen-de") path = path.replace(/(?:\+|\/)[a-z0-9_.~-]+:[^+/]+/gi, "");
   return path.replace(/\/+$/, "") || "/";
 }

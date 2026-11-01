@@ -92,5 +92,18 @@
       {"semanticType":"MAX_DEPTH","desiredValue":["25"]},
       {"semanticType":"SELLER","desiredValue":["otto"]}
     ]
+  },
+  {
+    "id": "rebuy-sony-headphones",
+    "schemaId": "rebuy-de",
+    "routeCase": "rebuy-sony-headphones",
+    "resetUrl": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony",
+    "readySelector": "h1",
+    "resetReadySelector": "h1",
+    "expectedCriteria": [
+      {"semanticType":"BRAND","desiredValue":["sony"]},
+      {"semanticType":"HEADPHONE_POSITION","desiredValue":["ohrumschließend"]},
+      {"role":"PRESENTATION","semanticType":"SORT","desiredValue":["price_asc"]}
+    ]
   }
 ]

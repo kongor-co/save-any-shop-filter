@@ -64,7 +64,8 @@
       const startedSignature = activeStateSignature();
       const effectiveHints = discoverMenuHints(hints);
       const snapshot = captureSnapshot(effectiveHints);
-      await inspectActiveMenus(snapshot, effectiveHints);
+      if (isRebuyAdapter()) await inspectRebuyFilters(snapshot, effectiveHints);
+      else await inspectActiveMenus(snapshot, effectiveHints);
       reportUnmappedRemovalChips(snapshot);
       await delay(180 + (attempt * 120));
       if (startedUrl === location.href && startedSignature === activeStateSignature()) return snapshot;
@@ -78,19 +79,19 @@
       throw new Error(`UNSUPPORTED_PAGE_TYPE:${pageType}`);
     }
 
-    const candidates = isDecathlonAdapter()
+    const candidates = (isDecathlonAdapter() || isRebuyAdapter())
       ? { supported: [], unsupported: [], unresolved: [], defaultsIgnored: [] }
       : collectSupportedControls(hints);
     let domCriteria = groupCandidates(candidates.supported);
     if (isIdealoAdapter()) domCriteria = enrichIdealoCriteria(domCriteria);
-    const adapterId = isIdealoAdapter() ? "idealo-de" : isDecathlonAdapter() ? "decathlon-de" : "generic";
+    const adapterId = isIdealoAdapter() ? "idealo-de" : isDecathlonAdapter() ? "decathlon-de" : isRebuyAdapter() ? "rebuy-de" : "generic";
     return {
       url: location.href,
       title: document.title,
       locale: document.documentElement.lang || navigator.language || "und",
       pageType,
       adapterId,
-      adapterVersion: isDecathlonAdapter() ? 2 : 1,
+      adapterVersion: (isDecathlonAdapter() || isRebuyAdapter()) ? 2 : 1,
       contextLabel: inferContextLabel(),
       domCriteria,
       unsupported: candidates.unsupported.slice(0, 30),
@@ -114,6 +115,13 @@
     if (/\/(checkout|payment|order|basket|cart)(\/|$)/.test(path)) return "CHECKOUT";
     if (/\/(login|sign-in|signin|auth)(\/|$)/.test(path) || document.querySelector('input[type="password"]')) return "LOGIN";
     if (/\/(account|profile|settings)(\/|$)/.test(path)) return "ACCOUNT";
+    if (isRebuyAdapter()) {
+      if (/^\/i,\d+(?:\/|$)/.test(path)) return "PRODUCT_DETAIL";
+      if (/^\/my(?:\/|$)/.test(path)) return "ACCOUNT";
+      if (!/^\/kaufen\/(?!categories(?:\/|$))[^/]+/.test(path)) return "OTHER";
+      if (document.querySelector('ry-filter-dropdown-bar,ry-filter-group,ry-filter-boolean')) return /^\/kaufen\/suchen(?:\/|$)/.test(path) ? "SEARCH" : "LISTING";
+      return "OTHER";
+    }
 
     const filterControls = queryAllDeep('input[type="checkbox"], input[type="radio"], select, button[role="combobox"][aria-controls], button[aria-pressed][aria-label^="Filtern nach:"], button[aria-pressed][aria-label^="Filter by:"], [role="checkbox"], [role="radio"], [aria-checked], [aria-selected]');
     const menuFilters = queryAllDeep('button[aria-haspopup][aria-controls][aria-expanded]').filter(isDropdownTrigger)
@@ -827,7 +835,7 @@
     return {
       origin: url.origin, surface, category: inferContextLabel(), searchQuery: query, routeClass, locale,
       viewport: innerWidth < 720 ? "compact" : "desktop",
-      adapterVersion: isDecathlonAdapter() ? 2 : 1,
+      adapterVersion: (isDecathlonAdapter() || isRebuyAdapter()) ? 2 : 1,
       compatibilityFingerprint: `${url.origin}|${surface}|${routeClass}|${locale}`
     };
   }
@@ -913,7 +921,7 @@
     const routeSatisfied = routeBindings.length > 0 && routeBindings.every(routeBindingMatches);
     const domSatisfied = domBindings.length > 0 && domBindings.every(bindingCurrentlySatisfied);
     if (routeSatisfied && (!domBindings.length || domSatisfied)) {
-      if (domSatisfied || hasVisibleCriterionEvidence(criterion)) {
+      if (domSatisfied || await hasVisibleCriterionEvidence(criterion, message)) {
         return criterionResult(criterion, "VERIFIED", "The saved route and visible storefront state represent this criterion.", domSatisfied ? "DOM_CONTROL" : "VISIBLE_STATE");
       }
       return criterionResult(criterion, "ROUTE_ONLY", "The saved route represents this criterion; visible confirmation is not available.", "NORMALIZED_ROUTE");
@@ -989,7 +997,7 @@
       }
       return "VERIFIED";
     }
-    if (hasVisibleCriterionEvidence(criterion)) return "VERIFIED";
+    if (await hasVisibleCriterionEvidence(criterion, message)) return "VERIFIED";
     if (!routeBindings.length || !routeBindings.every(routeBindingMatches)) return false;
     return "ROUTE_ONLY";
   }
@@ -1335,7 +1343,176 @@
     return JSON.stringify(values.sort());
   }
 
-  function hasVisibleCriterionEvidence(criterion) {
+  function isRebuyAdapter() {
+    return ["rebuy.de", "www.rebuy.de"].includes(location.hostname.toLowerCase());
+  }
+
+  function rebuyField(key) { return String(key).replace(/\[\]$/, "").toLowerCase(); }
+
+  function rebuyValues(url, field) {
+    return [...new Set([...url.searchParams].filter(([key]) => rebuyField(key) === rebuyField(field)).map(([,value]) => value))].sort();
+  }
+
+  function rebuyQueryState(url, omitted = []) {
+    const fields = [...new Set([...url.searchParams.keys()].map(rebuyField))].filter((key) => !omitted.includes(key));
+    return JSON.stringify(fields.sort().map((key) => [key,rebuyValues(url,key)]));
+  }
+
+  function rebuyRemovalEvidence(link, field, value) {
+    const current = new URL(location.href);
+    const next = new URL(link.href, location.href);
+    if (next.origin !== current.origin || next.pathname !== current.pathname) return false;
+    const expected = rebuyValues(current,field).filter((item) => item !== value);
+    if (JSON.stringify(expected) !== JSON.stringify(rebuyValues(next,field))) return false;
+    const omitted = [rebuyField(field)];
+    if (rebuyField(field) === "f_variant_availability") omitted.push("sortby");
+    return rebuyQueryState(current,omitted) === rebuyQueryState(next,omitted);
+  }
+
+  async function withRebuyPanel(kind, callback, message) {
+    const originallyOpen = queryAllDeep('ry-filter-dropdown-bar button[aria-expanded="true"]').filter(isElementVisible).map((button) => plainText(labelText(button)));
+    const breadcrumbs = queryAllDeep('[typeof="BreadcrumbList"] details').filter((details) => !details.open);
+    let opened = null;
+    try {
+      if (message) assertNotCancelled(message);
+      if (kind === "breadcrumb") {
+        for (const details of breadcrumbs) details.querySelector("summary")?.click();
+      } else if (kind === "sort") {
+        if (queryAllDeep('ry-filter-sort select').some(isElementVisible)) return await callback();
+        const trigger = unique(queryAllDeep('ry-filter-dropdown-bar button[aria-expanded]').filter(isElementVisible).filter((button) => plainText(labelText(button)) === "sortiere nach"));
+        if (trigger?.getAttribute("aria-expanded") === "false") { trigger.click(); opened = trigger; }
+        await waitForRebuy(() => queryAllDeep('ry-filter-sort input[type="radio"]').some(isElementVisible), message);
+      } else {
+        const surface = () => queryAllDeep('ry-filter-select,ry-filter-price,ry-filter-boolean').some(isElementVisible);
+        if (!surface()) {
+          const reveal = unique(queryAllDeep("button").filter(isElementVisible).filter((button) => /^Alle Filter(?:\s+\d+\s+ausgewählt)?$/i.test(plainText(labelText(button)))));
+          if (reveal) { reveal.click(); opened = reveal; }
+          await waitForRebuy(surface,message);
+        }
+      }
+      if (message) assertNotCancelled(message);
+      return await callback();
+    } finally {
+      if (kind === "breadcrumb") {
+        for (const details of breadcrumbs) if (details.open) details.querySelector("summary")?.click();
+      } else if (opened) {
+        if (kind === "sort") {
+          if (opened.getAttribute("aria-expanded") === "true") opened.click();
+        } else {
+          const close = unique(queryAllDeep("button").filter(isElementVisible).filter((button) => plainText(labelText(button)) === "filter schließen"));
+          close?.click();
+        }
+      }
+      for (const label of originallyOpen) {
+        const trigger = unique(queryAllDeep('ry-filter-dropdown-bar button[aria-expanded="false"]').filter(isElementVisible).filter((button) => plainText(labelText(button)) === label));
+        trigger?.click();
+      }
+    }
+  }
+
+  async function waitForRebuy(condition, message) {
+    const deadline = Date.now() + 1500;
+    while (!condition()) {
+      if (message) assertNotCancelled(message);
+      if (Date.now() >= deadline) return false;
+      await delay(50);
+    }
+    return true;
+  }
+
+  function rebuyQueryEvidence(field, values) {
+    const current = new URL(location.href);
+    const key = rebuyField(field);
+    if (/^f_(prop|variant)_/.test(key)) {
+      const links = queryAllDeep('ry-filter-group a[data-cy]').filter(isElementVisible);
+      return values.every((value) => {
+        const originals = links.filter((link) => link.getAttribute("data-cy") === `filter-${field.replace(/\[\]$/, "")}-${value}`);
+        if (originals.some((link) => !rebuyRemovalEvidence(link,field,value))) return false;
+        const candidates = originals.length ? originals : queryAllDeep('ry-filter-tags a[aria-label^="Deaktiviere Filterung"]');
+        const matches = candidates.filter(isElementVisible).filter((link) => rebuyRemovalEvidence(link,field,value));
+        return matches.length > 0 ? new Set(matches.map((link) => plainText(labelText(link)))).size === 1 : false;
+      });
+    }
+    if (["pricemin","pricemax","displaymin","displaymax"].includes(key)) {
+      const inputs = queryAllDeep('ry-filter-price input[name],ry-filter-group input[name]').filter(isElementVisible).filter((input) => rebuyField(input.name) === key);
+      if (inputs.length) return values.every((value) => Number.isFinite(Number(value)) ? inputs.every((input) => input.value.trim() !== "" ? Number(input.value) === Number(value) / (key.startsWith("price") ? 100 : 1) : false) : false);
+      // Phone-size chips select both display endpoints together.
+      const links = queryAllDeep('ry-filter-group a').filter(isElementVisible);
+      return links.some((link) => {
+        const preset = ({klein:[null,6],mittel:[6.1,6.5],"groß":[6.6,null]})[plainText(labelText(link)).toLowerCase()];
+        if (!preset) return false;
+        if (!["displaymin","displaymax"].every((endpoint,index) => {
+          const selected = rebuyValues(current,endpoint);
+          return preset[index] === null ? selected.length === 0 : selected.length === 1 ? Number(selected[0]) === preset[index] : false;
+        })) return false;
+        const next = new URL(link.href, location.href);
+        if (next.origin !== current.origin || next.pathname !== current.pathname) return false;
+        if (rebuyValues(next,key).length) return false;
+        return rebuyQueryState(current,["displaymin","displaymax"]) === rebuyQueryState(next,["displaymin","displaymax"]);
+      });
+    }
+    if (["instock","insale","fullbattery"].includes(key)) {
+      if (values.length !== 1 || !["0","1"].includes(values[0])) return false;
+      return queryAllDeep('ry-filter-boolean a[aria-label],ry-filter-dropdown-bar a[aria-pressed]').filter(isElementVisible).some((link) => {
+        const active = link.hasAttribute("aria-pressed") ? link.getAttribute("aria-pressed") === "true" : /^Deaktiviere Filterung/.test(link.getAttribute("aria-label") || "");
+        if (active !== (values[0] === "1")) return false;
+        const next = new URL(link.href,location.href);
+        if (next.origin !== current.origin || next.pathname !== current.pathname) return false;
+        const target = rebuyValues(next,key)[0] ?? (key === "instock" ? "1" : "0");
+        if (target === values[0]) return false;
+        return rebuyQueryState(current,[key]) === rebuyQueryState(next,[key]);
+      });
+    }
+    return false;
+  }
+
+  function rebuySortEvidence(values) {
+    const labels = values.map((value) => /^(?:price_asc|variant_a\d+_price asc)$/i.test(value) ? "Preis: aufsteigend"
+      : /^(?:price_desc|variant_a\d+_price desc)$/i.test(value) ? "Preis: absteigend"
+        : /^(?:relevance|relevance_desc|best_match|best_results)$/i.test(value) ? "Beste Ergebnisse" : null);
+    if (labels.some((label) => !label)) return false;
+    const selected = queryAllDeep('ry-filter-sort input[type="radio"]:checked').filter(isElementVisible).map(controlLabel);
+    for (const select of queryAllDeep('ry-filter-sort select').filter(isElementVisible)) {
+      for (const option of select.selectedOptions) selected.push(option.textContent);
+    }
+    return selected.length === 1 ? labels.every((label) => plainText(label) === plainText(selected[0])) : false;
+  }
+
+  async function inspectRebuyFilters(snapshot, hints) {
+    const active = (hints || []).filter((hint) => hint.parameters?.length);
+    await withRebuyPanel("filters", () => {
+      for (const hint of active) {
+        if (hint.semanticType === "SORT") continue;
+        const values = [...new Set(hint.parameters.flatMap((key) => new URL(location.href).searchParams.getAll(key)))];
+        const field = hint.parameters[0];
+        if (!rebuyQueryEvidence(field,values)) snapshot.unresolved.push({label:hint.labels[0],reason:"The saved URL filter could not be confirmed by the selected shop controls."});
+      }
+    });
+    for (const hint of active.filter((item) => item.semanticType === "SORT")) {
+      const values = hint.parameters.flatMap((key) => new URL(location.href).searchParams.getAll(key));
+      if (!await withRebuyPanel("sort", () => rebuySortEvidence(values))) snapshot.unresolved.push({label:"Sortiere nach",reason:"The saved sort order does not match the selected shop option."});
+    }
+    snapshot.unresolved = dedupeUnsupported(snapshot.unresolved);
+  }
+
+  async function rebuyCriterionEvidence(criterion, message) {
+    const bindings = (criterion.bindings || []).filter((binding) => ["URL_QUERY","URL_PATH"].includes(binding.type));
+    if (!bindings.length || !bindings.every(routeBindingMatches)) return false;
+    const path = bindings.filter((binding) => binding.type === "URL_PATH");
+    if (path.length) return withRebuyPanel("breadcrumb", () => {
+      const items = queryAllDeep('[typeof="BreadcrumbList"] [property="item"]').filter(isElementVisible).filter((item) => plainText(item.textContent));
+      const locations = items.map((item) => new URL(item.getAttribute("href") || item.getAttribute("resource") || location.href,location.href)).filter((url) => url.origin === location.origin);
+      return locations.some((url) => {
+        const value = decodeURIComponent(url.pathname.replace(/^\/kaufen\//,"")).replace(/[-_/]+/g," ").trim();
+        return criterion.desiredValue.every((desired) => value === String(desired) || value.endsWith(` ${desired}`));
+      });
+    }, message);
+    if (criterion.semanticType === "SORT") return withRebuyPanel("sort", () => rebuySortEvidence(bindings.flatMap((binding) => binding.values)), message);
+    return withRebuyPanel("filters", () => bindings.every((binding) => rebuyQueryEvidence(binding.parameter,binding.values)), message);
+  }
+
+  async function hasVisibleCriterionEvidence(criterion, message) {
+    if (isRebuyAdapter()) return rebuyCriterionEvidence(criterion, message);
     if (isDecathlonAdapter()) return hasDecathlonVisibleCriterionEvidence(criterion);
     const controlEvidence = (criterion.bindings || []).filter((binding) => binding.controlEvidence);
     if (controlEvidence.length) {

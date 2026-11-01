@@ -79,5 +79,12 @@
     "url": "https://www.home24.de/aussenstrahler/?order=POPULARITY\u0026width.max=14\u0026average_rating=%E2%98%85%E2%98%85%E2%98%85%E2%98%85+und+mehr\u0026color=black%7Cgray",
     "schema": "home24-de",
     "expected": { "SORT": ["POPULARITY"], "MAX_WIDTH": ["14"], "RATING": ["★★★★ und mehr"], "COLOR": ["black", "gray"] }
+  },
+  {
+    "id": "rebuy-sony-headphones",
+    "shop": "reBuy Sony headphones",
+    "url": "https://www.rebuy.de/kaufen/audio-und-hifi/kopfhoerer/sony?f_prop_position_earphonespeaker=ohrumschlie%C3%9Fend\u0026sortBy=price_asc",
+    "schema": "rebuy-de",
+    "expected": { "CATEGORY_CONTEXT": ["audio und hifi kopfhoerer"], "BRAND": ["sony"], "HEADPHONE_POSITION": ["ohrumschließend"], "SORT": ["price_asc"] }
   }
 ]

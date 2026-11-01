@@ -1,0 +1,15 @@
+[
+  {"path":"handy","parameter":"f_prop_season","semanticType":"SEASON","value":"2026"},
+  {"path":"tablets-und-ebook-reader","parameter":"f_prop_season","semanticType":"SEASON","value":"2026"},
+  {"path":"kameras-und-zubehoer","parameter":"f_prop_manufacturer","semanticType":"BRAND","value":"Insta360"},
+  {"path":"wearables","parameter":"f_prop_manufacturer","semanticType":"BRAND","value":"Apple"},
+  {"path":"konsolen-und-zubehoer","parameter":"f_prop_manufacturer","semanticType":"BRAND","value":"ASUS"},
+  {"path":"notebooks/apple","parameter":"f_prop_season","semanticType":"SEASON","value":"2026"},
+  {"path":"audio-und-hifi","parameter":"f_prop_manufacturer","semanticType":"BRAND","value":"Amazon"},
+  {"path":"buecher","parameter":"f_prop_produkt_form_filter","semanticType":"PRODUKT_FORM_FILTER","value":"Adressbuch"},
+  {"path":"filme","parameter":"f_prop_prop_movie_language_filter","semanticType":"PROP_MOVIE_LANGUAGE_FILTER","value":"Deutsch"},
+  {"path":"videospiele","parameter":"f_prop_vr_game","semanticType":"VR_GAME","value":"Ja"},
+  {"path":"musik","parameter":"f_prop_produkt_form_filter","semanticType":"PRODUKT_FORM_FILTER","value":"Audio-CD"},
+  {"path":"geschenkgutscheine","parameter":"priceMin","semanticType":"MIN_PRICE","value":"1000"},
+  {"path":"notebooks/apple/mac-mini","parameter":"f_prop_season","semanticType":"SEASON","value":"2026"}
+]

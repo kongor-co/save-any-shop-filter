@@ -24,7 +24,11 @@ function record() {
 test("acceptance scenarios derive retailer routes from the existing contracts", async () => {
   const inputs = await loadAcceptanceInputs(root);
   assert.equal(inputs.catalog.length,12);
-  assert.deepEqual(inputs.scenarios.map((item) => item.schemaId),["idealo-de","decathlon-de","mediamarkt-de","cyberport-de","shop-apotheke-de","home24-de","otto-de"]);
+  assert.deepEqual([...new Set(inputs.scenarios.map((item) => item.schemaId))],["idealo-de","decathlon-de","mediamarkt-de","cyberport-de","shop-apotheke-de","home24-de","otto-de","rebuy-de"]);
+  assert.equal(inputs.scenarios.filter(item=>item.schemaId==="rebuy-de").length,14);
+  const rebuy=inputs.scenarios.find((item)=>item.schemaId==="rebuy-de");
+  assert.equal(new URL(rebuy.filteredUrl).pathname,"/kaufen/audio-und-hifi/kopfhoerer/sony");
+  assert.equal(new URL(rebuy.filteredUrl).searchParams.get("f_prop_position_earphonespeaker"),"ohrumschließend");
   for (const item of inputs.scenarios) {
     assert.equal(new URL(item.filteredUrl).origin,new URL(item.resetUrl).origin);
     assert.ok(item.expectedCriteria.length>0);

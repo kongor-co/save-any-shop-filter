@@ -6,8 +6,18 @@ import { assessReplay, checkCapture, resetDifferences, scenarioDigest } from "./
 export async function loadAcceptanceInputs(root) {
   const routes = JSON.parse(await readFile(resolve(root,"tests/fixtures/live-route-cases.json"),"utf8"));
   const definitions = JSON.parse(await readFile(resolve(root,"docs/acceptance/scenarios.json"),"utf8"));
+  const rebuyCatalog = JSON.parse(await readFile(resolve(root,"tests/fixtures/rebuy-live-catalog.json"),"utf8"));
+  for (const sample of rebuyCatalog) {
+    const id = `rebuy-catalog-${sample.path.replaceAll("/","-")}`;
+    const resetUrl = `https://www.rebuy.de/kaufen/${sample.path}`;
+    const filteredUrl = new URL(resetUrl);
+    filteredUrl.searchParams.set(sample.parameter,sample.value);
+    filteredUrl.searchParams.set("sortBy","price_asc");
+    routes.push({id,shop:"reBuy catalog",schema:"rebuy-de",url:filteredUrl.href});
+    definitions.push({id,schemaId:"rebuy-de",routeCase:id,resetUrl,readySelector:"h1",resetReadySelector:"h1",expectedCriteria:[{semanticType:sample.semanticType,desiredValue:[sample.value]},{role:"PRESENTATION",semanticType:"SORT",desiredValue:["price_asc"]}]});
+  }
   const scenarios = definitions.map((scenario) => {
-    const contract = routes.find((item) => item.schema === scenario.schemaId);
+    const contract = routes.find((item) => item.schema !== scenario.schemaId ? false : scenario.routeCase ? item.id === scenario.routeCase : true);
     if (!contract) throw new Error(`Missing route contract: ${scenario.schemaId}`);
     const filteredUrl = new URL(contract.url);
     for (const key of contract.removed || []) filteredUrl.searchParams.delete(key);
